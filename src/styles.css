@@ -59,6 +59,15 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-forest: var(--forest);
+  --color-forest-deep: var(--forest-deep);
+  --color-forest-soft: var(--forest-soft);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-map: var(--map);
+  --color-ink-soft: var(--ink-soft);
+  --font-display: "DM Sans", sans-serif;
+  --font-body: "DM Sans", sans-serif;
 }
 
 :root {
@@ -95,6 +104,13 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  --forest: oklch(0.26 0.095 157);
+  --forest-deep: oklch(0.18 0.075 157);
+  --forest-soft: oklch(0.93 0.035 157);
+  --signal: oklch(0.72 0.16 58);
+  --signal-soft: oklch(0.95 0.055 83);
+  --map: oklch(0.87 0.045 125);
+  --ink-soft: oklch(0.42 0.025 155);
 }
 
 .dark {
@@ -140,5 +156,36 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-body);
+    letter-spacing: 0;
   }
+
+  button, input, textarea, select { font: inherit; }
+}
+
+@utility page-grid {
+  background-image: linear-gradient(to right, color-mix(in oklab, var(--forest) 5%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--forest) 5%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@utility map-grid {
+  background-color: var(--map);
+  background-image: linear-gradient(color-mix(in oklab, var(--forest-deep) 9%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--forest-deep) 9%, transparent) 1px, transparent 1px), radial-gradient(circle at 18% 28%, color-mix(in oklab, var(--forest) 22%, transparent) 0 18%, transparent 19%), radial-gradient(circle at 72% 72%, color-mix(in oklab, var(--signal) 32%, transparent) 0 15%, transparent 16%);
+  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
+}
+
+@utility map-parcel {
+  border: 2px solid color-mix(in oklab, var(--forest-deep) 65%, transparent);
+  background: color-mix(in oklab, var(--forest-soft) 65%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--background) 65%, transparent);
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+@utility map-parcel-alert {
+  border-color: var(--signal);
+  background: color-mix(in oklab, var(--signal-soft) 80%, transparent);
+}
+
+@utility panel-shadow {
+  box-shadow: 0 14px 38px color-mix(in oklab, var(--forest-deep) 10%, transparent), 0 2px 8px color-mix(in oklab, var(--forest-deep) 6%, transparent);
 }
