@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -188,4 +189,43 @@
 
 @utility panel-shadow {
   box-shadow: 0 14px 38px color-mix(in oklab, var(--forest-deep) 10%, transparent), 0 2px 8px color-mix(in oklab, var(--forest-deep) 6%, transparent);
+}
+
+@utility cadastral-panel {
+  background: linear-gradient(160deg, oklch(0.97 0.02 157) 0%, oklch(1 0 0) 60%);
+}
+
+@keyframes pipeline-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+@utility pipeline-processing {
+  animation: pipeline-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes parcel-select {
+  0%   { box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.5); }
+  100% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+}
+
+@utility parcel-selected {
+  animation: parcel-select 0.6s ease-out;
+}
+
+@keyframes confidence-fill {
+  from { width: 0%; }
+}
+
+@utility confidence-bar {
+  animation: confidence-fill 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@utility nl-message {
+  animation: fade-slide-up 0.25s ease-out;
 }
