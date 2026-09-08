@@ -194,6 +194,44 @@ const DEFAULT_CATEGORIES: BNLevel[] = [
   { code: "R", value: "Rural (ग्रामीण)" },
   { code: "U", value: "Urban (शहरी)" },
 ];
+
+export const DEFAULT_DISTRICTS: BNLevel[] = [
+  { code: "26", value: "Ahmadnagar (अहमदनगर)" },
+  { code: "05", value: "Akola (अकोला)" },
+  { code: "07", value: "Amravati (अमरावती)" },
+  { code: "19", value: "Chhatrapati Sambhajinagar / Aurangabad (औरंगाबाद)" },
+  { code: "27", value: "Beed (बीड)" },
+  { code: "10", value: "Bhandara (भंडारा)" },
+  { code: "04", value: "Buldana (बुलडाणा)" },
+  { code: "13", value: "Chandrapur (चंद्रपूर)" },
+  { code: "29", value: "Dharashiv / Osmanabad (उस्मानाबाद)" },
+  { code: "02", value: "Dhule (धुळे)" },
+  { code: "12", value: "Gadchiroli (गडचिरोली)" },
+  { code: "11", value: "Gondia (गोंदिया)" },
+  { code: "16", value: "Hingoli (हिंगोली)" },
+  { code: "03", value: "Jalgaon (जळगाव)" },
+  { code: "18", value: "Jalna (जालना)" },
+  { code: "34", value: "Kolhapur (कोल्हापूर)" },
+  { code: "28", value: "Latur (लातूर)" },
+  { code: "22", value: "Mumbai Suburban (मुंबई उपनगर)" },
+  { code: "09", value: "Nagpur (नागपूर)" },
+  { code: "15", value: "Nanded (नांदेड)" },
+  { code: "01", value: "Nandurbar (नंदुरबार)" },
+  { code: "20", value: "Nashik (नाशिक)" },
+  { code: "36", value: "Palghar (पालघर)" },
+  { code: "17", value: "Parbhani (परभणी)" },
+  { code: "25", value: "Pune (पुणे)" },
+  { code: "24", value: "Raigad (रायगड)" },
+  { code: "32", value: "Ratnagiri (रत्नागिरी)" },
+  { code: "35", value: "Sangli (सांगली)" },
+  { code: "31", value: "Satara (सातारा)" },
+  { code: "33", value: "Sindhudurg (सिंधुदुर्ग)" },
+  { code: "30", value: "Solapur (सोलापूर)" },
+  { code: "21", value: "Thane (ठाणे)" },
+  { code: "08", value: "Wardha (वर्धा)" },
+  { code: "06", value: "Washim (वाशिम)" },
+  { code: "14", value: "Yavatmal (यवतमाळ)" },
+];
 const DEFAULT_LABELS = ["Category", "District", "Taluka", "Village", "Map Type", "Survey No."];
 
 function createDistrictStyle(feature: any) {
@@ -299,8 +337,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const identifyModeRef = useRef(false);
   const bnGisCodeRef = useRef<string | null>(null);
   const bnCadastralEnabledRef = useRef(false);
-  const bnLevelsRef = useRef<BNLevel[][]>([DEFAULT_CATEGORIES, [], [], [], [], []]);
-  const bnSelectedRef = useRef<string[]>(["", "", "", "", "", ""]);
+  const bnLevelsRef = useRef<BNLevel[][]>([DEFAULT_CATEGORIES, DEFAULT_DISTRICTS, [], [], [], []]);
+  const bnSelectedRef = useRef<string[]>(["R", "", "", "", "", ""]);
   const panelOpenRef = useRef<PanelKey | null>("layerList");
   const handleIdentifyClickRef = useRef<((evt: any) => void) | null>(null);
 
@@ -328,10 +366,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // BhuNaksha cadastral state
   const [bnCadastralEnabled, setBnCadastralEnabled] = useState(false);
   const [bnCadastralOpacity, setBnCadastralOpacity] = useState(85);
-  const [bnLevels, setBnLevels] = useState<BNLevel[][]>([DEFAULT_CATEGORIES, [], [], [], [], []]);
+  const [bnLevels, setBnLevels] = useState<BNLevel[][]>([DEFAULT_CATEGORIES, DEFAULT_DISTRICTS, [], [], [], []]);
   const [bnLevelCount, setBnLevelCount] = useState(6);
   const [bnLevelLabels, setBnLevelLabels] = useState<string[]>(DEFAULT_LABELS);
-  const [bnSelected, setBnSelected] = useState<string[]>(["", "", "", "", "", ""]);
+  const [bnSelected, setBnSelected] = useState<string[]>(["R", "", "", "", "", ""]);
   const [bnGisCode, setBnGisCode] = useState<string | null>(null);
   const [bnAttribution, setBnAttribution] = useState<string | null>(null);
   const [bnLoading, setBnLoading] = useState(false);
@@ -1006,6 +1044,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
     if (levelIndex === 0) {
       // Category selected ('R' or 'U')
+      if (code === "R") {
+        setBnLevels((prev) => {
+          const u = [...prev];
+          u[1] = DEFAULT_DISTRICTS;
+          return u;
+        });
+      }
       setBnLoading(true);
       try {
         const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
@@ -1015,7 +1060,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data[0]) {
+          if (Array.isArray(data) && data[0] && data[0].length > 0) {
             setBnLevels((prev) => {
               const u = [...prev];
               // Fix BhuNaksha API typos in district names (e.g. 'Nangpur' → 'Nagpur')
@@ -1028,7 +1073,12 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           }
         }
       } catch (err) {
-        console.warn("Fetch districts failed:", err);
+        console.warn("Fetch districts failed, retaining default districts:", err);
+        setBnLevels((prev) => {
+          const u = [...prev];
+          if (!u[1] || u[1].length === 0) u[1] = DEFAULT_DISTRICTS;
+          return u;
+        });
       } finally {
         setBnLoading(false);
       }
@@ -1054,8 +1104,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         }
         const distObj = bnLevels[1]?.find((d) => d.code === code);
         if (distObj) {
-          // Apply name fix before flying to district so GeoJSON match works
-          const fixedDistName = BN_DISTRICT_NAME_FIX[distObj.value] || distObj.value;
+          const raw = distObj.value || "";
+          const enName = raw.includes("(") ? raw.split("(")[0].trim() : (raw.includes("/") ? raw.split("/")[0].trim() : raw);
+          const fixedDistName = BN_DISTRICT_NAME_FIX[enName] || enName;
           flyToDistrict(fixedDistName);
         }
       } catch (err) {
@@ -1228,7 +1279,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           setBnLevels((prev) => {
             const u = [...prev];
             u[0] = categories.length ? categories : DEFAULT_CATEGORIES;
-            if (districts.length) u[1] = districts;
+            u[1] = districts.length ? districts : DEFAULT_DISTRICTS;
             return u;
           });
         }
@@ -1238,13 +1289,26 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       setBnLevels((prev) => {
         const u = [...prev];
         if (!u[0] || u[0].length === 0) u[0] = DEFAULT_CATEGORIES;
+        if (!u[1] || u[1].length === 0) u[1] = DEFAULT_DISTRICTS;
         return u;
       });
     } finally {
       setBnLoading(false);
     }
   }, []);
-  useEffect(() => { if (panelOpen === "cadastral") initBhuNakshaLevels(); }, [panelOpen, initBhuNakshaLevels]);
+  useEffect(() => {
+    if (panelOpen === "cadastral") {
+      setBnSelected((prev) => {
+        if (!prev[0]) {
+          const u = [...prev];
+          u[0] = "R";
+          return u;
+        }
+        return prev;
+      });
+      initBhuNakshaLevels();
+    }
+  }, [panelOpen, initBhuNakshaLevels]);
 
   const loadDistrictVillages = useCallback(async (districtRaw: string) => {
     if (!districtRaw) return;

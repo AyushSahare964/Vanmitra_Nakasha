@@ -37,6 +37,17 @@ async function getSessionCookie() {
 }
 
 export default async function handler(req, res) {
+  // Fast return for CORS preflight
+  if (req.method === "OPTIONS") {
+    res.writeHead(200, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+    });
+    res.end();
+    return;
+  }
+
   // Read request body if present
   const chunks = [];
   for await (const chunk of req) {
@@ -126,7 +137,14 @@ export default async function handler(req, res) {
         makeReq(loc, cachedCookie || currentCookie, redirects + 1);
         return;
       }
-      res.writeHead(pres.statusCode || 200, pres.headers);
+      const respHeaders = { ...pres.headers };
+      delete respHeaders["content-security-policy"];
+      delete respHeaders["x-frame-options"];
+      delete respHeaders["transfer-encoding"];
+      respHeaders["access-control-allow-origin"] = "*";
+      respHeaders["access-control-allow-methods"] = "GET, POST, OPTIONS";
+      respHeaders["access-control-allow-headers"] = "*";
+      res.writeHead(pres.statusCode || 200, respHeaders);
       pres.pipe(res);
     });
 
