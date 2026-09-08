@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportAppError } from "../lib/error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -38,7 +38,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportAppError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
@@ -77,11 +77,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ADVANTE | Ozar Land Intelligence" },
-      { name: "description", content: "AI-powered geospatial harmonization for Ozar Village land records." },
-      { name: "author", content: "ADVANTE" },
-      { property: "og:title", content: "ADVANTE | Ozar Land Intelligence" },
-      { property: "og:description", content: "AI-powered geospatial harmonization for Ozar Village land records." },
+      { title: "ADVANTE | Maharashtra Cadastral & Land Intelligence" },
+      { name: "description", content: "AI-powered automated integration and intelligent harmonization of multi-source geospatial data for urban land record management." },
+      { name: "author", content: "Team ADVANTE" },
+      { property: "og:title", content: "ADVANTE | Maharashtra Cadastral & Land Intelligence" },
+      { property: "og:description", content: "AI-powered automated integration and intelligent harmonization of multi-source geospatial data for urban land record management." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@ADVANTE" },
@@ -95,7 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/advante_icon.png" },
     ],
   }),
   shellComponent: RootShell,

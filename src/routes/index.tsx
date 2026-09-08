@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect, lazy, Suspense } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity, AlertTriangle, ArrowDownToLine, ArrowUpRight, Bell, Bot, Check, ChevronDown,
@@ -16,15 +16,27 @@ import {
   claimants, getClaimantsBySurvey, simulateNLResponse, routeBadge,
   type SurveyStatus, type SurveySummary, type RouteDecision,
 } from "@/lib/ozar-data";
-import { SatelliteCadastralMap } from "@/components/SatelliteCadastralMap";
+
+import OfficerLoginModal, { type OfficerProfile } from "@/components/OfficerLoginModal";
+import UrbanHarmonizationDashboard from "@/components/UrbanHarmonizationDashboard";
+import VillageCadastreDirectoryPage from "@/components/VillageCadastreDirectoryPage";
+import TerritorialAnalyticsPage from "@/components/TerritorialAnalyticsPage";
+
+// SSR-safe client-only dynamic imports for map libraries (OpenLayers / Leaflet)
+const NakashaMap = lazy(() => import("@/components/NakashaMap"));
+const SatelliteCadastralMap = lazy(() =>
+  import("@/components/SatelliteCadastralMap").then((m) => ({
+    default: m.SatelliteCadastralMap,
+  }))
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ADVANTE | Ozar Land Intelligence" },
-      { name: "description", content: "AI-powered geospatial harmonization for Ozar Village land records." },
-      { property: "og:title", content: "ADVANTE | Ozar Land Intelligence" },
-      { property: "og:description", content: "AI-powered geospatial harmonization for Ozar Village land records." },
+      { title: "ADVANTE | Maharashtra Cadastral & Land Intelligence" },
+      { name: "description", content: "AI-powered geospatial harmonization & MahaBhuNakasha cadastral intelligence." },
+      { property: "og:title", content: "ADVANTE | Maharashtra Cadastral & Land Intelligence" },
+      { property: "og:description", content: "AI-powered geospatial harmonization & MahaBhuNakasha cadastral intelligence." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -36,19 +48,13 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type ViewKey = "Dashboard" | "Map Explorer" | "Datasets" | "Processing Center" | "Review Queue" | "Conflicts" | "Golden Records" | "Reports" | "AI Assistant" | "Settings";
+type ViewKey = "Nakasha Dashboard" | "Full Screen Map" | "Village Cadastre Directory" | "Territorial Analytics";
 
 const navigation: { label: ViewKey; icon: typeof LayoutDashboard; section?: string }[] = [
-  { label: "Dashboard",          icon: LayoutDashboard },
-  { label: "Map Explorer",       icon: Map },
-  { label: "Datasets",           icon: Database },
-  { label: "Processing Center",  icon: Activity,    section: "WORKSPACE" },
-  { label: "Review Queue",       icon: FileCheck2 },
-  { label: "Conflicts",          icon: AlertTriangle },
-  { label: "Golden Records",     icon: ShieldCheck,  section: "RECORDS" },
-  { label: "Reports",            icon: FileText },
-  { label: "AI Assistant",       icon: Bot,          section: "TOOLS" },
-  { label: "Settings",           icon: Settings2 },
+  { label: "Nakasha Dashboard",          icon: LayoutDashboard },
+  { label: "Full Screen Map",            icon: Map },
+  { label: "Village Cadastre Directory", icon: Layers3, section: "NAKASHA INTELLIGENCE" },
+  { label: "Territorial Analytics",      icon: BarChart3 },
 ];
 
 const statusClasses: Record<SurveyStatus, string> = {
@@ -65,12 +71,48 @@ const routeConfig: Record<RouteDecision, { label: string; color: string; bg: str
 };
 
 function Index() {
-  const [activeView,      setActiveView]      = useState<ViewKey>("Dashboard");
+  const [mounted,         setMounted]         = useState(false);
+  const [showMap,         setShowMap]         = useState(true);
+  const [activeView,      setActiveView]      = useState<ViewKey>("Nakasha Dashboard");
   const [collapsed,       setCollapsed]       = useState(false);
   const [selectedSurvey,  setSelectedSurvey]  = useState("324");
   const [search,          setSearch]          = useState("");
   const [notice,          setNotice]          = useState<string | null>(null);
   const [layerState,      setLayerState]      = useState({ imagery: true, boundaries: true, conflicts: true, golden: false });
+
+  // Officer authentication state
+  const [currentUser, setCurrentUser] = useState<OfficerProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem("advante_officer_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  const handleLoginSuccess = (user: OfficerProfile) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem("advante_officer_user", JSON.stringify(user));
+    } catch {}
+    setLoginModalOpen(false);
+    setShowMap(false); // Seamlessly transition to Officer Dashboard
+    showNotice(`Welcome, Officer ${user.name}!`);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem("advante_officer_user");
+    } catch {}
+    setShowMap(true); // Return to public Nakasha WebGIS
+    showNotice("Logged out successfully.");
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const visibleNav = navigation.filter((item) =>
     item.label.toLowerCase().includes(search.toLowerCase()) || search.length < 2
@@ -81,95 +123,195 @@ function Index() {
     window.setTimeout(() => setNotice(null), 2800);
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-30 flex h-[76px] items-center border-b border-forest-deep/20 bg-forest-deep px-4 text-primary-foreground shadow-lg md:px-7">
-        <div className={`flex shrink-0 items-center gap-3 ${collapsed ? "w-[58px]" : "w-[246px]"}`}>
-          <div className="grid size-10 place-items-center rounded-full border-2 border-signal text-signal">
-            <Globe2 className="size-5" />
+  // ── SSR splash (prevents canvas/window errors during server rendering) ──────
+  if (!mounted) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 text-slate-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+          <span className="text-sm font-medium tracking-wide">Initializing ADVANTE Nakasha GIS...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Landing page: full-screen Nakasha map ──────────────────────────────────
+  if (showMap) {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-900">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+              <span className="text-sm font-medium tracking-wide">Loading Nakasha Map...</span>
+            </div>
           </div>
+        }
+      >
+        <NakashaMap
+          currentUser={currentUser}
+          onOpenLogin={() => setLoginModalOpen(true)}
+          onOpenConsole={() => setShowMap(false)}
+          onLogout={handleLogout}
+        />
+        <OfficerLoginModal
+          isOpen={loginModalOpen}
+          open={loginModalOpen}
+          onClose={() => setLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </Suspense>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      {/* ── Header (Light Theme with TEAM ADVANTE Logo & Officer Profile) ── */}
+      <header className="sticky top-0 z-30 flex h-[70px] items-center border-b border-slate-200 bg-white px-4 text-slate-800 shadow-sm md:px-7">
+        <div className={`flex shrink-0 items-center gap-3 ${collapsed ? "w-[58px]" : "w-[246px]"}`}>
+          <img
+            src="/team_advante_logo.jpg"
+            alt="TEAM ADVANTE"
+            className="h-10 w-auto object-contain rounded border border-slate-200 p-0.5 bg-white shadow-xs"
+          />
           {!collapsed && (
             <div>
-              <div className="font-display text-xl font-bold tracking-[0.08em]">ADVANTE</div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-primary-foreground/65">Land intelligence</div>
+              <div className="font-display text-lg font-extrabold tracking-tight text-slate-900">ADVANTE</div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-700">Officer Dashboard</div>
             </div>
           )}
         </div>
-        <div className="hidden min-w-0 flex-1 items-center gap-4 lg:flex">
-          <div className="relative max-w-[420px] flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary-foreground/50" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search claims, surveys or cases" className="h-10 border-primary-foreground/15 bg-primary-foreground/10 pl-10 text-primary-foreground placeholder:text-primary-foreground/45 focus-visible:ring-signal" />
+        <div className="ml-auto flex items-center gap-2 md:gap-3">
+          {/* Back to Nakasha Map Button */}
+          <button
+            onClick={() => setShowMap(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-all shadow-xs cursor-pointer active:scale-95"
+          >
+            <span>🗺</span> <span>Back to Nakasha Map</span>
+          </button>
+          <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-600 md:flex font-medium">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" /> Synced
           </div>
-          <Button variant="ghost" className="h-10 gap-2 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-            <Map className="size-4 text-signal" /> Ozar Village <ChevronDown className="size-3" />
+          <Button variant="ghost" size="icon" className="text-slate-600 hover:bg-slate-100 size-9" aria-label="Notifications">
+            <Bell className="size-4" />
           </Button>
-        </div>
-        <div className="ml-auto flex items-center gap-1 md:gap-3">
-          <div className="hidden items-center gap-2 rounded-full bg-primary-foreground/10 px-3 py-2 text-xs text-primary-foreground/85 md:flex">
-            <span className="size-2 rounded-full bg-emerald-300" /> Synced 2m ago
-          </div>
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Notifications">
-            <Bell className="size-5" /><span className="absolute ml-4 mt-[-14px] size-2 rounded-full bg-signal" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Help">
-            <CircleHelp className="size-5" />
-          </Button>
-          <div className="ml-1 grid size-9 place-items-center rounded-full bg-signal font-bold text-forest-deep">AO</div>
+
+          {/* Profile Section in Top Right Corner */}
+          {currentUser ? (
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div className="size-8 rounded-full bg-emerald-700 font-bold text-white text-xs flex items-center justify-center shadow-xs">
+                {currentUser.avatar || "AO"}
+              </div>
+              <div className="hidden xl:block text-left text-xs">
+                <div className="font-bold text-slate-900 leading-tight truncate max-w-[130px]">{currentUser.name}</div>
+                <div className="text-[10px] text-emerald-700 font-semibold truncate max-w-[130px]">{currentUser.role}</div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-slate-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 font-medium cursor-pointer transition-colors"
+                title="Logout"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <button
+                onClick={() => setLoginModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <span>🔐</span><span>Login</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       <div className="flex">
         {/* ── Sidebar ── */}
-        <aside className={`sticky top-[76px] hidden h-[calc(100vh-76px)] shrink-0 flex-col border-r border-border bg-card py-5 transition-all lg:flex ${collapsed ? "w-[78px] px-3" : "w-[260px] px-4"}`}>
+        {/* ── Sidebar ── */}
+        <aside className={`sticky top-[70px] hidden h-[calc(100vh-70px)] shrink-0 flex-col border-r border-slate-200 bg-white py-5 transition-all lg:flex ${collapsed ? "w-[78px] px-3" : "w-[260px] px-4"}`}>
           <div className={`mb-5 flex items-center ${collapsed ? "justify-center" : "justify-between px-2"}`}>
-            {!collapsed && <div className="text-[10px] font-bold uppercase tracking-[0.17em] text-muted-foreground">Navigation</div>}
-            <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="text-muted-foreground hover:bg-forest-soft hover:text-forest-deep" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            {!collapsed && <div className="text-[10px] font-bold uppercase tracking-[0.17em] text-slate-400">Navigation</div>}
+            <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="text-slate-400 hover:bg-slate-100 hover:text-slate-800" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
               {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
             </Button>
           </div>
           <nav className="space-y-1">
             {visibleNav.map((item) => (
               <div key={item.label}>
-                {item.section && !collapsed && <div className="mb-2 mt-6 px-2 text-[10px] font-bold uppercase tracking-[0.17em] text-muted-foreground">{item.section}</div>}
-                <Button variant="ghost" onClick={() => setActiveView(item.label)} className={`w-full justify-start gap-3 ${collapsed ? "px-0 justify-center" : "px-3"} ${activeView === item.label ? "bg-forest-soft font-semibold text-forest-deep hover:bg-forest-soft hover:text-forest-deep" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`} title={collapsed ? item.label : undefined}>
-                  <item.icon className={`size-[18px] ${activeView === item.label ? "text-forest" : ""}`} />
+                {item.section && !collapsed && <div className="mb-2 mt-4 px-2 text-[10px] font-bold uppercase tracking-[0.17em] text-slate-400">{item.section}</div>}
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (item.label === "Full Screen Map") {
+                      setShowMap(true);
+                    } else {
+                      setActiveView(item.label);
+                    }
+                  }}
+                  className={`w-full justify-start gap-3 ${collapsed ? "px-0 justify-center" : "px-3"} ${activeView === item.label ? "bg-emerald-50 font-bold text-emerald-900 hover:bg-emerald-100 hover:text-emerald-950" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <item.icon className={`size-[18px] ${activeView === item.label ? "text-emerald-700" : "text-slate-500"}`} />
                   {!collapsed && item.label}
-                  {!collapsed && item.label === "Review Queue" && <span className="ml-auto rounded-full bg-signal-soft px-2 py-0.5 text-[10px] font-bold text-forest-deep">30</span>}
                 </Button>
               </div>
             ))}
           </nav>
           {!collapsed && (
-            <div className="mt-auto rounded-lg border border-forest/15 bg-forest-soft/50 p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-bold text-forest-deep"><Sparkles className="size-4 text-signal" /> AI harmonization</div>
-              <p className="text-xs leading-relaxed text-ink-soft">Survey No. 324 needs officer attention before a Golden Record can be created.</p>
-              <Button onClick={() => { setActiveView("Review Queue"); setSelectedSurvey("324"); }} variant="outline" size="sm" className="mt-3 h-8 w-full border-forest/20 bg-background text-forest-deep hover:bg-forest-soft">Open queue</Button>
+            <div className="mt-auto rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 space-y-2 shadow-xs">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                <Sparkles className="size-3.5 text-emerald-600" />
+                <span>MahaBhuNakasha Live GIS</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Direct WMS integration with 43,665 real Maharashtra villages & cadastral parcels.
+              </p>
+              <Button
+                onClick={() => setShowMap(true)}
+                size="sm"
+                className="h-8 w-full bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold shadow-xs cursor-pointer"
+              >
+                🗺 Open Full Nakasha WebGIS
+              </Button>
             </div>
           )}
         </aside>
 
         {/* ── Main ── */}
-        <main className={`min-w-0 flex-1 page-grid ${activeView === "Map Explorer" ? "h-[calc(100vh-76px)] flex flex-col overflow-hidden" : ""}`}>
-          <div className="border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur md:px-7 shrink-0">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-forest-deep">CFR Pilot</span>
-              <ChevronRight className="size-3" />
-              <span>Palghar District · Ozar Village</span>
-              <ChevronRight className="size-3" />
-              <span className="font-medium text-foreground">{activeView}</span>
-              <span className="ml-auto hidden text-[11px] md:block text-slate-500">Smart India Hackathon 2026 · PS 26013</span>
+        <main className="min-w-0 flex-1 page-grid">
+          <div className="border-b border-slate-200 bg-white/80 px-4 py-2.5 backdrop-blur md:px-7 shrink-0">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="font-bold text-emerald-800">Maharashtra State GIS</span>
+              <ChevronRight className="size-3 text-slate-400" />
+              <span className="text-slate-700 font-medium">Cadastral & Village Land Records (36 Districts • 43,665 Villages)</span>
+              <ChevronRight className="size-3 text-slate-400" />
+              <span className="font-semibold text-slate-900">{activeView}</span>
+              <span className="ml-auto hidden text-[11px] md:block text-slate-500 font-medium">
+                Smart India Hackathon 2026 • PS 26013
+              </span>
             </div>
           </div>
-          {activeView === "Map Explorer" ? (
-            <div className="flex-1 min-h-0 p-2 md:p-3 overflow-hidden flex flex-col">
-              <MapExplorer selectedSurvey={selectedSurvey} setSelectedSurvey={setSelectedSurvey} layerState={layerState} setLayerState={setLayerState} onNotice={showNotice} />
-            </div>
-          ) : (
-            <div className="mx-auto max-w-[1440px] p-4 md:p-8">
-              {activeView === "Dashboard" ? <Dashboard onNavigate={setActiveView} onSelect={(s) => { setSelectedSurvey(s); setActiveView("Map Explorer"); }} /> : <ModuleView view={activeView} onNavigate={setActiveView} onNotice={showNotice} />}
-            </div>
-          )}
+          <div className="mx-auto max-w-[1440px] p-4 md:p-7">
+            {activeView === "Village Cadastre Directory" ? (
+              <VillageCadastreDirectoryPage
+                onOpenFullMap={() => setShowMap(true)}
+                onNotice={showNotice}
+              />
+            ) : activeView === "Territorial Analytics" ? (
+              <TerritorialAnalyticsPage
+                onOpenFullMap={() => setShowMap(true)}
+                onNotice={showNotice}
+              />
+            ) : (
+              <UrbanHarmonizationDashboard
+                onOpenFullMap={() => setShowMap(true)}
+                onNavigate={setActiveView}
+                onNotice={showNotice}
+              />
+            )}
+          </div>
         </main>
       </div>
 
@@ -179,6 +321,13 @@ function Index() {
           <Button variant="ghost" size="icon" onClick={() => setNotice(null)} className="ml-1 size-6"><X className="size-3" /></Button>
         </div>
       )}
+
+      <OfficerLoginModal
+        isOpen={loginModalOpen}
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
@@ -339,12 +488,20 @@ function MapExplorer({ selectedSurvey, setSelectedSurvey, layerState, setLayerSt
         {/* ━━━ CENTER — Interactive Satellite & Cadastral Geofenced Map ━━━ */}
         <div className="relative flex flex-col overflow-hidden" style={{ minHeight: 480 }}>
           <div className="relative flex-1 w-full min-h-[460px]">
-            <SatelliteCadastralMap
-              selectedSurvey={selectedSurvey}
-              onSelectSurvey={setSelectedSurvey}
-              layerState={layerState as any}
-              onNotice={onNotice}
-            />
+            <Suspense
+              fallback={
+                <div className="flex h-[460px] w-full items-center justify-center bg-muted/20 text-xs text-muted-foreground">
+                  Loading Cadastral Map...
+                </div>
+              }
+            >
+              <SatelliteCadastralMap
+                selectedSurvey={selectedSurvey}
+                onSelectSurvey={setSelectedSurvey}
+                layerState={layerState as any}
+                onNotice={showNotice}
+              />
+            </Suspense>
           </div>
 
           {/* NL Query bar at bottom of map */}

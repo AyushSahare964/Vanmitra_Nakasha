@@ -1,0 +1,1017 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ozar-324-1",
+      "properties": {
+        "plotNo": "324-1",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.4,
+        "areaSqm": 4000,
+        "ownerMarathi": "देवजे राघो देवा",
+        "ownerEnglish": "Devaje Ragho Deva",
+        "use": "Agricultural",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.21368261262853,
+              19.934335189882486
+            ],
+            [
+              73.215019021595,
+              19.934455246369467
+            ],
+            [
+              73.21524279592735,
+              19.935264810117513
+            ],
+            [
+              73.213980978405,
+              19.93514475363053
+            ],
+            [
+              73.21368261262853,
+              19.934335189882486
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-2",
+      "properties": {
+        "plotNo": "324-2",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 1.4,
+        "areaSqm": 14000,
+        "ownerMarathi": "चुनिलाल बचू फडवळे",
+        "ownerEnglish": "Chunilal Bachu Phadavale",
+        "use": "Forest",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.21715515736408,
+              19.934262078798934
+            ],
+            [
+              73.21838264170974,
+              19.93435895826501
+            ],
+            [
+              73.21842929240438,
+              19.935737921201063
+            ],
+            [
+              73.21721735829026,
+              19.93564104173499
+            ],
+            [
+              73.21715515736408,
+              19.934262078798934
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-3",
+      "properties": {
+        "plotNo": "324-3",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.45,
+        "areaSqm": 4500,
+        "ownerMarathi": "शंकर काकडया खानझोडे",
+        "ownerEnglish": "Shankar Kakadaya Khanajhode",
+        "use": "Agricultural",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22093868916352,
+              19.934860160395782
+            ],
+            [
+              73.22234670945812,
+              19.93463671716784
+            ],
+            [
+              73.2221326604919,
+              19.935539839604214
+            ],
+            [
+              73.22065329054189,
+              19.935763282832156
+            ],
+            [
+              73.22093868916352,
+              19.934860160395782
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-4",
+      "properties": {
+        "plotNo": "324-4",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.9,
+        "areaSqm": 9000,
+        "ownerMarathi": "पवनी बोंगे",
+        "ownerEnglish": "Pavani Bonge",
+        "use": "Agricultural",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22468216333979,
+              19.934866601940683
+            ],
+            [
+              73.22583953522317,
+              19.935008174110042
+            ],
+            [
+              73.22574826130095,
+              19.93613339805932
+            ],
+            [
+              73.22456046477683,
+              19.93599182588996
+            ],
+            [
+              73.22468216333979,
+              19.934866601940683
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-5",
+      "properties": {
+        "plotNo": "324-5",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 1.15,
+        "areaSqm": 11500,
+        "ownerMarathi": "नासू गुरव",
+        "ownerEnglish": "Nasu Gurav",
+        "use": "Forest",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22793196016612,
+              19.934720396558554
+            ],
+            [
+              73.22940801196161,
+              19.934792758388202
+            ],
+            [
+              73.22960303286582,
+              19.93607960344145
+            ],
+            [
+              73.2281919880384,
+              19.9360072416118
+            ],
+            [
+              73.22793196016612,
+              19.934720396558554
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-6",
+      "properties": {
+        "plotNo": "324-6",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 2,
+        "areaSqm": 20000,
+        "ownerMarathi": "पांडू धर्मा दिवा",
+        "ownerEnglish": "Pandu Dharma Diva",
+        "use": "Forest",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22116605336491,
+              19.932434249357918
+            ],
+            [
+              73.22225803952757,
+              19.932215454903588
+            ],
+            [
+              73.22238996985821,
+              19.932965750642083
+            ],
+            [
+              73.22134196047243,
+              19.933184545096413
+            ],
+            [
+              73.22116605336491,
+              19.932434249357918
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-7",
+      "properties": {
+        "plotNo": "324-7",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 1.3,
+        "areaSqm": 13000,
+        "ownerMarathi": "चितामण भोवर",
+        "ownerEnglish": "Chitaman Bhovar",
+        "use": "Agricultural",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22484255363648,
+              19.932169884784233
+            ],
+            [
+              73.22638080251983,
+              19.932331013563992
+            ],
+            [
+              73.2262132854026,
+              19.933830115215766
+            ],
+            [
+              73.22461919748017,
+              19.933668986436007
+            ],
+            [
+              73.22484255363648,
+              19.932169884784233
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-8",
+      "properties": {
+        "plotNo": "324-8",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 2.7,
+        "areaSqm": 27000,
+        "ownerMarathi": "लहानू रुपजी खरपडे",
+        "ownerEnglish": "Lahanu Rupaji Kharapade",
+        "use": "Forest",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22159448826844,
+              19.92959743104539
+            ],
+            [
+              73.2226279823557,
+              19.9296442738975
+            ],
+            [
+              73.2224611293876,
+              19.93040256895461
+            ],
+            [
+              73.22137201764428,
+              19.930355726102498
+            ],
+            [
+              73.22159448826844,
+              19.92959743104539
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-9",
+      "properties": {
+        "plotNo": "324-9",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 2,
+        "areaSqm": 20000,
+        "ownerMarathi": "किसन गरेल",
+        "ownerEnglish": "Kisan Garel",
+        "use": "Forest",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22491523621242,
+              19.929835447051616
+            ],
+            [
+              73.22650778653919,
+              19.929624329042838
+            ],
+            [
+              73.22664051947548,
+              19.93096455294838
+            ],
+            [
+              73.22509221346083,
+              19.93117567095716
+            ],
+            [
+              73.22491523621242,
+              19.929835447051616
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-10",
+      "properties": {
+        "plotNo": "324-10",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.9,
+        "areaSqm": 9000,
+        "ownerMarathi": "रमेश राघो दिवा",
+        "ownerEnglish": "Ramesh Ragho Diva",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.221778400231,
+              19.92683747608027
+            ],
+            [
+              73.22276223433441,
+              19.92701593177458
+            ],
+            [
+              73.22295675841035,
+              19.927962523919728
+            ],
+            [
+              73.22203776566558,
+              19.927784068225417
+            ],
+            [
+              73.221778400231,
+              19.92683747608027
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-324-11",
+      "properties": {
+        "plotNo": "324-11",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.9,
+        "areaSqm": 9000,
+        "ownerMarathi": "काशिराम लाडक्या टेंबरे",
+        "ownerEnglish": "Kashiram Ladakya Tembare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22524287512258,
+              19.92719609339445
+            ],
+            [
+              73.22688003168099,
+              19.927216769058862
+            ],
+            [
+              73.22678785157831,
+              19.928403906605553
+            ],
+            [
+              73.225119968319,
+              19.92838323094114
+            ],
+            [
+              73.22524287512258,
+              19.92719609339445
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-316-1",
+      "properties": {
+        "plotNo": "316-1",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.05,
+        "areaSqm": 500,
+        "ownerMarathi": "सिताराम देवजी दिवा",
+        "ownerEnglish": "Sitaram Devaji Diva",
+        "use": "Homestead",
+        "status": "Under review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.21427016805475,
+              19.932350893495325
+            ],
+            [
+              73.21521482001359,
+              19.93215037337759
+            ],
+            [
+              73.21500107896233,
+              19.933249106504675
+            ],
+            [
+              73.21398517998642,
+              19.933449626622412
+            ],
+            [
+              73.21427016805475,
+              19.932350893495325
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-316-2",
+      "properties": {
+        "plotNo": "316-2",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.05,
+        "areaSqm": 500,
+        "ownerMarathi": "रामजी लाल कडू",
+        "ownerEnglish": "Ramaji Lal Kadu",
+        "use": "Homestead",
+        "status": "Under review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.2135329579654,
+              19.929921439027932
+            ],
+            [
+              73.2152035472789,
+              19.930114752171566
+            ],
+            [
+              73.21525116834567,
+              19.931078560972065
+            ],
+            [
+              73.21359645272109,
+              19.93088524782843
+            ],
+            [
+              73.2135329579654,
+              19.929921439027932
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-316-3",
+      "properties": {
+        "plotNo": "316-3",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.5,
+        "areaSqm": 5000,
+        "ownerMarathi": "शालु देऊ रडे",
+        "ownerEnglish": "Shalu Deu Rade",
+        "use": "Agricultural",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.21339226444357,
+              19.927502474882587
+            ],
+            [
+              73.21430951060597,
+              19.927496697249996
+            ],
+            [
+              73.21453317931882,
+              19.928897525117414
+            ],
+            [
+              73.21369048939403,
+              19.928903302750005
+            ],
+            [
+              73.21339226444357,
+              19.927502474882587
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-224",
+      "properties": {
+        "plotNo": "224",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.8,
+        "areaSqm": 8000,
+        "ownerMarathi": "देऊ लक्ष्या फडवळे",
+        "ownerEnglish": "Deu Lakshya Phadavale",
+        "use": "Agricultural",
+        "status": "Under review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.215954791284,
+              19.92255235748072
+            ],
+            [
+              73.21764653190378,
+              19.92236521004617
+            ],
+            [
+              73.21764553951294,
+              19.92304764251928
+            ],
+            [
+              73.21595346809623,
+              19.923234789953828
+            ],
+            [
+              73.215954791284,
+              19.92255235748072
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-327",
+      "properties": {
+        "plotNo": "327",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.6,
+        "areaSqm": 6000,
+        "ownerMarathi": "अशोक धवळू भोये",
+        "ownerEnglish": "Ashok Dhavalu Bhoye",
+        "use": "Forest",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.21349798792355,
+              19.924538344563043
+            ],
+            [
+              73.21440051287459,
+              19.924743840093765
+            ],
+            [
+              73.214176637276,
+              19.926261655436956
+            ],
+            [
+              73.21319948712542,
+              19.926056159906235
+            ],
+            [
+              73.21349798792355,
+              19.924538344563043
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-463",
+      "properties": {
+        "plotNo": "463",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 1,
+        "areaSqm": 10000,
+        "ownerMarathi": "शेवंती बोंगे",
+        "ownerEnglish": "Shevanti Bonge",
+        "use": "Forest",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.23098049818525,
+              19.930414490134645
+            ],
+            [
+              73.23268040770141,
+              19.93038233915578
+            ],
+            [
+              73.23263472828643,
+              19.931185509865358
+            ],
+            [
+              73.2309195922986,
+              19.931217660844222
+            ],
+            [
+              73.23098049818525,
+              19.930414490134645
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-328",
+      "properties": {
+        "plotNo": "328",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 1.1,
+        "areaSqm": 11000,
+        "ownerMarathi": "काकड वांगड",
+        "ownerEnglish": "Kakad Vangad",
+        "use": "Forest",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.23080661009338,
+              19.927276150472014
+            ],
+            [
+              73.23170758628375,
+              19.927104965461965
+            ],
+            [
+              73.2319219390009,
+              19.928323849527988
+            ],
+            [
+              73.23109241371624,
+              19.928495034538038
+            ],
+            [
+              73.23080661009338,
+              19.927276150472014
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-14",
+      "properties": {
+        "plotNo": "14",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.8,
+        "areaSqm": 8000,
+        "ownerMarathi": "जान्या नवशा दिघा",
+        "ownerEnglish": "Janya Navasha Digha",
+        "use": "Forest",
+        "status": "Under review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.23009234338116,
+              19.924125227007377
+            ],
+            [
+              73.23178716866397,
+              19.924340061283402
+            ],
+            [
+              73.23187753463012,
+              19.925474772992626
+            ],
+            [
+              73.23021283133602,
+              19.9252599387166
+            ],
+            [
+              73.23009234338116,
+              19.924125227007377
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-317",
+      "properties": {
+        "plotNo": "317",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.5,
+        "areaSqm": 5000,
+        "ownerMarathi": "दसमा नडगे",
+        "ownerEnglish": "Dasama Nadage",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22007401702231,
+              19.922542821096624
+            ],
+            [
+              73.22098666822916,
+              19.92248474167589
+            ],
+            [
+              73.22079115429055,
+              19.923457178903373
+            ],
+            [
+              73.21981333177084,
+              19.923515258324105
+            ],
+            [
+              73.22007401702231,
+              19.922542821096624
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-326",
+      "properties": {
+        "plotNo": "326",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 1.4,
+        "areaSqm": 14000,
+        "ownerMarathi": "शेवती वांगड",
+        "ownerEnglish": "Shevati Vangad",
+        "use": "Homestead",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.21264908856588,
+              19.91923412979718
+            ],
+            [
+              73.21432574497871,
+              19.919081276065324
+            ],
+            [
+              73.21419461982025,
+              19.92036587020282
+            ],
+            [
+              73.21247425502128,
+              19.920518723934673
+            ],
+            [
+              73.21264908856588,
+              19.91923412979718
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-336",
+      "properties": {
+        "plotNo": "336",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.35,
+        "areaSqm": 3500,
+        "ownerMarathi": "रघु दिघा",
+        "ownerEnglish": "Raghu Digha",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22621929978499,
+              19.919964646106187
+            ],
+            [
+              73.22715646287165,
+              19.92018584625642
+            ],
+            [
+              73.22732464087916,
+              19.921035353893814
+            ],
+            [
+              73.22644353712835,
+              19.92081415374358
+            ],
+            [
+              73.22621929978499,
+              19.919964646106187
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ozar-314",
+      "properties": {
+        "plotNo": "314",
+        "village": "Ozar",
+        "villageMr": "ओझर",
+        "taluka": "Jawhar",
+        "district": "Palghar",
+        "areaHa": 0.07,
+        "areaSqm": 700,
+        "ownerMarathi": "मधु दिवा",
+        "ownerEnglish": "Madhu Diva",
+        "use": "Homestead",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.22946620710373,
+              19.92012562533938
+            ],
+            [
+              73.23111221213217,
+              19.920042421178284
+            ],
+            [
+              73.23127839770525,
+              19.92147437466062
+            ],
+            [
+              73.22968778786783,
+              19.921557578821716
+            ],
+            [
+              73.22946620710373,
+              19.92012562533938
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

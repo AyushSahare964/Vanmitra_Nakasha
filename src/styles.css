@@ -229,3 +229,9 @@
 @utility nl-message {
   animation: fade-slide-up 0.25s ease-out;
 }
+
+/* Cadastral Selected Parcel Highlight - Translucent Glassmorphism with full ground visibility */
+.cadastral-selected-plot-layer {
+  filter: contrast(1.1) saturate(1.25);
+  pointer-events: none;
+}

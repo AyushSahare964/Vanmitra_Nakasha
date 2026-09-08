@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import L from "leaflet";
+import type * as LType from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// SSR guard: Leaflet accesses window at evaluation time
+const L: typeof LType = typeof window !== "undefined" ? ((await import("leaflet")).default as any) : ({} as any);
 import {
   Satellite, Layers, Plus, Minus, Navigation, PenTool, Check, Trash2,
   AlertTriangle, ShieldCheck, Eye, Sparkles, MapPin, Key, X, SlidersHorizontal,
@@ -405,10 +408,10 @@ export function SatelliteCadastralMap({
   onNotice,
 }: SatelliteCadastralMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const layerGroupRef = useRef<L.LayerGroup | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const drawLayerRef = useRef<L.FeatureGroup | null>(null);
+  const mapInstanceRef = useRef<LType.Map | null>(null);
+  const layerGroupRef = useRef<LType.LayerGroup | null>(null);
+  const tileLayerRef = useRef<LType.TileLayer | null>(null);
+  const drawLayerRef = useRef<LType.FeatureGroup | null>(null);
 
   // States
   const [tileSource, setTileSource] = useState<TileSource>("esri-satellite");

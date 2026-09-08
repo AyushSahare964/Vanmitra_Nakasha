@@ -16,6 +16,13 @@ dist-ssr
 .nitro
 *.local
 
+# Lovable / Scratch / Temporary caches
+.lovable/
+scratch/
+google_earth_api
+implementation_plan_nakasha
+*.tmp
+
 # Wrangler / Cloudflare / Vercel
 .wrangler/
 .vercel/

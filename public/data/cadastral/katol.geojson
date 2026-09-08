@@ -1,0 +1,3129 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "katol-100",
+      "properties": {
+        "plotNo": "100",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.45,
+        "areaSqm": 14500,
+        "ownerMarathi": "सुरेश रामराव देशमुख",
+        "ownerEnglish": "Suresh Ramrao Deshmukh",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58530043725474,
+              21.266609940861724
+            ],
+            [
+              78.586940611903,
+              21.266567975578603
+            ],
+            [
+              78.5870598250347,
+              21.267790059138274
+            ],
+            [
+              78.58545938809701,
+              21.267832024421395
+            ],
+            [
+              78.58530043725474,
+              21.266609940861724
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-101",
+      "properties": {
+        "plotNo": "101",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.2,
+        "areaSqm": 12000,
+        "ownerMarathi": "गजानन नामदेव ठाकरे",
+        "ownerEnglish": "Gajanan Namdev Thakare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58410584797996,
+              21.26673900387655
+            ],
+            [
+              78.5857637644488,
+              21.26694834978777
+            ],
+            [
+              78.58556155512724,
+              21.26786099612345
+            ],
+            [
+              78.5838362355512,
+              21.267651650212226
+            ],
+            [
+              78.58410584797996,
+              21.26673900387655
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-102",
+      "properties": {
+        "plotNo": "102",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.1,
+        "areaSqm": 11000,
+        "ownerMarathi": "अरुण भास्करराव पाटील",
+        "ownerEnglish": "Arun Bhaskarrao Patil",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58278261262853,
+              21.267035189882485
+            ],
+            [
+              78.584119021595,
+              21.267155246369466
+            ],
+            [
+              78.58434279592736,
+              21.267964810117512
+            ],
+            [
+              78.58308097840501,
+              21.26784475363053
+            ],
+            [
+              78.58278261262853,
+              21.267035189882485
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-109",
+      "properties": {
+        "plotNo": "109",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.95,
+        "areaSqm": 9500,
+        "ownerMarathi": "मंगेश प्रभाकर गावंडे",
+        "ownerEnglish": "Mangesh Prabhakar Gawande",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58642804210582,
+              21.268356044762548
+            ],
+            [
+              78.58740843351437,
+              21.268191482891027
+            ],
+            [
+              78.58723107679921,
+              21.26924395523745
+            ],
+            [
+              78.58619156648562,
+              21.26940851710897
+            ],
+            [
+              78.58642804210582,
+              21.268356044762548
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-110",
+      "properties": {
+        "plotNo": "110",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.85,
+        "areaSqm": 8500,
+        "ownerMarathi": "दिनकर किसनराव भोयर",
+        "ownerEnglish": "Dinkar Kisanrao Bhoyar",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5849849712848,
+              21.268502964703917
+            ],
+            [
+              78.58591228452966,
+              21.268321522567785
+            ],
+            [
+              78.58598934266881,
+              21.269697035296087
+            ],
+            [
+              78.58508771547034,
+              21.26987847743222
+            ],
+            [
+              78.5849849712848,
+              21.268502964703917
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-111",
+      "properties": {
+        "plotNo": "111",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.05,
+        "areaSqm": 10500,
+        "ownerMarathi": "संजय महादेव कोहळे",
+        "ownerEnglish": "Sanjay Mahadev Kohale",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58365515736408,
+              21.268562078798936
+            ],
+            [
+              78.58488264170974,
+              21.26865895826501
+            ],
+            [
+              78.58492929240438,
+              21.270037921201066
+            ],
+            [
+              78.58371735829026,
+              21.26994104173499
+            ],
+            [
+              78.58365515736408,
+              21.268562078798936
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-116",
+      "properties": {
+        "plotNo": "116",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.3,
+        "areaSqm": 13000,
+        "ownerMarathi": "रविंद्र पांडुरंग राऊत",
+        "ownerEnglish": "Ravindra Pandurang Raut",
+        "use": "Agricultural",
+        "status": "Under review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58210593017809,
+              21.26897970731749
+            ],
+            [
+              78.58370231922241,
+              21.269197287891156
+            ],
+            [
+              78.58354613217205,
+              21.27022029268251
+            ],
+            [
+              78.5818976807776,
+              21.270002712108845
+            ],
+            [
+              78.58210593017809,
+              21.26897970731749
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-118",
+      "properties": {
+        "plotNo": "118",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.6,
+        "areaSqm": 16000,
+        "ownerMarathi": "प्रमोद वामनराव इंगळे",
+        "ownerEnglish": "Pramod Wamanrao Ingale",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58251230270015,
+              21.270840328589813
+            ],
+            [
+              78.58419666557974,
+              21.270824612060405
+            ],
+            [
+              78.58441493936982,
+              21.271559671410188
+            ],
+            [
+              78.58280333442026,
+              21.271575387939595
+            ],
+            [
+              78.58251230270015,
+              21.270840328589813
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-119",
+      "properties": {
+        "plotNo": "119",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.5,
+        "areaSqm": 15000,
+        "ownerMarathi": "नितीन देविदास खडसे",
+        "ownerEnglish": "Nitin Devidas Khadse",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58423868916351,
+              21.271160160395784
+            ],
+            [
+              78.58564670945812,
+              21.270936717167842
+            ],
+            [
+              78.58543266049189,
+              21.271839839604215
+            ],
+            [
+              78.58395329054188,
+              21.272063282832157
+            ],
+            [
+              78.58423868916351,
+              21.271160160395784
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-123",
+      "properties": {
+        "plotNo": "123",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.1,
+        "areaSqm": 21000,
+        "ownerMarathi": "सुधाकर बाबुराव चौधरी",
+        "ownerEnglish": "Sudhakar Baburao Choudhari",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58658882367138,
+              21.269161501126135
+            ],
+            [
+              78.58761811488861,
+              21.269093867803793
+            ],
+            [
+              78.58776291096862,
+              21.270438498873865
+            ],
+            [
+              78.58678188511138,
+              21.270506132196207
+            ],
+            [
+              78.58658882367138,
+              21.269161501126135
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-125",
+      "properties": {
+        "plotNo": "125",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.4,
+        "areaSqm": 24000,
+        "ownerMarathi": "गोपाळ तुकाराम चांडक",
+        "ownerEnglish": "Gopal Tukaram Chandak",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58836746005426,
+              21.270755672475985
+            ],
+            [
+              78.58927461215092,
+              21.27095388680152
+            ],
+            [
+              78.58924305799705,
+              21.272444327524013
+            ],
+            [
+              78.5883253878491,
+              21.272246113198477
+            ],
+            [
+              78.58836746005426,
+              21.270755672475985
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-126",
+      "properties": {
+        "plotNo": "126",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.8,
+        "areaSqm": 18000,
+        "ownerMarathi": "अशोक गणपतराव वानखडे",
+        "ownerEnglish": "Ashok Ganpatrao Wankhade",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5852821633398,
+              21.271866601940683
+            ],
+            [
+              78.58643953522318,
+              21.27200817411004
+            ],
+            [
+              78.58634826130096,
+              21.27313339805932
+            ],
+            [
+              78.58516046477683,
+              21.27299182588996
+            ],
+            [
+              78.5852821633398,
+              21.271866601940683
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-127",
+      "properties": {
+        "plotNo": "127",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.75,
+        "areaSqm": 17500,
+        "ownerMarathi": "विठ्ठल किसनाजी लांडे",
+        "ownerEnglish": "Vitthal Kisanaji Lande",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58430436083616,
+              21.27331742386127
+            ],
+            [
+              78.58584714184848,
+              21.273172019457235
+            ],
+            [
+              78.58603351483501,
+              21.27388257613873
+            ],
+            [
+              78.58455285815153,
+              21.274027980542762
+            ],
+            [
+              78.58430436083616,
+              21.27331742386127
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-129",
+      "properties": {
+        "plotNo": "129",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.8,
+        "areaSqm": 28000,
+        "ownerMarathi": "रामचंद्र मारोती डाखोरे",
+        "ownerEnglish": "Ramchandra Maroti Dakhore",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58350086560901,
+              21.274698438716182
+            ],
+            [
+              78.58519893699011,
+              21.274502627106983
+            ],
+            [
+              78.58497408504077,
+              21.275301561283815
+            ],
+            [
+              78.58320106300988,
+              21.275497372893014
+            ],
+            [
+              78.58350086560901,
+              21.274698438716182
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-131",
+      "properties": {
+        "plotNo": "131",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.1,
+        "areaSqm": 11000,
+        "ownerMarathi": "अनिल चिंतामण मते",
+        "ownerEnglish": "Anil Chintaman Mate",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5846319601661,
+              21.276120396558554
+            ],
+            [
+              78.5861080119616,
+              21.276192758388202
+            ],
+            [
+              78.58630303286581,
+              21.27747960344145
+            ],
+            [
+              78.5848919880384,
+              21.2774072416118
+            ],
+            [
+              78.5846319601661,
+              21.276120396558554
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-132",
+      "properties": {
+        "plotNo": "132",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.9,
+        "areaSqm": 9000,
+        "ownerMarathi": "विष्णू सखाराम तिडके",
+        "ownerEnglish": "Vishnu Sakharam Tidke",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5861270471462,
+              21.27562205989762
+            ],
+            [
+              78.58721420954812,
+              21.27584486425943
+            ],
+            [
+              78.58710826702738,
+              21.277377940102376
+            ],
+            [
+              78.58598579045189,
+              21.277155135740568
+            ],
+            [
+              78.5861270471462,
+              21.27562205989762
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-140",
+      "properties": {
+        "plotNo": "140",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.9,
+        "areaSqm": 29000,
+        "ownerMarathi": "प्रकाश नारायण महाजन",
+        "ownerEnglish": "Prakash Narayan Mahajan",
+        "use": "Agricultural",
+        "status": "Conflict"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58736020910216,
+              21.273588574415903
+            ],
+            [
+              78.58826021915625,
+              21.273599324125133
+            ],
+            [
+              78.58824489796245,
+              21.274811425584097
+            ],
+            [
+              78.58733978084375,
+              21.274800675874868
+            ],
+            [
+              78.58736020910216,
+              21.273588574415903
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-141",
+      "properties": {
+        "plotNo": "141",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 3.4,
+        "areaSqm": 34000,
+        "ownerMarathi": "भास्कर तुकाराम सोळंके",
+        "ownerEnglish": "Bhaskar Tukaram Solanke",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58756605336491,
+              21.272734249357917
+            ],
+            [
+              78.58865803952757,
+              21.272515454903587
+            ],
+            [
+              78.58878996985821,
+              21.273265750642082
+            ],
+            [
+              78.58774196047243,
+              21.273484545096412
+            ],
+            [
+              78.58756605336491,
+              21.272734249357917
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-142",
+      "properties": {
+        "plotNo": "142",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.15,
+        "areaSqm": 21500,
+        "ownerMarathi": "ज्ञानेश्वर पुंडलिक काळे",
+        "ownerEnglish": "Dnyaneshwar Pundlik Kale",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58919840912445,
+              21.272070450029616
+            ],
+            [
+              78.59067953626409,
+              21.271978084576197
+            ],
+            [
+              78.59047107722269,
+              21.272729549970386
+            ],
+            [
+              78.5889204637359,
+              21.272821915423805
+            ],
+            [
+              78.58919840912445,
+              21.272070450029616
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-144",
+      "properties": {
+        "plotNo": "144",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.25,
+        "areaSqm": 12500,
+        "ownerMarathi": "कैलास रामभाऊ दळवी",
+        "ownerEnglish": "Kailas Rambhau Dalvi",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58920293422631,
+              21.26950882133654
+            ],
+            [
+              78.59090152189555,
+              21.26969316119173
+            ],
+            [
+              78.59112317980416,
+              21.270891178663458
+            ],
+            [
+              78.58949847810445,
+              21.27070683880827
+            ],
+            [
+              78.58920293422631,
+              21.26950882133654
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-145",
+      "properties": {
+        "plotNo": "145",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.3,
+        "areaSqm": 13000,
+        "ownerMarathi": "बाबाराव यशवंत घुले",
+        "ownerEnglish": "Babarao Yashwant Ghule",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59054255363648,
+              21.269269884784233
+            ],
+            [
+              78.59208080251983,
+              21.26943101356399
+            ],
+            [
+              78.5919132854026,
+              21.270930115215766
+            ],
+            [
+              78.59031919748017,
+              21.270768986436007
+            ],
+            [
+              78.59054255363648,
+              21.269269884784233
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-146",
+      "properties": {
+        "plotNo": "146",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.1,
+        "areaSqm": 21000,
+        "ownerMarathi": "मनोहर शंकरराव बोंद्रे",
+        "ownerEnglish": "Manohar Shankarrao Bondre",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59218230002938,
+              21.268820558138835
+            ],
+            [
+              78.59333438712227,
+              21.268696323304635
+            ],
+            [
+              78.59339687175853,
+              21.269979441861167
+            ],
+            [
+              78.59226561287772,
+              21.270103676695367
+            ],
+            [
+              78.59218230002938,
+              21.268820558138835
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-148",
+      "properties": {
+        "plotNo": "148",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.8,
+        "areaSqm": 18000,
+        "ownerMarathi": "विजय कवडूजी तायडे",
+        "ownerEnglish": "Vijay Kawaduji Tayade",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59370591764781,
+              21.271176142920776
+            ],
+            [
+              78.59461204145455,
+              21.270968671474435
+            ],
+            [
+              78.59467357212779,
+              21.271823857079223
+            ],
+            [
+              78.59378795854545,
+              21.272031328525564
+            ],
+            [
+              78.59370591764781,
+              21.271176142920776
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-149",
+      "properties": {
+        "plotNo": "149",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.65,
+        "areaSqm": 16500,
+        "ownerMarathi": "चंद्रशेखर बाबुराव झाडे",
+        "ownerEnglish": "Chandrashekhar Baburao Zhade",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59279448826844,
+              21.271797431045393
+            ],
+            [
+              78.5938279823557,
+              21.271844273897504
+            ],
+            [
+              78.5936611293876,
+              21.27260256895461
+            ],
+            [
+              78.59257201764429,
+              21.2725557261025
+            ],
+            [
+              78.59279448826844,
+              21.271797431045393
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-150",
+      "properties": {
+        "plotNo": "150",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.7,
+        "areaSqm": 17000,
+        "ownerMarathi": "सुरेंद्र भिकूजी ताकतोडे",
+        "ownerEnglish": "Surendra Bhikuji Taktode",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59124560777774,
+              21.271947266765594
+            ],
+            [
+              78.59265907843313,
+              21.27217221175461
+            ],
+            [
+              78.59288056377498,
+              21.273252733234408
+            ],
+            [
+              78.59154092156687,
+              21.27302778824539
+            ],
+            [
+              78.59124560777774,
+              21.271947266765594
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-151",
+      "properties": {
+        "plotNo": "151",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.4,
+        "areaSqm": 14000,
+        "ownerMarathi": "दत्तात्रय लिंबाजी मोरे",
+        "ownerEnglish": "Dattatraya Limbaji More",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5904962730048,
+              21.273082332770915
+            ],
+            [
+              78.59218216763891,
+              21.273119399964585
+            ],
+            [
+              78.59197333715612,
+              21.274517667229087
+            ],
+            [
+              78.59021783236109,
+              21.274480600035417
+            ],
+            [
+              78.5904962730048,
+              21.273082332770915
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-154",
+      "properties": {
+        "plotNo": "154",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 3.8,
+        "areaSqm": 38000,
+        "ownerMarathi": "शासकीय पडीक जमीन (गायराण)",
+        "ownerEnglish": "Government Grazing Land (Gairan)",
+        "use": "Government / Road",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58891523621242,
+              21.274935447051618
+            ],
+            [
+              78.59050778653918,
+              21.27472432904284
+            ],
+            [
+              78.59064051947547,
+              21.276064552948384
+            ],
+            [
+              78.58909221346082,
+              21.276275670957162
+            ],
+            [
+              78.58891523621242,
+              21.274935447051618
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-157",
+      "properties": {
+        "plotNo": "157",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.9,
+        "areaSqm": 29000,
+        "ownerMarathi": "मधुकर गणपती सरोदे",
+        "ownerEnglish": "Madhukar Ganpati Sarode",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59419991725557,
+              21.273552770130113
+            ],
+            [
+              78.59542183092069,
+              21.27343695069635
+            ],
+            [
+              78.59540551978851,
+              21.27444722986989
+            ],
+            [
+              78.59417816907933,
+              21.27456304930365
+            ],
+            [
+              78.59419991725557,
+              21.273552770130113
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-158",
+      "properties": {
+        "plotNo": "158",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.5,
+        "areaSqm": 25000,
+        "ownerMarathi": "आनंदराव बाजीराव बोराडे",
+        "ownerEnglish": "Anandrao Bajirao Borade",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5954073986238,
+              21.272512675377154
+            ],
+            [
+              78.59633268936666,
+              21.2726805898719
+            ],
+            [
+              78.5962276233738,
+              21.273487324622845
+            ],
+            [
+              78.59526731063333,
+              21.2733194101281
+            ],
+            [
+              78.5954073986238,
+              21.272512675377154
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-159",
+      "properties": {
+        "plotNo": "159",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.2,
+        "areaSqm": 12000,
+        "ownerMarathi": "पुरुषोत्तम नामदेवराव घोरपडे",
+        "ownerEnglish": "Purushottam Namdevrao Ghorpade",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59617840023101,
+              21.27123747608027
+            ],
+            [
+              78.59716223433442,
+              21.27141593177458
+            ],
+            [
+              78.59735675841036,
+              21.27236252391973
+            ],
+            [
+              78.59643776566558,
+              21.272184068225418
+            ],
+            [
+              78.59617840023101,
+              21.27123747608027
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-161",
+      "properties": {
+        "plotNo": "161",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.2,
+        "areaSqm": 22000,
+        "ownerMarathi": "रामदास मारोती लोखंडे",
+        "ownerEnglish": "Ramdas Maroti Lokhande",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59397889697944,
+              21.268423414545197
+            ],
+            [
+              78.59532095069666,
+              21.268322068439215
+            ],
+            [
+              78.59509606493958,
+              21.2695765854548
+            ],
+            [
+              78.59367904930333,
+              21.269677931560782
+            ],
+            [
+              78.59397889697944,
+              21.268423414545197
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-162",
+      "properties": {
+        "plotNo": "162",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.3,
+        "areaSqm": 13000,
+        "ownerMarathi": "हरिभाऊ किसन काळे",
+        "ownerEnglish": "Haribhau Kisan Kale",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59454517543024,
+              21.267616554139323
+            ],
+            [
+              78.59620558835714,
+              21.267400293840293
+            ],
+            [
+              78.59639251551661,
+              21.268783445860677
+            ],
+            [
+              78.59479441164287,
+              21.268999706159708
+            ],
+            [
+              78.59454517543024,
+              21.267616554139323
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-165",
+      "properties": {
+        "plotNo": "165",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 3.2,
+        "areaSqm": 32000,
+        "ownerMarathi": "वन विभाग संरक्षित सीमा",
+        "ownerEnglish": "Forest Dept Reserve Boundary",
+        "use": "Forest",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59744287512258,
+              21.267896093394448
+            ],
+            [
+              78.599080031681,
+              21.26791676905886
+            ],
+            [
+              78.59898785157831,
+              21.26910390660555
+            ],
+            [
+              78.59731996831901,
+              21.26908323094114
+            ],
+            [
+              78.59744287512258,
+              21.267896093394448
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-16",
+      "properties": {
+        "plotNo": "16",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.15,
+        "areaSqm": 11500,
+        "ownerMarathi": "नारायण बळीराम सोनवणे",
+        "ownerEnglish": "Narayan Baliram Sonawane",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58737321682052,
+              21.265647973098254
+            ],
+            [
+              78.58866754486407,
+              21.2658719459316
+            ],
+            [
+              78.58863697360061,
+              21.26675202690175
+            ],
+            [
+              78.58733245513592,
+              21.266528054068402
+            ],
+            [
+              78.58737321682052,
+              21.265647973098254
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-17",
+      "properties": {
+        "plotNo": "17",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.95,
+        "areaSqm": 9500,
+        "ownerMarathi": "विनायक सखाराम खंदारे",
+        "ownerEnglish": "Vinayak Sakharam Khandare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58862553878019,
+              21.26535955174758
+            ],
+            [
+              78.58958241444422,
+              21.265422423490836
+            ],
+            [
+              78.58972644952593,
+              21.266240448252418
+            ],
+            [
+              78.58881758555579,
+              21.26617757650916
+            ],
+            [
+              78.58862553878019,
+              21.26535955174758
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-18",
+      "properties": {
+        "plotNo": "18",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.4,
+        "areaSqm": 14000,
+        "ownerMarathi": "सदाशिव रामभाऊ जगताप",
+        "ownerEnglish": "Sadashiv Rambhau Jagtap",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59017016805475,
+              21.264950893495325
+            ],
+            [
+              78.59111482001359,
+              21.264750373377588
+            ],
+            [
+              78.59090107896233,
+              21.265849106504675
+            ],
+            [
+              78.58988517998642,
+              21.26604962662241
+            ],
+            [
+              78.59017016805475,
+              21.264950893495325
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-21",
+      "properties": {
+        "plotNo": "21",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.6,
+        "areaSqm": 16000,
+        "ownerMarathi": "दीपक प्रभाकर कुळकर्णी",
+        "ownerEnglish": "Deepak Prabhakar Kulkarni",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59141970344533,
+              21.264965529031397
+            ],
+            [
+              78.59268894655068,
+              21.26482785832359
+            ],
+            [
+              78.59290745905368,
+              21.2662344709686
+            ],
+            [
+              78.59171105344933,
+              21.26637214167641
+            ],
+            [
+              78.59141970344533,
+              21.264965529031397
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-22",
+      "properties": {
+        "plotNo": "22",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.8,
+        "areaSqm": 8000,
+        "ownerMarathi": "संगीता विष्णू कांबळे",
+        "ownerEnglish": "Sangeeta Vishnu Kamble",
+        "use": "Homestead",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59249310640364,
+              21.264450104647985
+            ],
+            [
+              78.59411609342327,
+              21.264599270185897
+            ],
+            [
+              78.59395919355308,
+              21.265949895352016
+            ],
+            [
+              78.59228390657672,
+              21.265800729814103
+            ],
+            [
+              78.59249310640364,
+              21.264450104647985
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-23",
+      "properties": {
+        "plotNo": "23",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.7,
+        "areaSqm": 7000,
+        "ownerMarathi": "महालक्ष्मी स्वयं सहाय्यता गट",
+        "ownerEnglish": "Mahalaxmi SHG Farm",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5929329579654,
+              21.264421439027934
+            ],
+            [
+              78.59460354727891,
+              21.264614752171568
+            ],
+            [
+              78.59465116834568,
+              21.265578560972067
+            ],
+            [
+              78.5929964527211,
+              21.265385247828434
+            ],
+            [
+              78.5929329579654,
+              21.264421439027934
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-24",
+      "properties": {
+        "plotNo": "24",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.65,
+        "areaSqm": 6500,
+        "ownerMarathi": "सुभाष बबनराव शिंदे",
+        "ownerEnglish": "Subhash Babanrao Shinde",
+        "use": "Homestead",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59366578479464,
+              21.264477654892794
+            ],
+            [
+              78.59503271518705,
+              21.2644005999398
+            ],
+            [
+              78.59510884020077,
+              21.26512234510721
+            ],
+            [
+              78.59376728481294,
+              21.2651994000602
+            ],
+            [
+              78.59366578479464,
+              21.264477654892794
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-25",
+      "properties": {
+        "plotNo": "25",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.85,
+        "areaSqm": 8500,
+        "ownerMarathi": "अमोल भास्कर गाढवे",
+        "ownerEnglish": "Amol Bhaskar Gadhave",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59461791362865,
+              21.264230986796605
+            ],
+            [
+              78.59561774546451,
+              21.264008930249258
+            ],
+            [
+              78.59544100114464,
+              21.264969013203398
+            ],
+            [
+              78.59438225453549,
+              21.265191069750745
+            ],
+            [
+              78.59461791362865,
+              21.264230986796605
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-29",
+      "properties": {
+        "plotNo": "29",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.1,
+        "areaSqm": 11000,
+        "ownerMarathi": "ज्ञानेश्वर नामदेव खोडके",
+        "ownerEnglish": "Dnyaneshwar Namdev Khodke",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59339226444357,
+              21.263102474882587
+            ],
+            [
+              78.59430951060597,
+              21.263096697249996
+            ],
+            [
+              78.59453317931882,
+              21.264497525117413
+            ],
+            [
+              78.59369048939402,
+              21.264503302750004
+            ],
+            [
+              78.59339226444357,
+              21.263102474882587
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-30",
+      "properties": {
+        "plotNo": "30",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.25,
+        "areaSqm": 12500,
+        "ownerMarathi": "उत्तम विठ्ठलराव वाघ",
+        "ownerEnglish": "Uttam Vitthalrao Wagh",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59273636914993,
+              21.263156015826205
+            ],
+            [
+              78.59393382093678,
+              21.263375917173665
+            ],
+            [
+              78.59373117837174,
+              21.264843984173794
+            ],
+            [
+              78.59246617906321,
+              21.264624082826334
+            ],
+            [
+              78.59273636914993,
+              21.263156015826205
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-32",
+      "properties": {
+        "plotNo": "32",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.9,
+        "areaSqm": 9000,
+        "ownerMarathi": "किसन तुकाराम मडावी",
+        "ownerEnglish": "Kisan Tukaram Madavi",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59063253564469,
+              21.262931424160044
+            ],
+            [
+              78.59220739286351,
+              21.263019230435344
+            ],
+            [
+              78.59232744648236,
+              21.264068575839957
+            ],
+            [
+              78.59079260713648,
+              21.263980769564657
+            ],
+            [
+              78.59063253564469,
+              21.262931424160044
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-33",
+      "properties": {
+        "plotNo": "33",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 0.85,
+        "areaSqm": 8500,
+        "ownerMarathi": "मारोती धर्मा मेश्राम",
+        "ownerEnglish": "Maroti Dharma Meshram",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.589954791284,
+              21.26355235748072
+            ],
+            [
+              78.59164653190378,
+              21.26336521004617
+            ],
+            [
+              78.59164553951294,
+              21.26404764251928
+            ],
+            [
+              78.58995346809623,
+              21.26423478995383
+            ],
+            [
+              78.589954791284,
+              21.26355235748072
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-34",
+      "properties": {
+        "plotNo": "34",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.05,
+        "areaSqm": 10500,
+        "ownerMarathi": "संतोष देवराव उईके",
+        "ownerEnglish": "Santosh Deorao Uike",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58916025622699,
+              21.263649368298175
+            ],
+            [
+              78.59059757087357,
+              21.26349175139998
+            ],
+            [
+              78.59047920054815,
+              21.264350631701824
+            ],
+            [
+              78.58900242912642,
+              21.26450824860002
+            ],
+            [
+              78.58916025622699,
+              21.263649368298175
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-36",
+      "properties": {
+        "plotNo": "36",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.1,
+        "areaSqm": 21000,
+        "ownerMarathi": "बाबुराव परसराम टेकाम",
+        "ownerEnglish": "Baburao Parasram Tekam",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59113911739863,
+              21.261258118506905
+            ],
+            [
+              78.5921918530756,
+              21.261386470939165
+            ],
+            [
+              78.59239362521994,
+              21.262741881493096
+            ],
+            [
+              78.59140814692441,
+              21.262613529060836
+            ],
+            [
+              78.59113911739863,
+              21.261258118506905
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-37",
+      "properties": {
+        "plotNo": "37",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.7,
+        "areaSqm": 17000,
+        "ownerMarathi": "प्रल्हाद नथ्थूजी कोवाचे",
+        "ownerEnglish": "Pralhad Nathhuji Kowache",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59319798792355,
+              21.260938344563044
+            ],
+            [
+              78.59410051287459,
+              21.261143840093766
+            ],
+            [
+              78.593876637276,
+              21.262661655436958
+            ],
+            [
+              78.59289948712542,
+              21.262456159906236
+            ],
+            [
+              78.59319798792355,
+              21.260938344563044
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-39",
+      "properties": {
+        "plotNo": "39",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.45,
+        "areaSqm": 14500,
+        "ownerMarathi": "दौलत लक्ष्मण कुमरे",
+        "ownerEnglish": "Daulat Laxman Kumare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59381682675199,
+              21.259958744227294
+            ],
+            [
+              78.59494588570105,
+              21.259907046711714
+            ],
+            [
+              78.59512385136127,
+              21.261041255772707
+            ],
+            [
+              78.59405411429894,
+              21.261092953288287
+            ],
+            [
+              78.59381682675199,
+              21.259958744227294
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-40",
+      "properties": {
+        "plotNo": "40",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.9,
+        "areaSqm": 19000,
+        "ownerMarathi": "नागपूर पाटबंधारे कालवा",
+        "ownerEnglish": "Nagpur Canal Authority",
+        "use": "Water Body",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59479318389623,
+              21.259555067971387
+            ],
+            [
+              78.5963108024578,
+              21.25933028798842
+            ],
+            [
+              78.59623281269228,
+              21.26004493202861
+            ],
+            [
+              78.59468919754221,
+              21.260269712011578
+            ],
+            [
+              78.59479318389623,
+              21.259555067971387
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-46",
+      "properties": {
+        "plotNo": "46",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.8,
+        "areaSqm": 18000,
+        "ownerMarathi": "शशिकांत रामचंद्र गेडाम",
+        "ownerEnglish": "Shashikant Ramchandra Gedam",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59568049818525,
+              21.258414490134644
+            ],
+            [
+              78.59738040770141,
+              21.25838233915578
+            ],
+            [
+              78.59733472828643,
+              21.259185509865357
+            ],
+            [
+              78.5956195922986,
+              21.25921766084422
+            ],
+            [
+              78.59568049818525,
+              21.258414490134644
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-47",
+      "properties": {
+        "plotNo": "47",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.5,
+        "areaSqm": 15000,
+        "ownerMarathi": "तुलसीराम संभाजी आत्राम",
+        "ownerEnglish": "Tulsiram Sambhaji Atram",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59464477841395,
+              21.257261071515963
+            ],
+            [
+              78.59614792666325,
+              21.257473858388437
+            ],
+            [
+              78.59630339785535,
+              21.258738928484036
+            ],
+            [
+              78.59485207333675,
+              21.25852614161156
+            ],
+            [
+              78.59464477841395,
+              21.257261071515963
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-48",
+      "properties": {
+        "plotNo": "48",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2,
+        "areaSqm": 20000,
+        "ownerMarathi": "गंगाराम काळूजी पंधरे",
+        "ownerEnglish": "Gangaram Kaluji Pandhre",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59408843691871,
+              21.256697010098794
+            ],
+            [
+              78.59520227085586,
+              21.25680853584519
+            ],
+            [
+              78.59498424002493,
+              21.258302989901207
+            ],
+            [
+              78.59379772914413,
+              21.25819146415481
+            ],
+            [
+              78.59408843691871,
+              21.256697010098794
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-50",
+      "properties": {
+        "plotNo": "50",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.6,
+        "areaSqm": 26000,
+        "ownerMarathi": "नागसेन कृषी विकास सोसायटी",
+        "ownerEnglish": "Nagsen Agri Development Society",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59520661009338,
+              21.255976150472012
+            ],
+            [
+              78.59610758628375,
+              21.255804965461962
+            ],
+            [
+              78.5963219390009,
+              21.257023849527986
+            ],
+            [
+              78.59549241371624,
+              21.257195034538036
+            ],
+            [
+              78.59520661009338,
+              21.255976150472012
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-52",
+      "properties": {
+        "plotNo": "52",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.95,
+        "areaSqm": 19500,
+        "ownerMarathi": "संजय दशरथ भोंडे",
+        "ownerEnglish": "Sanjay Dashrath Bhonde",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59306387059806,
+              21.255179057158173
+            ],
+            [
+              78.5941302017506,
+              21.255003675168105
+            ],
+            [
+              78.59398464748911,
+              21.25582094284183
+            ],
+            [
+              78.59286979824941,
+              21.255996324831898
+            ],
+            [
+              78.59306387059806,
+              21.255179057158173
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-55",
+      "properties": {
+        "plotNo": "55",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.3,
+        "areaSqm": 23000,
+        "ownerMarathi": "अशोक नामदेवराव डहाके",
+        "ownerEnglish": "Ashok Namdevrao Dahake",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59075172506871,
+              21.255352233772253
+            ],
+            [
+              78.59220489302405,
+              21.25545799696126
+            ],
+            [
+              78.59223742945447,
+              21.256247766227748
+            ],
+            [
+              78.59079510697595,
+              21.256142003038743
+            ],
+            [
+              78.59075172506871,
+              21.255352233772253
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-60",
+      "properties": {
+        "plotNo": "60",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.1,
+        "areaSqm": 21000,
+        "ownerMarathi": "मनोहर किसनराव भोयर",
+        "ownerEnglish": "Manohar Kisanrao Bhoyar",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58789234338117,
+              21.255825227007374
+            ],
+            [
+              78.58958716866398,
+              21.2560400612834
+            ],
+            [
+              78.58967753463013,
+              21.257174772992624
+            ],
+            [
+              78.58801283133603,
+              21.256959938716598
+            ],
+            [
+              78.58789234338117,
+              21.255825227007374
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-70",
+      "properties": {
+        "plotNo": "70",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.8,
+        "areaSqm": 18000,
+        "ownerMarathi": "भास्कर गोविंदराव चाफले",
+        "ownerEnglish": "Bhaskar Govindrao Chaphale",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58684275206505,
+              21.25430828783268
+            ],
+            [
+              78.58840500151888,
+              21.254282663143382
+            ],
+            [
+              78.58821918633095,
+              21.25569171216732
+            ],
+            [
+              78.58659499848113,
+              21.255717336856616
+            ],
+            [
+              78.58684275206505,
+              21.25430828783268
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-71",
+      "properties": {
+        "plotNo": "71",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.65,
+        "areaSqm": 16500,
+        "ownerMarathi": "मारोती किसनराव बोरकर",
+        "ownerEnglish": "Maroti Kisanrao Borkar",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58545957325487,
+              21.255261103248117
+            ],
+            [
+              78.58664067505526,
+              21.25503671032906
+            ],
+            [
+              78.58686548882267,
+              21.256338896751885
+            ],
+            [
+              78.58575932494475,
+              21.256563289670943
+            ],
+            [
+              78.58545957325487,
+              21.255261103248117
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-72",
+      "properties": {
+        "plotNo": "72",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.4,
+        "areaSqm": 24000,
+        "ownerMarathi": "वामनराव गणपतराव ढोके",
+        "ownerEnglish": "Wamanrao Ganpatrao Dhoke",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58747401702232,
+              21.253742821096626
+            ],
+            [
+              78.58838666822916,
+              21.253684741675894
+            ],
+            [
+              78.58819115429056,
+              21.254657178903376
+            ],
+            [
+              78.58721333177084,
+              21.254715258324108
+            ],
+            [
+              78.58747401702232,
+              21.253742821096626
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-85",
+      "properties": {
+        "plotNo": "85",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.35,
+        "areaSqm": 13500,
+        "ownerMarathi": "सुधाकर गणपतराव खुरसंगे",
+        "ownerEnglish": "Sudhakar Ganpatrao Khursange",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59092311506657,
+              21.257994238438414
+            ],
+            [
+              78.59193446228323,
+              21.258196966296723
+            ],
+            [
+              78.59204127927087,
+              21.25900576156159
+            ],
+            [
+              78.59106553771676,
+              21.25880303370328
+            ],
+            [
+              78.59092311506657,
+              21.257994238438414
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-86",
+      "properties": {
+        "plotNo": "86",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.45,
+        "areaSqm": 14500,
+        "ownerMarathi": "आनंदराव बाबाराव कुंभारे",
+        "ownerEnglish": "Anandrao Babarao Kumbhare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.59009862537148,
+              21.258642375013647
+            ],
+            [
+              78.59148226668536,
+              21.258776076940784
+            ],
+            [
+              78.59149659764273,
+              21.259757624986353
+            ],
+            [
+              78.59011773331464,
+              21.259623923059216
+            ],
+            [
+              78.59009862537148,
+              21.258642375013647
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-89",
+      "properties": {
+        "plotNo": "89",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.7,
+        "areaSqm": 17000,
+        "ownerMarathi": "पुरुषोत्तम विठ्ठलराव मडावी",
+        "ownerEnglish": "Purushottam Vitthalrao Madavi",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58904908856589,
+              21.25923412979718
+            ],
+            [
+              78.59072574497871,
+              21.259081276065324
+            ],
+            [
+              78.59059461982025,
+              21.26036587020282
+            ],
+            [
+              78.58887425502128,
+              21.260518723934673
+            ],
+            [
+              78.58904908856589,
+              21.25923412979718
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-90",
+      "properties": {
+        "plotNo": "90",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.05,
+        "areaSqm": 20500,
+        "ownerMarathi": "गजानन रामचंद्र कोकाटे",
+        "ownerEnglish": "Gajanan Ramchandra Kokate",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58785494782322,
+              21.259906606223705
+            ],
+            [
+              78.5894676074505,
+              21.259715886073163
+            ],
+            [
+              78.58967569099522,
+              21.261093393776296
+            ],
+            [
+              78.58813239254951,
+              21.261284113926838
+            ],
+            [
+              78.58785494782322,
+              21.259906606223705
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-92",
+      "properties": {
+        "plotNo": "92",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.9,
+        "areaSqm": 19000,
+        "ownerMarathi": "दिनकर नारायणराव मोहाडीकर",
+        "ownerEnglish": "Dinkar Narayanrao Mohadikar",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58632172911477,
+              21.260584378033172
+            ],
+            [
+              78.58757403910293,
+              21.26066608843068
+            ],
+            [
+              78.58735221293965,
+              21.261815621966825
+            ],
+            [
+              78.58602596089706,
+              21.26173391156932
+            ],
+            [
+              78.58632172911477,
+              21.260584378033172
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-93",
+      "properties": {
+        "plotNo": "93",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.2,
+        "areaSqm": 22000,
+        "ownerMarathi": "कैलास बाबुराव ठाकरे",
+        "ownerEnglish": "Kailas Baburao Thakare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58491929978499,
+              21.261264646106188
+            ],
+            [
+              78.58585646287165,
+              21.26148584625642
+            ],
+            [
+              78.58602464087916,
+              21.262335353893814
+            ],
+            [
+              78.58514353712835,
+              21.262114153743582
+            ],
+            [
+              78.58491929978499,
+              21.261264646106188
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-94",
+      "properties": {
+        "plotNo": "94",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.5,
+        "areaSqm": 25000,
+        "ownerMarathi": "चंद्रशेखर सखाराम बोरकर",
+        "ownerEnglish": "Chandrashekhar Sakharam Borkar",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58375932692582,
+              21.262083163330256
+            ],
+            [
+              78.58472525625248,
+              21.262083966061024
+            ],
+            [
+              78.58466181886875,
+              21.262916836669742
+            ],
+            [
+              78.58367474374751,
+              21.262916033938975
+            ],
+            [
+              78.58375932692582,
+              21.262083163330256
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-96",
+      "properties": {
+        "plotNo": "96",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.75,
+        "areaSqm": 27500,
+        "ownerMarathi": "दिलीप पुंडलिकराव डांगरे",
+        "ownerEnglish": "Dilip Pundlikrao Dangre",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58488471228925,
+              21.263736224370636
+            ],
+            [
+              78.58619605506168,
+              21.263515323658837
+            ],
+            [
+              78.58613547954847,
+              21.264663775629362
+            ],
+            [
+              78.58480394493832,
+              21.26488467634116
+            ],
+            [
+              78.58488471228925,
+              21.263736224370636
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-98",
+      "properties": {
+        "plotNo": "98",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.6,
+        "areaSqm": 26000,
+        "ownerMarathi": "अनंत बाळकृष्ण देशमुख",
+        "ownerEnglish": "Anant Balkrishna Deshmukh",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58626620710372,
+              21.26312562533938
+            ],
+            [
+              78.58791221213217,
+              21.263042421178284
+            ],
+            [
+              78.58807839770525,
+              21.26447437466062
+            ],
+            [
+              78.58648778786782,
+              21.264557578821716
+            ],
+            [
+              78.58626620710372,
+              21.26312562533938
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-99",
+      "properties": {
+        "plotNo": "99",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 2.45,
+        "areaSqm": 24500,
+        "ownerMarathi": "विजय विष्णूजी लोणारे",
+        "ownerEnglish": "Vijay Vishnuji Lonare",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.58782118489744,
+              21.26244851296807
+            ],
+            [
+              78.58947389305773,
+              21.262638376469404
+            ],
+            [
+              78.58925258459135,
+              21.26395148703193
+            ],
+            [
+              78.58752610694226,
+              21.2637616235306
+            ],
+            [
+              78.58782118489744,
+              21.26244851296807
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "katol-179",
+      "properties": {
+        "plotNo": "179",
+        "village": "Katol",
+        "villageMr": "काटोल",
+        "taluka": "Katol",
+        "district": "Nagpur",
+        "areaHa": 1.2,
+        "areaSqm": 12000,
+        "ownerMarathi": "सुभाष आनंदराव देशमुख",
+        "ownerEnglish": "Subhash Anandrao Deshmukh",
+        "use": "Agricultural",
+        "status": "Verified"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              78.5951979854398,
+              21.263670529148467
+            ],
+            [
+              78.59652308407803,
+              21.263824557092562
+            ],
+            [
+              78.59673228193967,
+              21.26472947085153
+            ],
+            [
+              78.59547691592198,
+              21.264575442907436
+            ],
+            [
+              78.5951979854398,
+              21.263670529148467
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
