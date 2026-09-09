@@ -23,7 +23,7 @@ import GeoJSON from "ol/format/GeoJSON.js";
 
 import Feature from "ol/Feature.js";
 import Point from "ol/geom/Point.js";
-import { fromExtent } from "ol/geom/Polygon.js";
+import Polygon, { fromExtent } from "ol/geom/Polygon.js";
 import CircleStyle from "ol/style/Circle.js";
 import Style from "ol/style/Style.js";
 import Stroke from "ol/style/Stroke.js";
@@ -207,6 +207,9 @@ export interface BNPlot {
   area?: string;
   records?: PlotInfoRecord[];
   reportUrl?: string;
+  theGeom?: string;
+  localBounds?: { xmin: number; ymin: number; xmax: number; ymax: number };
+  geoBounds?: [number, number, number, number];
 }
 
 const MAHARASHTRA_OWNER_SURNAMES = [
@@ -260,6 +263,70 @@ export function parseBhuNakashaInfoText(infoStr: string, fallbackPlotNo: string)
     }
   }
   return records;
+}
+
+/**
+ * Extracts polygon coordinate rings from WKT (MULTIPOLYGON or POLYGON) returned by MahaBhuNakasha
+ */
+export function parseWktPolygonRings(wkt: string): [number, number][][] | null {
+  if (!wkt || typeof wkt !== "string") return null;
+  const clean = wkt.trim().toUpperCase();
+  if (!clean.includes("POLYGON")) return null;
+
+  const ringRegex = /\(\s*([0-9.,\s\-+]+)\s*\)/g;
+  const rings: [number, number][][] = [];
+  let match: RegExpExecArray | null;
+  while ((match = ringRegex.exec(wkt)) !== null) {
+    const rawPairs = match[1].trim().split(",");
+    const ring: [number, number][] = [];
+    for (const p of rawPairs) {
+      const parts = p.trim().split(/\s+/).map(Number);
+      if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        ring.push([parts[0], parts[1]]);
+      }
+    }
+    if (ring.length >= 3) rings.push(ring);
+  }
+  return rings.length > 0 ? rings : null;
+}
+
+/**
+ * Transforms local grid parcel boundaries from MahaBhuNakasha the_geom into accurate EPSG:3857 polygon
+ * with optional surveyor calibration offset (in meters) to account for perspective shifts on satellite imagery.
+ */
+export function parsePlotGeometry(
+  theGeom: string | undefined,
+  localBounds: { xmin: number; ymin: number; xmax: number; ymax: number } | null | undefined,
+  geoBounds: [number, number, number, number] | null | undefined,
+  shiftOffsetMeters: [number, number] = [0, 0]
+): Polygon | null {
+  if (!theGeom || !localBounds || !geoBounds) return null;
+  const { xmin: lMinX, ymin: lMinY, xmax: lMaxX, ymax: lMaxY } = localBounds;
+  const [gMinX, gMinY, gMaxX, gMaxY] = geoBounds;
+  if (lMaxX <= lMinX || lMaxY <= lMinY || gMaxX <= gMinX || gMaxY <= gMinY) return null;
+
+  try {
+    const rings = parseWktPolygonRings(theGeom);
+    if (!rings || rings.length === 0) return null;
+
+    const transformedRings = rings.map((ring) =>
+      ring.map(([lx, ly]) => {
+        const normX = (lx - lMinX) / (lMaxX - lMinX);
+        const normY = (ly - lMinY) / (lMaxY - lMinY);
+        const lon = gMinX + normX * (gMaxX - gMinX);
+        const lat = gMinY + normY * (gMaxY - gMinY);
+        const p3857 = fromLonLat([lon, lat]);
+        return [p3857[0] + shiftOffsetMeters[0], p3857[1] + shiftOffsetMeters[1]];
+      })
+    );
+
+    if (transformedRings[0] && transformedRings[0].length >= 3) {
+      return new Polygon(transformedRings);
+    }
+  } catch (err) {
+    console.warn("Failed to construct exact plot polygon from the_geom:", err);
+  }
+  return null;
 }
 
 export function generatePlotInfoRecords(
@@ -691,6 +758,83 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     setTimeout(() => setCopiedPlotInfo(false), 2200);
   }, [bnSelectedPlot]);
 
+  // Perspective Calibration State (in meters) to calibrate 1930s cadastral surveys with modern satellite imagery
+  const [cadastralCalibX, setCadastralCalibX] = useState(0); // East(+) / West(-)
+  const [cadastralCalibY, setCadastralCalibY] = useState(0); // North(+) / South(-)
+  const [calibControlsOpen, setCalibControlsOpen] = useState(false);
+
+  const handleNudgeCalib = useCallback(
+    (dx: number, dy: number) => {
+      setCadastralCalibX((prevX) => prevX + dx);
+      setCadastralCalibY((prevY) => prevY + dy);
+
+      // Immediately re-fit active vector plot geometry with the new calibration offset
+      if (bnSelectedPlot?.theGeom && bnSelectedPlot?.localBounds && bnSelectedPlot?.geoBounds) {
+        const nextX = cadastralCalibX + dx;
+        const nextY = cadastralCalibY + dy;
+        const newPoly = parsePlotGeometry(
+          bnSelectedPlot.theGeom,
+          bnSelectedPlot.localBounds,
+          bnSelectedPlot.geoBounds,
+          [nextX, nextY]
+        );
+        if (newPoly) {
+          const markerSrc = plotMarkerLayerRef.current?.getSource();
+          const features = markerSrc?.getFeatures();
+          if (features && features[0]) {
+            features[0].setGeometry(newPoly);
+          }
+        }
+      }
+    },
+    [bnSelectedPlot, cadastralCalibX, cadastralCalibY]
+  );
+
+  const handleResetCalib = useCallback(() => {
+    setCadastralCalibX(0);
+    setCadastralCalibY(0);
+    if (bnSelectedPlot?.theGeom && bnSelectedPlot?.localBounds && bnSelectedPlot?.geoBounds) {
+      const newPoly = parsePlotGeometry(
+        bnSelectedPlot.theGeom,
+        bnSelectedPlot.localBounds,
+        bnSelectedPlot.geoBounds,
+        [0, 0]
+      );
+      if (newPoly) {
+        const markerSrc = plotMarkerLayerRef.current?.getSource();
+        const features = markerSrc?.getFeatures();
+        if (features && features[0]) {
+          features[0].setGeometry(newPoly);
+        }
+      }
+    }
+  }, [bnSelectedPlot]);
+
+  // Synchronize WMS cadastral layers with dynamic pixel shift on postrender
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const applyTransform = () => {
+      const currentRes = map.getView().getResolution() || 1;
+      const curPxX = cadastralCalibX / currentRes;
+      const curPxY = -cadastralCalibY / currentRes;
+      document
+        .querySelectorAll<HTMLElement>(
+          ".cadastral-village-layer, .cadastral-selected-plot-layer, .cadastral-plot-marker-layer"
+        )
+        .forEach((el) => {
+          el.style.transform = (curPxX !== 0 || curPxY !== 0) ? `translate(${curPxX}px, ${curPxY}px)` : "";
+        });
+    };
+
+    applyTransform();
+    map.on("postrender", applyTransform);
+    return () => {
+      map.un("postrender", applyTransform);
+    };
+  }, [cadastralCalibX, cadastralCalibY]);
+
   // Map init
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
@@ -735,7 +879,14 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       serverType: "geoserver",
       ratio: 1.5,
     });
-    const cadastralVillageLayer = new ImageLayer({ source: cadastralVillageSource, visible: false, zIndex: 30, opacity: 0.9, properties: { name: "cadastral-village" } });
+    const cadastralVillageLayer = new ImageLayer({
+      className: "cadastral-village-layer",
+      source: cadastralVillageSource,
+      visible: false,
+      zIndex: 30,
+      opacity: 0.9,
+      properties: { name: "cadastral-village" },
+    });
     cadastralVillageLayerRef.current = cadastralVillageLayer;
     // BhuNaksha PLOT_LIST WMS layer (individual plot highlight)
     const cadastralPlotSource = new ImageWMS({
@@ -754,7 +905,12 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     });
     cadastralPlotLayerRef.current = cadastralPlotLayer;
     // Dedicated Vector Layer for Plot Marker & Serial Number Highlight (distinct bright color)
-    const plotMarkerLayer = new VectorLayer({ source: new VectorSource(), zIndex: 50, properties: { name: "plot-marker" } });
+    const plotMarkerLayer = new VectorLayer({
+      className: "cadastral-plot-marker-layer",
+      source: new VectorSource(),
+      zIndex: 50,
+      properties: { name: "plot-marker" },
+    });
     plotMarkerLayerRef.current = plotMarkerLayer;
 
     const map = new Map({
@@ -1321,15 +1477,34 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         }
       }
 
+      // Extract exact parcel polygon geometry from the_geom or fallback to extent
+      const localBounds =
+        pInfoRaw?.xmin != null && pInfoRaw?.ymin != null && pInfoRaw?.xmax != null && pInfoRaw?.ymax != null
+          ? {
+              xmin: Number(pInfoRaw.xmin),
+              ymin: Number(pInfoRaw.ymin),
+              xmax: Number(pInfoRaw.xmax),
+              ymax: Number(pInfoRaw.ymax),
+            }
+          : null;
+
+      let exactPolygon: Polygon | null = null;
+      if (pInfoRaw?.the_geom && localBounds && plotExt4326) {
+        exactPolygon = parsePlotGeometry(pInfoRaw.the_geom, localBounds, plotExt4326, [cadastralCalibX, cadastralCalibY]);
+      }
+
       // Draw distinctive marking mark with serial number label on the map!
-      if (ext3857) {
+      const markerGeom = exactPolygon || (ext3857 ? fromExtent(ext3857) : null);
+
+      if (markerGeom) {
+        const fitExt = exactPolygon ? exactPolygon.getExtent() : ext3857!;
         const map = mapInstanceRef.current;
         if (map) {
-          map.getView().fit(ext3857, { duration: 900, padding: [100, 100, 100, panelOpen ? 420 : 100], maxZoom: 19 });
+          map.getView().fit(fitExt, { duration: 900, padding: [100, 100, 100, panelOpen ? 420 : 100], maxZoom: 19 });
         }
 
         const markerFeature = new Feature({
-          geometry: fromExtent(ext3857),
+          geometry: markerGeom,
           plotNo: String(plotNo),
           owner: finalOwner,
           area: finalArea,
@@ -1352,6 +1527,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         area: finalArea,
         records,
         reportUrl,
+        theGeom: pInfoRaw?.the_geom,
+        localBounds: localBounds || undefined,
+        geoBounds: plotExt4326 || undefined,
       };
       setBnSelectedPlot(plotObj);
       setPlotInfoWindowOpen(true);
@@ -2204,6 +2382,107 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                     </div>
                   )}
 
+                  {/* CADASTRAL PERSPECTIVE CALIBRATION CONTROLS */}
+                  {bnGisCode && (
+                    <div className="rounded-xl bg-amber-50/70 border border-amber-300 p-3 text-xs space-y-2.5 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
+                          <span>🧭</span>
+                          <span>Perspective Calibration</span>
+                        </span>
+                        <span className="font-mono text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">
+                          {cadastralCalibX === 0 && cadastralCalibY === 0
+                            ? "Aligned (0m, 0m)"
+                            : `${cadastralCalibX > 0 ? "+" : ""}${cadastralCalibX}m E, ${cadastralCalibY > 0 ? "+" : ""}${cadastralCalibY}m N`}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-amber-800 leading-snug">
+                        Nudge cadastral survey lines to align precisely with tree lines & field bunds on satellite imagery.
+                      </p>
+
+                      {/* Directional Nudge Pad */}
+                      <div className="flex flex-col items-center gap-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleNudgeCalib(0, 1)}
+                          className="px-3 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
+                          title="Nudge North +1m"
+                        >
+                          ▲ North (+1m)
+                        </button>
+                        <div className="flex items-center gap-1.5 w-full justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handleNudgeCalib(-1, 0)}
+                            className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
+                            title="Nudge West -1m"
+                          >
+                            ◀ West (-1m)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleResetCalib}
+                            className="px-2 py-1 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded font-bold text-[10px] text-amber-950 shadow-xs transition-colors cursor-pointer"
+                            title="Reset Calibration to 0m"
+                          >
+                            Reset
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleNudgeCalib(1, 0)}
+                            className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
+                            title="Nudge East +1m"
+                          >
+                            East (+1m) ▶
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleNudgeCalib(0, -1)}
+                          className="px-3 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
+                          title="Nudge South -1m"
+                        >
+                          ▼ South (-1m)
+                        </button>
+                      </div>
+
+                      {/* Quick Step Presets */}
+                      <div className="flex items-center justify-between gap-1 pt-1 border-t border-amber-200/70 text-[10px]">
+                        <span className="text-amber-800 font-medium">Quick Step:</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleNudgeCalib(-5, 0)}
+                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
+                          >
+                            -5m W
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleNudgeCalib(5, 0)}
+                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
+                          >
+                            +5m E
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleNudgeCalib(0, 5)}
+                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
+                          >
+                            +5m N
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleNudgeCalib(0, -5)}
+                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
+                          >
+                            -5m S
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {bnGisCode && (
                     <div className="border border-slate-200 rounded-lg overflow-hidden">
                       <div className="bg-slate-700 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-2 flex items-center justify-between">
@@ -2411,7 +2690,90 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           <RedMapControl onClick={zoomOut} title="Zoom Out">-</RedMapControl>
           <RedMapControl onClick={resetView} title="Reset Maharashtra View">⟲</RedMapControl>
           <RedMapControl onClick={() => setInfoVisible((v) => !v)} title="Toggle Feature Info" active={infoVisible}>i</RedMapControl>
+          <RedMapControl
+            onClick={() => setCalibControlsOpen((v) => !v)}
+            title="Calibrate Cadastral Alignment to Satellite"
+            active={calibControlsOpen || cadastralCalibX !== 0 || cadastralCalibY !== 0}
+          >
+            🎯
+          </RedMapControl>
         </div>
+
+        {/* FLOATING PERSPECTIVE CALIBRATION WIDGET ON MAP */}
+        {calibControlsOpen && (
+          <div
+            className="absolute top-16 right-16 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-amber-400 p-3.5 text-xs w-64 space-y-2.5 animate-in fade-in zoom-in-95"
+          >
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+              <span className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
+                <span>🎯</span>
+                <span>Satellite Alignment Nudge</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setCalibControlsOpen(false)}
+                className="size-5 rounded flex items-center justify-center font-bold text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-600 leading-snug">
+              Nudge survey lines to align perfectly with tree rows & field bunds on satellite imagery.
+            </p>
+            <div className="flex flex-col items-center gap-1 pt-0.5">
+              <button
+                type="button"
+                onClick={() => handleNudgeCalib(0, 1)}
+                className="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
+                title="Nudge North +1m"
+              >
+                ▲ North (+1m)
+              </button>
+              <div className="flex items-center gap-1.5 w-full justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleNudgeCalib(-1, 0)}
+                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
+                  title="Nudge West -1m"
+                >
+                  ◀ West (-1m)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetCalib}
+                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded font-bold text-[10px] text-slate-800 shadow-xs cursor-pointer transition-colors"
+                  title="Reset to 0m"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNudgeCalib(1, 0)}
+                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
+                  title="Nudge East +1m"
+                >
+                  East (+1m) ▶
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleNudgeCalib(0, -1)}
+                className="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
+                title="Nudge South -1m"
+              >
+                ▼ South (-1m)
+              </button>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-[10px] font-mono">
+              <span className="text-slate-500">Active Offset:</span>
+              <span className="font-bold text-amber-800">
+                {cadastralCalibX === 0 && cadastralCalibY === 0
+                  ? "0m, 0m (Original)"
+                  : `${cadastralCalibX > 0 ? "+" : ""}${cadastralCalibX}m E, ${cadastralCalibY > 0 ? "+" : ""}${cadastralCalibY}m N`}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* FEATURE INFO POPUP */}
         {infoVisible && Object.keys(infoContent).length > 0 && (
