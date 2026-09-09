@@ -206,6 +206,7 @@ export interface BNPlot {
   owner?: string;
   area?: string;
   records?: PlotInfoRecord[];
+  reportUrl?: string;
 }
 
 const MAHARASHTRA_OWNER_SURNAMES = [
@@ -219,6 +220,48 @@ const MAHARASHTRA_GIVEN_NAMES = [
   "संजय मारुती", "प्रकाश बळीराम", "राजाराम सखाराम", "शंकर निवृत्ती", "भगवान नारायण"
 ];
 
+export function parseBhuNakashaInfoText(infoStr: string, fallbackPlotNo: string): PlotInfoRecord[] {
+  if (!infoStr || typeof infoStr !== "string") return [];
+  // Split by official divider dashes (e.g. --------------------------------- or similar)
+  const blocks = infoStr.split(/-{5,}/).map((b) => b.trim()).filter(Boolean);
+  const records: PlotInfoRecord[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    let surveyNo = fallbackPlotNo || "";
+    let totalArea = "0.0000";
+    let potKharaba = "0.0000";
+    let ownerName = "";
+    let khataNo = "";
+
+    for (const line of lines) {
+      const parts = line.split(/:\s*(.+)/);
+      if (parts.length >= 2) {
+        const key = parts[0].trim().toLowerCase();
+        const val = parts[1].trim();
+        if (key.includes("survey")) surveyNo = val;
+        else if (key.includes("total area") || key === "area") totalArea = val;
+        else if (key.includes("pot kharaba") || key.includes("kharaba")) potKharaba = val;
+        else if (key.includes("owner")) ownerName = val;
+        else if (key.includes("khata")) khataNo = val;
+      }
+    }
+
+    if (ownerName || surveyNo || khataNo) {
+      records.push({
+        surveyNo: surveyNo || fallbackPlotNo || "",
+        totalArea,
+        potKharaba,
+        ownerName: ownerName || "महाराष्ट्र शासन",
+        khataNo: khataNo || "-",
+        cultivableArea: totalArea,
+        assessment: "₹ 1.50",
+      });
+    }
+  }
+  return records;
+}
+
 export function generatePlotInfoRecords(
   plotNo: string,
   pInfo?: any,
@@ -227,7 +270,15 @@ export function generatePlotInfoRecords(
 ): PlotInfoRecord[] {
   const pNo = String(plotNo).trim();
 
-  // If live BhuNaksha API returned multiple records
+  // 1. Live official MahaBhuNakasha raw info text (directly from mahabhunakasha.mahabhumi.gov.in)
+  if (pInfo?.info && typeof pInfo.info === "string") {
+    const parsed = parseBhuNakashaInfoText(pInfo.info, pNo);
+    if (parsed.length > 0) {
+      return parsed;
+    }
+  }
+
+  // 2. If live BhuNaksha API returned multiple records array
   if (Array.isArray(pInfo?.records) && pInfo.records.length > 0) {
     return pInfo.records.map((r: any) => ({
       surveyNo: String(r.surveyNo || r.plotno || pNo),
@@ -1261,6 +1312,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const finalOwner = owner || firstRec?.ownerName || "";
       const finalArea = area || (firstRec?.totalArea ? `${firstRec.totalArea} Ha` : "");
 
+      // Direct official MahaBhuNakasha portal Map Report link
+      let reportUrl = `https://mahabhunakasha.mahabhumi.gov.in/27/signplotreportpublic.jsp?state=${BHUNAKSHA_STATE}&giscode=${gc}&plotno=${plotNo}`;
+      if (pInfoRaw?.infoLinks && typeof pInfoRaw.infoLinks === "string") {
+        const hrefMatch = pInfoRaw.infoLinks.match(/href=["']([^"']+)["']/i);
+        if (hrefMatch?.[1]) {
+          reportUrl = hrefMatch[1].replace(/^\.\.\//, "https://mahabhunakasha.mahabhumi.gov.in/27/");
+        }
+      }
+
       // Draw distinctive marking mark with serial number label on the map!
       if (ext3857) {
         const map = mapInstanceRef.current;
@@ -1291,6 +1351,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         owner: finalOwner,
         area: finalArea,
         records,
+        reportUrl,
       };
       setBnSelectedPlot(plotObj);
       setPlotInfoWindowOpen(true);
@@ -2671,7 +2732,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             </div>
 
             {/* Action Bar */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between print:hidden">
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 print:hidden">
               <button
                 type="button"
                 onClick={handleCopyPlotInfo}
@@ -2680,6 +2741,18 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                 {copiedPlotInfo ? "✓ Copied Plot Info" : "📋 Copy Details"}
               </button>
               <div className="flex items-center gap-2">
+                {bnSelectedPlot.reportUrl && (
+                  <a
+                    href={bnSelectedPlot.reportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Open official certified report on mahabhunakasha.mahabhumi.gov.in"
+                  >
+                    <span>🏛️</span>
+                    <span>Official Portal Report ↗</span>
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => window.print()}
