@@ -570,11 +570,20 @@
   pointer-events: none;
 }
 
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+/* GPU Acceleration & Smooth Rendering for WebGIS Map Viewports */
+.ol-viewport,
+.leaflet-container {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
 }
+
+.ol-viewport canvas,
+.leaflet-container canvas {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
 

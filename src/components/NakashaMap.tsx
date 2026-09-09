@@ -15,6 +15,7 @@ import { defaults as defaultControls } from "ol/control.js";
 import TileLayer from "ol/layer/Tile.js";
 import ImageLayer from "ol/layer/Image.js";
 import VectorLayer from "ol/layer/Vector.js";
+import VectorImageLayer from "ol/layer/VectorImage.js";
 import VectorSource from "ol/source/Vector.js";
 import XYZ from "ol/source/XYZ.js";
 import ImageWMS from "ol/source/ImageWMS.js";
@@ -234,29 +235,81 @@ export const DEFAULT_DISTRICTS: BNLevel[] = [
 ];
 const DEFAULT_LABELS = ["Category", "District", "Taluka", "Village", "Map Type", "Survey No."];
 
+// High-performance style caches to avoid allocating thousands of Style objects during pan/zoom
+const districtStyleCache = new Map<string, Style>();
 function createDistrictStyle(feature: any) {
   const name = feature.get("NAME_2") || feature.get("NAME_1") || "";
-  return new Style({
-    stroke: new Stroke({ color: "#000000", width: 2.5 }),
-    fill: new Fill({ color: "rgba(0, 0, 0, 0.02)" }),
-    text: new Text({ text: name, font: "bold 13px 'DM Sans', sans-serif", fill: new Fill({ color: "#000000" }), stroke: new Stroke({ color: "#ffffff", width: 3.5 }), overflow: true, placement: "point" }),
-  });
+  let s = districtStyleCache.get(name);
+  if (!s) {
+    s = new Style({
+      stroke: new Stroke({ color: "#000000", width: 2.2 }),
+      fill: new Fill({ color: "rgba(0, 0, 0, 0.02)" }),
+      text: new Text({
+        text: name,
+        font: "bold 13px 'DM Sans', sans-serif",
+        fill: new Fill({ color: "#000000" }),
+        stroke: new Stroke({ color: "#ffffff", width: 3.5 }),
+        overflow: true,
+        placement: "point",
+      }),
+    });
+    districtStyleCache.set(name, s);
+  }
+  return s;
 }
 
+const talukaBaseStyle = new Style({
+  stroke: new Stroke({ color: "#2563eb", width: 1.2 }),
+  fill: new Fill({ color: "rgba(37, 99, 235, 0.03)" }),
+});
+const talukaStyleCache = new Map<string, Style>();
 function createTalukaStyle(feature: any, resolution: number) {
-  return new Style({
-    stroke: new Stroke({ color: "#2563eb", width: 1.2 }),
-    fill: new Fill({ color: "rgba(37, 99, 235, 0.03)" }),
-    text: resolution < 350 ? new Text({ text: feature.get("NAME_3") || "", font: "600 11px 'DM Sans', sans-serif", fill: new Fill({ color: "#1d4ed8" }), stroke: new Stroke({ color: "rgba(255,255,255,0.95)", width: 3 }), overflow: false, placement: "point" }) : undefined,
-  });
+  if (resolution >= 300) return talukaBaseStyle;
+  const name = feature.get("NAME_3") || "";
+  let s = talukaStyleCache.get(name);
+  if (!s) {
+    s = new Style({
+      stroke: new Stroke({ color: "#2563eb", width: 1.2 }),
+      fill: new Fill({ color: "rgba(37, 99, 235, 0.03)" }),
+      text: new Text({
+        text: name,
+        font: "600 11px 'DM Sans', sans-serif",
+        fill: new Fill({ color: "#1d4ed8" }),
+        stroke: new Stroke({ color: "rgba(255,255,255,0.95)", width: 3 }),
+        overflow: false,
+        placement: "point",
+      }),
+    });
+    talukaStyleCache.set(name, s);
+  }
+  return s;
 }
 
+const villageBaseStyle = new Style({
+  stroke: new Stroke({ color: "#16a34a", width: 1.2 }),
+  fill: new Fill({ color: "rgba(22, 163, 74, 0.05)" }),
+});
+const villageStyleCache = new Map<string, Style>();
 function createVillageStyle(feature: any, resolution: number) {
-  return new Style({
-    stroke: new Stroke({ color: "#16a34a", width: 1.2 }),
-    fill: new Fill({ color: "rgba(22, 163, 74, 0.05)" }),
-    text: resolution < 120 ? new Text({ text: feature.get("NAME") || "", font: "600 11px 'DM Sans', sans-serif", fill: new Fill({ color: "#15803d" }), stroke: new Stroke({ color: "#ffffff", width: 2.5 }), overflow: false, placement: "point" }) : undefined,
-  });
+  if (resolution >= 120) return villageBaseStyle;
+  const name = feature.get("NAME") || "";
+  let s = villageStyleCache.get(name);
+  if (!s) {
+    s = new Style({
+      stroke: new Stroke({ color: "#16a34a", width: 1.2 }),
+      fill: new Fill({ color: "rgba(22, 163, 74, 0.05)" }),
+      text: new Text({
+        text: name,
+        font: "600 11px 'DM Sans', sans-serif",
+        fill: new Fill({ color: "#15803d" }),
+        stroke: new Stroke({ color: "#ffffff", width: 2.5 }),
+        overflow: false,
+        placement: "point",
+      }),
+    });
+    villageStyleCache.set(name, s);
+  }
+  return s;
 }
 
 function createHighlightStyle(feature: any) {
@@ -326,9 +379,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<Map | null>(null);
   const baseTileRef = useRef<TileLayer<XYZ> | null>(null);
-  const districtLayerRef = useRef<VectorLayer | null>(null);
-  const talukaLayerRef = useRef<VectorLayer | null>(null);
-  const villageLayerRef = useRef<VectorLayer | null>(null);
+  const districtLayerRef = useRef<VectorImageLayer<VectorSource> | VectorLayer<VectorSource> | null>(null);
+  const talukaLayerRef = useRef<VectorImageLayer<VectorSource> | VectorLayer<VectorSource> | null>(null);
+  const villageLayerRef = useRef<VectorImageLayer<VectorSource> | VectorLayer<VectorSource> | null>(null);
   const highlightLayerRef = useRef<VectorLayer | null>(null);
   const plotMarkerLayerRef = useRef<VectorLayer | null>(null);
   const cadastralVillageLayerRef = useRef<ImageLayer<ImageWMS> | null>(null);
@@ -341,6 +394,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const bnSelectedRef = useRef<string[]>(["R", "", "", "", "", ""]);
   const panelOpenRef = useRef<PanelKey | null>("layerList");
   const handleIdentifyClickRef = useRef<((evt: any) => void) | null>(null);
+  const coordDisplayRef = useRef<HTMLSpanElement>(null);
+  const zoomDisplayRef = useRef<HTMLSpanElement>(null);
 
   const [panelOpen, setPanelOpen] = useState<PanelKey | null>("layerList");
   const [basemap, setBasemap] = useState<BasemapKey>("google-hybrid");
@@ -349,8 +404,6 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const [cadastralOpen, setCadastralOpen] = useState(true);
   const [layerVisible, setLayerVisible] = useState({ district: true, taluka: true, village: true });
   const [opacity, setOpacity] = useState({ district: 100, taluka: 100, village: 100 });
-  const [coordinate, setCoordinate] = useState("75.71390 / 19.75150");
-  const [currentZoom, setCurrentZoom] = useState(7);
   const [layerOpacityOpen, setLayerOpacityOpen] = useState<Record<string, boolean>>({});
   const [villageData, setVillageData] = useState<MHVillage[] | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
@@ -387,13 +440,37 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // Map init
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
-    const baseTile = new TileLayer({ source: new XYZ({ url: BASEMAPS[basemap].url, maxZoom: 21 }), zIndex: 0 });
+    const baseTile = new TileLayer({
+      source: new XYZ({ url: BASEMAPS[basemap].url, maxZoom: 21, cacheSize: 4096, transition: 0 }),
+      zIndex: 0,
+      preload: 2,
+    });
     baseTileRef.current = baseTile;
-    const districtLayer = new VectorLayer({ source: new VectorSource({ url: "/data/mh_districts.geojson", format: new GeoJSON() }), style: createDistrictStyle as any, visible: true, zIndex: 10, properties: { name: "district" } });
+    const districtLayer = new VectorImageLayer({
+      source: new VectorSource({ url: "/data/mh_districts.geojson", format: new GeoJSON() }),
+      style: createDistrictStyle as any,
+      visible: true,
+      zIndex: 10,
+      properties: { name: "district" },
+    });
     districtLayerRef.current = districtLayer;
-    const talukaLayer = new VectorLayer({ source: new VectorSource({ url: "/data/mh_talukas.geojson", format: new GeoJSON() }), style: createTalukaStyle as any, visible: true, zIndex: 11, properties: { name: "taluka" } });
+    const talukaLayer = new VectorImageLayer({
+      source: new VectorSource({ url: "/data/mh_talukas.geojson", format: new GeoJSON() }),
+      style: createTalukaStyle as any,
+      visible: true,
+      maxResolution: 750,
+      zIndex: 11,
+      properties: { name: "taluka" },
+    });
     talukaLayerRef.current = talukaLayer;
-    const villageLayer = new VectorLayer({ source: new VectorSource(), style: createVillageStyle as any, visible: true, zIndex: 12, properties: { name: "village" } });
+    const villageLayer = new VectorImageLayer({
+      source: new VectorSource(),
+      style: createVillageStyle as any,
+      visible: true,
+      maxResolution: 250,
+      zIndex: 12,
+      properties: { name: "village" },
+    });
     villageLayerRef.current = villageLayer;
     const highlightLayer = new VectorLayer({ source: new VectorSource(), style: createHighlightStyle as any, zIndex: 20, properties: { name: "highlight" } });
     highlightLayerRef.current = highlightLayer;
@@ -401,7 +478,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const cadastralVillageSource = new ImageWMS({
       url: BHUNAKSHA_WMS_URL,
       params: { SERVICE: "WMS", VERSION: "1.1.1", REQUEST: "GetMap", LAYERS: "VILLAGE_MAP", STYLES: "VILLAGE_MAP", state: BHUNAKSHA_STATE, gis_code: "", TRANSPARENT: true, FORMAT: "image/png" },
-      serverType: "geoserver", ratio: 1,
+      serverType: "geoserver",
+      ratio: 1.5,
     });
     const cadastralVillageLayer = new ImageLayer({ source: cadastralVillageSource, visible: false, zIndex: 30, opacity: 0.9, properties: { name: "cadastral-village" } });
     cadastralVillageLayerRef.current = cadastralVillageLayer;
@@ -409,7 +487,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const cadastralPlotSource = new ImageWMS({
       url: BHUNAKSHA_WMS_URL,
       params: { SERVICE: "WMS", VERSION: "1.1.1", REQUEST: "GetMap", LAYERS: "PLOT_LIST", STYLES: "PLOT_SELECTION", state: BHUNAKSHA_STATE, giscode: "", plot_id: "", TRANSPARENT: true, FORMAT: "image/png" },
-      serverType: "geoserver", ratio: 1,
+      serverType: "geoserver",
+      ratio: 1.5,
     });
     const cadastralPlotLayer = new ImageLayer({
       className: "cadastral-selected-plot-layer",
@@ -427,16 +506,32 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const map = new Map({
       target: mapContainerRef.current,
       layers: [baseTile, districtLayer, talukaLayer, villageLayer, highlightLayer, cadastralVillageLayer, cadastralPlotLayer, plotMarkerLayer],
-      view: new View({ center: MH_CENTER, zoom: MH_ZOOM, minZoom: 6, maxZoom: 21 }),
+      view: new View({
+        center: MH_CENTER,
+        zoom: MH_ZOOM,
+        minZoom: 6,
+        maxZoom: 21,
+        enableRotation: false,
+        smoothResolutionConstraint: false,
+      }),
       controls: defaultControls({ zoom: false, rotate: false, attribution: false }),
     });
     mapInstanceRef.current = map;
     setTimeout(() => map.updateSize(), 150);
+
+    // Direct DOM text update: 0 React re-renders on every mouse move
     map.on("pointermove", (evt) => {
-      const coord = toLonLat(evt.coordinate);
-      setCoordinate(coord[0].toFixed(5) + " / " + coord[1].toFixed(5));
+      if (coordDisplayRef.current) {
+        const coord = toLonLat(evt.coordinate);
+        coordDisplayRef.current.textContent = coord[0].toFixed(5) + " / " + coord[1].toFixed(5);
+      }
     });
-    map.on("moveend", () => { const z = map.getView().getZoom(); if (z !== undefined) setCurrentZoom(Math.round(z * 10) / 10); });
+    map.on("moveend", () => {
+      const z = map.getView().getZoom();
+      if (z !== undefined && zoomDisplayRef.current) {
+        zoomDisplayRef.current.textContent = String(Math.round(z * 10) / 10);
+      }
+    });
     map.on("singleclick", (evt) => {
       // Only execute land parcel identify, marking & sidebar auto-fill when identifyMode is explicitly activated by user
       if (identifyModeRef.current && handleIdentifyClickRef.current) {
@@ -449,7 +544,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   }, []);
 
   useEffect(() => { const t = setTimeout(() => mapInstanceRef.current?.updateSize(), 200); return () => clearTimeout(t); }, [panelOpen]);
-  useEffect(() => { if (!baseTileRef.current) return; const cfg = BASEMAPS[basemap]; baseTileRef.current.setSource(new XYZ({ url: cfg.url, maxZoom: cfg.maxZoom })); }, [basemap]);
+  useEffect(() => { if (!baseTileRef.current) return; const cfg = BASEMAPS[basemap]; baseTileRef.current.setSource(new XYZ({ url: cfg.url, maxZoom: cfg.maxZoom, cacheSize: 4096, transition: 0 })); }, [basemap]);
   useEffect(() => { districtLayerRef.current?.setVisible(layerVisible.district); talukaLayerRef.current?.setVisible(layerVisible.taluka); villageLayerRef.current?.setVisible(layerVisible.village); }, [layerVisible]);
   useEffect(() => { districtLayerRef.current?.setOpacity(opacity.district / 100); talukaLayerRef.current?.setOpacity(opacity.taluka / 100); villageLayerRef.current?.setOpacity(opacity.village / 100); }, [opacity]);
   useEffect(() => { cadastralVillageLayerRef.current?.setVisible(bnCadastralEnabled); }, [bnCadastralEnabled]);
@@ -2014,9 +2109,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
         {/* COORDINATES */}
         <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg bg-white/95 backdrop-blur-md px-3 py-1.5 text-slate-800 text-[11px] font-mono shadow-md border border-slate-200">
-          <span className="text-slate-500">Lon/Lat:</span><span className="font-semibold text-emerald-700">{coordinate}</span>
+          <span className="text-slate-500">Lon/Lat:</span><span ref={coordDisplayRef} className="font-semibold text-emerald-700">75.71390 / 19.75150</span>
           <span className="text-slate-300">|</span>
-          <span className="text-slate-500">Zoom:</span><span className="font-semibold text-indigo-700">{currentZoom}</span>
+          <span className="text-slate-500">Zoom:</span><span ref={zoomDisplayRef} className="font-semibold text-indigo-700">7.2</span>
           {bnCadastralEnabled && <><span className="text-slate-300">|</span><span className="text-emerald-700 font-semibold">Cadastral Active</span></>}
         </div>
 

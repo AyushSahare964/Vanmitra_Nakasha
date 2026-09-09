@@ -457,11 +457,16 @@ export function SatelliteCadastralMap({
       zoom: 15.5,
       zoomControl: false,
       attributionControl: false,
+      preferCanvas: true, // Smooth hardware-accelerated canvas rendering
+      updateWhenZooming: false,
+      updateInterval: 100,
     });
 
     const initialTile = L.tileLayer(tileUrls[tileSource].url, {
       maxZoom: tileUrls[tileSource].maxZoom,
       subdomains: ["a", "b", "c", "d"],
+      keepBuffer: 6,
+      updateWhenIdle: true,
     }).addTo(map);
 
     tileLayerRef.current = initialTile;
@@ -487,6 +492,8 @@ export function SatelliteCadastralMap({
     const newTile = L.tileLayer(tileUrls[tileSource].url, {
       maxZoom: tileUrls[tileSource].maxZoom,
       subdomains: ["a", "b", "c", "d"],
+      keepBuffer: 6,
+      updateWhenIdle: true,
     }).addTo(mapInstanceRef.current);
     tileLayerRef.current = newTile;
   }, [tileSource]);
