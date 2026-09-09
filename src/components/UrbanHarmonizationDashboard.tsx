@@ -299,7 +299,7 @@ export default function UrbanHarmonizationDashboard({
               </span>
             </div>
             <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight font-display">
-              ADVANTE Nakasha • Territorial Cadastre & Land Intelligence Analytics
+              VANMITRA Nakasha • Territorial Cadastre & Land Intelligence Analytics
             </h1>
             <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
               Official Maharashtra cadastral harmonization dashboard powered by real census village data, 

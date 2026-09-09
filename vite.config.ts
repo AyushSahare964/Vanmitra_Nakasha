@@ -146,7 +146,7 @@ function handleReverseGeocode(req: IncomingMessage, res: ServerResponse) {
       path: `/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`,
       method: "GET",
       headers: {
-        "User-Agent": "ADVANTE-Nakasha-GIS/1.0 (Maharashtra Land Records Intelligence)",
+        "User-Agent": "VANMITRA-Nakasha-GIS/1.0 (Maharashtra Land Records Intelligence)",
         "Accept": "application/json",
       },
       rejectUnauthorized: false,

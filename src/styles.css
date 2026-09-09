@@ -1,7 +1,8 @@
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
+@import url('https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@700;800&display=swap');
 @import "leaflet/dist/leaflet.css";
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "../src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -60,140 +61,407 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-forest: var(--forest);
-  --color-forest-deep: var(--forest-deep);
-  --color-forest-soft: var(--forest-soft);
-  --color-signal: var(--signal);
-  --color-signal-soft: var(--signal-soft);
-  --color-map: var(--map);
-  --color-ink-soft: var(--ink-soft);
-  --font-display: "DM Sans", sans-serif;
-  --font-body: "DM Sans", sans-serif;
+  --color-forest:        var(--forest);
+  --color-forest-deep:   var(--forest-deep);
+  --color-forest-soft:   var(--forest-soft);
+  --color-signal:        var(--signal);
+  --color-signal-soft:   var(--signal-soft);
+  --color-map:           var(--map);
+  --color-ink-soft:      var(--ink-soft);
+  --color-tribal-gold:   var(--tribal-gold);
+  --color-tribal-terra:  var(--tribal-terra);
+  --color-tribal-cream:  var(--tribal-cream);
+  --color-tribal-bark:   var(--tribal-bark);
+  --color-tribal-moss:   var(--tribal-moss);
+  --font-display:    "Playfair Display", "DM Sans", serif;
+  --font-body:       "DM Sans", sans-serif;
+  --font-devanagari: "Tiro Devanagari Hindi", serif;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-  --forest: oklch(0.26 0.095 157);
-  --forest-deep: oklch(0.18 0.075 157);
-  --forest-soft: oklch(0.93 0.035 157);
-  --signal: oklch(0.72 0.16 58);
-  --signal-soft: oklch(0.95 0.055 83);
-  --map: oklch(0.87 0.045 125);
-  --ink-soft: oklch(0.42 0.025 155);
+  --radius: 0.75rem;
+
+  /* Core surfaces — white base */
+  --background:             oklch(1 0 0);
+  --foreground:             oklch(0.16 0.05 157);
+  --card:                   oklch(0.99 0.005 100);
+  --card-foreground:        oklch(0.16 0.05 157);
+  --popover:                oklch(1 0 0);
+  --popover-foreground:     oklch(0.16 0.05 157);
+
+  /* Primary — deep forest green */
+  --primary:                oklch(0.27 0.10 157);
+  --primary-foreground:     oklch(0.98 0.01 90);
+
+  /* Secondary — tribal cream parchment */
+  --secondary:              oklch(0.96 0.025 90);
+  --secondary-foreground:   oklch(0.22 0.08 157);
+
+  /* Muted — soft earth */
+  --muted:                  oklch(0.95 0.018 100);
+  --muted-foreground:       oklch(0.48 0.04 150);
+
+  /* Accent — earth gold (marigold) */
+  --accent:                 oklch(0.88 0.12 87);
+  --accent-foreground:      oklch(0.20 0.06 80);
+
+  /* Destructive — terracotta */
+  --destructive:            oklch(0.55 0.18 35);
+  --destructive-foreground: oklch(0.98 0.005 90);
+
+  /* Structural */
+  --border:                 oklch(0.88 0.025 140);
+  --input:                  oklch(0.92 0.018 130);
+  --ring:                   oklch(0.55 0.12 157);
+
+  /* Charts */
+  --chart-1:                oklch(0.55 0.16 157);
+  --chart-2:                oklch(0.72 0.15 87);
+  --chart-3:                oklch(0.55 0.18 35);
+  --chart-4:                oklch(0.62 0.14 200);
+  --chart-5:                oklch(0.72 0.14 60);
+
+  /* Sidebar */
+  --sidebar:                oklch(0.98 0.012 140);
+  --sidebar-foreground:     oklch(0.22 0.08 157);
+  --sidebar-primary:        oklch(0.27 0.10 157);
+  --sidebar-primary-foreground: oklch(0.98 0.01 90);
+  --sidebar-accent:         oklch(0.93 0.03 120);
+  --sidebar-accent-foreground: oklch(0.22 0.08 157);
+  --sidebar-border:         oklch(0.88 0.025 140);
+  --sidebar-ring:           oklch(0.55 0.12 157);
+
+  /* Tribal custom semantic colours */
+  --forest:        oklch(0.35 0.12 157);
+  --forest-deep:   oklch(0.20 0.085 157);
+  --forest-soft:   oklch(0.93 0.04 140);
+  --signal:        oklch(0.72 0.15 87);
+  --signal-soft:   oklch(0.95 0.065 87);
+  --map:           oklch(0.90 0.04 130);
+  --ink-soft:      oklch(0.45 0.03 155);
+
+  /* Additional tribal palette */
+  --tribal-gold:   oklch(0.75 0.16 82);
+  --tribal-terra:  oklch(0.55 0.18 35);
+  --tribal-cream:  oklch(0.97 0.02 90);
+  --tribal-bark:   oklch(0.32 0.06 60);
+  --tribal-moss:   oklch(0.48 0.10 142);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Dark tribal — forest night */
+  --background:            oklch(0.11 0.025 157);
+  --foreground:            oklch(0.94 0.02 100);
+  --card:                  oklch(0.15 0.035 157);
+  --card-foreground:       oklch(0.94 0.02 100);
+  --popover:               oklch(0.15 0.035 157);
+  --popover-foreground:    oklch(0.94 0.02 100);
+  --primary:               oklch(0.72 0.15 87);
+  --primary-foreground:    oklch(0.12 0.04 157);
+  --secondary:             oklch(0.22 0.05 157);
+  --secondary-foreground:  oklch(0.90 0.02 100);
+  --muted:                 oklch(0.22 0.04 155);
+  --muted-foreground:      oklch(0.62 0.04 140);
+  --accent:                oklch(0.30 0.09 157);
+  --accent-foreground:     oklch(0.92 0.03 100);
+  --destructive:           oklch(0.60 0.20 35);
+  --destructive-foreground: oklch(0.98 0.005 90);
+  --border:                oklch(1 0 0 / 10%);
+  --input:                 oklch(1 0 0 / 14%);
+  --ring:                  oklch(0.62 0.14 157);
+  --chart-1:               oklch(0.65 0.18 157);
+  --chart-2:               oklch(0.75 0.16 87);
+  --chart-3:               oklch(0.62 0.18 35);
+  --chart-4:               oklch(0.65 0.15 200);
+  --chart-5:               oklch(0.72 0.14 60);
+  --sidebar:               oklch(0.15 0.035 157);
+  --sidebar-foreground:    oklch(0.90 0.02 100);
+  --sidebar-primary:       oklch(0.60 0.16 157);
+  --sidebar-primary-foreground: oklch(0.98 0.01 90);
+  --sidebar-accent:        oklch(0.22 0.05 157);
+  --sidebar-accent-foreground: oklch(0.90 0.02 100);
+  --sidebar-border:        oklch(1 0 0 / 10%);
+  --sidebar-ring:          oklch(0.55 0.12 157);
+  --forest:       oklch(0.52 0.14 157);
+  --forest-deep:  oklch(0.72 0.13 150);
+  --forest-soft:  oklch(0.20 0.05 157);
+  --signal:       oklch(0.78 0.15 87);
+  --signal-soft:  oklch(0.22 0.06 87);
+  --map:          oklch(0.16 0.04 130);
+  --ink-soft:     oklch(0.60 0.03 155);
+  --tribal-gold:  oklch(0.80 0.16 82);
+  --tribal-terra: oklch(0.65 0.18 35);
+  --tribal-cream: oklch(0.22 0.03 90);
+  --tribal-bark:  oklch(0.52 0.07 60);
+  --tribal-moss:  oklch(0.55 0.11 142);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   BASE LAYER — TRIBAL COMMUNITY STYLE
+   ═══════════════════════════════════════════════════════════════ */
 @layer base {
   * {
     border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-body);
-    letter-spacing: 0;
+    letter-spacing: 0.01em;
+    line-height: 1.6;
+    /* Subtle tribal radial gradient wash on page background */
+    background-image:
+      radial-gradient(ellipse 70% 50% at 0% 0%, oklch(0.93 0.04 140 / 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.88 0.12 87 / 0.15) 0%, transparent 60%);
   }
 
   button, input, textarea, select { font: inherit; }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /* Tribal scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: oklch(0.96 0.02 140); }
+  ::-webkit-scrollbar-thumb { background: oklch(0.60 0.10 157); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.40 0.12 157); }
+
+  /* Gold text selection */
+  ::selection {
+    background: oklch(0.88 0.14 87 / 0.4);
+    color: oklch(0.18 0.07 157);
+  }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   TRIBAL BACKGROUND PATTERN UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Warli-style dot grid */
+@utility tribal-dots {
+  background-image:
+    radial-gradient(circle, oklch(0.35 0.10 157 / 0.12) 1.5px, transparent 1.5px),
+    radial-gradient(circle, oklch(0.72 0.15 87 / 0.08) 1px, transparent 1px);
+  background-size: 24px 24px, 12px 12px;
+  background-position: 0 0, 6px 6px;
+}
+
+/* Mandala concentric ring grid */
+@utility tribal-rings {
+  background-image:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      transparent 0px, transparent 18px,
+      oklch(0.35 0.10 157 / 0.055) 18px, oklch(0.35 0.10 157 / 0.055) 19px
+    );
+  background-size: 80px 80px;
+}
+
+/* Geometric tribal cross-hatch */
+@utility tribal-hatch {
+  background-image:
+    linear-gradient(45deg,  oklch(0.35 0.10 157 / 0.07) 25%, transparent 25%),
+    linear-gradient(-45deg, oklch(0.35 0.10 157 / 0.07) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, oklch(0.35 0.10 157 / 0.07) 75%),
+    linear-gradient(-45deg, transparent 75%, oklch(0.35 0.10 157 / 0.07) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+/* Dashboard page grid */
 @utility page-grid {
-  background-image: linear-gradient(to right, color-mix(in oklab, var(--forest) 5%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--forest) 5%, transparent) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-image:
+    linear-gradient(to right, oklch(0.35 0.10 157 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.35 0.10 157 / 0.06) 1px, transparent 1px),
+    radial-gradient(ellipse 70% 50% at 0% 0%, oklch(0.93 0.04 140 / 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.88 0.12 87 / 0.15) 0%, transparent 60%);
+  background-size: 28px 28px, 28px 28px, 100% 100%, 100% 100%;
 }
 
+/* Map view green background */
 @utility map-grid {
   background-color: var(--map);
-  background-image: linear-gradient(color-mix(in oklab, var(--forest-deep) 9%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--forest-deep) 9%, transparent) 1px, transparent 1px), radial-gradient(circle at 18% 28%, color-mix(in oklab, var(--forest) 22%, transparent) 0 18%, transparent 19%), radial-gradient(circle at 72% 72%, color-mix(in oklab, var(--signal) 32%, transparent) 0 15%, transparent 16%);
+  background-image:
+    linear-gradient(oklch(0.35 0.10 157 / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.35 0.10 157 / 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 18% 28%, oklch(0.35 0.12 157 / 0.22) 0 18%, transparent 19%),
+    radial-gradient(circle at 72% 72%, oklch(0.72 0.15 87 / 0.28) 0 15%, transparent 16%);
   background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   CARD & PANEL UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+@utility panel-shadow {
+  box-shadow:
+    0 1px 2px oklch(0.35 0.10 157 / 0.06),
+    0 4px 16px oklch(0.35 0.10 157 / 0.08),
+    0 12px 32px oklch(0.35 0.10 157 / 0.05);
+}
+
+@utility tribal-card {
+  background: linear-gradient(145deg, oklch(0.99 0.01 90) 0%, oklch(0.97 0.02 100) 100%);
+  border: 1.5px solid oklch(0.72 0.15 87 / 0.3);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 2px 8px oklch(0.72 0.15 87 / 0.10), 0 1px 2px oklch(0.35 0.10 157 / 0.08);
+  transition: box-shadow 250ms ease, transform 250ms ease;
+}
+
+@utility forest-card {
+  background: linear-gradient(135deg, oklch(0.20 0.085 157) 0%, oklch(0.27 0.10 157) 60%, oklch(0.23 0.09 152) 100%);
+  color: oklch(0.97 0.015 90);
+  border: 1px solid oklch(0.35 0.12 157);
+  border-radius: var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+@utility gold-card {
+  background: linear-gradient(135deg, oklch(0.92 0.08 87) 0%, oklch(0.88 0.12 82) 100%);
+  border: 1.5px solid oklch(0.72 0.15 87 / 0.5);
+  border-radius: var(--radius-xl);
+}
+
+@utility stat-card {
+  background: oklch(1 0 0);
+  border: 1.5px solid oklch(0.88 0.025 140);
+  border-radius: var(--radius-xl);
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px oklch(0.35 0.10 157 / 0.06), 0 4px 12px oklch(0.35 0.10 157 / 0.05);
+  transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+@utility cadastral-panel {
+  background: linear-gradient(160deg, oklch(0.97 0.025 140) 0%, oklch(1 0 0) 50%, oklch(0.98 0.015 90) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAP & PARCEL UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
 @utility map-parcel {
-  border: 2px solid color-mix(in oklab, var(--forest-deep) 65%, transparent);
-  background: color-mix(in oklab, var(--forest-soft) 65%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--background) 65%, transparent);
+  border: 2px solid oklch(0.35 0.10 157 / 0.65);
+  background: oklch(0.93 0.04 140 / 0.65);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.65);
   transition: transform 180ms ease, background-color 180ms ease;
 }
 
 @utility map-parcel-alert {
   border-color: var(--signal);
-  background: color-mix(in oklab, var(--signal-soft) 80%, transparent);
+  background: oklch(0.95 0.065 87 / 0.80);
 }
 
-@utility panel-shadow {
-  box-shadow: 0 14px 38px color-mix(in oklab, var(--forest-deep) 10%, transparent), 0 2px 8px color-mix(in oklab, var(--forest-deep) 6%, transparent);
+/* ═══════════════════════════════════════════════════════════════
+   TRIBAL BADGE UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+@utility tribal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: oklch(0.93 0.05 140);
+  color: oklch(0.22 0.09 157);
+  border: 1px solid oklch(0.35 0.10 157 / 0.25);
 }
 
-@utility cadastral-panel {
-  background: linear-gradient(160deg, oklch(0.97 0.02 157) 0%, oklch(1 0 0) 60%);
+/* ═══════════════════════════════════════════════════════════════
+   TRIBAL BUTTON UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+@utility btn-tribal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.4rem;
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: oklch(0.27 0.10 157);
+  color: oklch(0.97 0.015 90);
+  border: 1.5px solid oklch(0.35 0.12 157);
+  box-shadow: 0 2px 8px oklch(0.27 0.10 157 / 0.25);
+  cursor: pointer;
 }
+
+@utility btn-gold {
+  background: oklch(0.75 0.16 82);
+  color: oklch(0.14 0.05 70);
+  border: 1.5px solid oklch(0.62 0.16 82);
+  box-shadow: 0 2px 8px oklch(0.75 0.16 82 / 0.30);
+  border-radius: var(--radius-lg);
+  padding: 0.55rem 1.4rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRIBAL NAV ITEM UTILITY
+   ═══════════════════════════════════════════════════════════════ */
+
+@utility tribal-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: oklch(0.38 0.06 155);
+  transition: all 180ms ease;
+  cursor: pointer;
+}
+
+@utility tribal-nav-item-active {
+  background: oklch(0.93 0.04 140);
+  color: oklch(0.22 0.09 157);
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRIBAL HEADER UTILITY
+   ═══════════════════════════════════════════════════════════════ */
+
+@utility tribal-header {
+  background: oklch(1 0 0);
+  border-bottom: 1.5px solid oklch(0.88 0.025 140);
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRIBAL HERO UTILITY
+   ═══════════════════════════════════════════════════════════════ */
+
+@utility tribal-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.93 0.05 140 / 0.6) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 80% at 5% 50%, oklch(0.88 0.12 87 / 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 80% at 95% 50%, oklch(0.88 0.12 87 / 0.12) 0%, transparent 60%),
+    oklch(1 0 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PIPELINE & PROCESSING ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
 
 @keyframes pipeline-pulse {
   0%, 100% { opacity: 1; }
@@ -205,12 +473,12 @@
 }
 
 @keyframes parcel-select {
-  0%   { box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.5); }
-  100% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+  0%   { box-shadow: 0 0 0 0px oklch(0.72 0.15 87 / 0.6); }
+  100% { box-shadow: 0 0 0 8px oklch(0.72 0.15 87 / 0); }
 }
 
 @utility parcel-selected {
-  animation: parcel-select 0.6s ease-out;
+  animation: parcel-select 0.7s ease-out;
 }
 
 @keyframes confidence-fill {
@@ -221,17 +489,92 @@
   animation: confidence-fill 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ENTRANCE & TRIBAL ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
 @keyframes fade-slide-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @utility nl-message {
-  animation: fade-slide-up 0.25s ease-out;
+  animation: fade-slide-up 0.28s ease-out;
 }
 
-/* Cadastral Selected Parcel Highlight - Translucent Glassmorphism with full ground visibility */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@utility tribal-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@utility tribal-slide-in {
+  animation: slide-in-right 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Mandala spin (decorative) */
+@keyframes mandala-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@utility tribal-spin-slow {
+  animation: mandala-spin 20s linear infinite;
+}
+
+/* Tribal gold glow pulse */
+@keyframes tribal-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.72 0.15 87 / 0.4); }
+  50%       { box-shadow: 0 0 0 6px oklch(0.72 0.15 87 / 0); }
+}
+
+@utility tribal-glow-pulse {
+  animation: tribal-glow 2.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEAFLET MAP TRIBAL OVERRIDES
+   ═══════════════════════════════════════════════════════════════ */
+
+.leaflet-control-zoom a {
+  background: oklch(1 0 0) !important;
+  color: oklch(0.27 0.10 157) !important;
+  border-color: oklch(0.88 0.025 140) !important;
+  font-weight: 700;
+  transition: all 150ms ease;
+}
+.leaflet-control-zoom a:hover {
+  background: oklch(0.93 0.04 140) !important;
+  color: oklch(0.20 0.085 157) !important;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-xl) !important;
+  border: 1.5px solid oklch(0.72 0.15 87 / 0.3) !important;
+  box-shadow: 0 8px 32px oklch(0.35 0.10 157 / 0.15) !important;
+}
+.leaflet-popup-tip {
+  background: oklch(1 0 0) !important;
+}
+
+/* Cadastral Selected Parcel Highlight */
 .cadastral-selected-plot-layer {
-  filter: contrast(1.1) saturate(1.25);
+  filter: contrast(1.12) saturate(1.3) hue-rotate(5deg);
   pointer-events: none;
 }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

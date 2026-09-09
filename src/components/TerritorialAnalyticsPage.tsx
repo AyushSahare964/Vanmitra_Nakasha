@@ -324,7 +324,7 @@ export default function TerritorialAnalyticsPage({
     <p><strong>Geodetic Datum:</strong> WGS 84 / UTM Zone 43N (EPSG:32643) & Web Mercator (EPSG:3857)</p>
     <p><strong>AI Edge-Snapping Mean Tolerance:</strong> ±0.038 meters (Sub-centimeter accuracy compliant)</p>
     <p><strong>Boundary Discrepancy Status:</strong> 0 Critical Overlaps. All cadastral parcel vectors reconciled with Mahabhulekh 7/12 RoR records.</p>
-    <p><strong>Harmonization Algorithm:</strong> ADVANTE Automated Integration & Intelligent Multi-source Geospatial Engine (PS 26013).</p>
+    <p><strong>Harmonization Algorithm:</strong> VANMITRA Automated Integration & Intelligent Multi-source Geospatial Engine (PS 26013).</p>
   </div>
 
   <div class="seal-box">

@@ -83,11 +83,11 @@ export default function OfficerLoginModal({ isOpen, open, onClose, onLoginSucces
           </button>
           <div className="flex items-center gap-3">
             <div className="size-11 rounded-xl bg-white p-1 flex items-center justify-center shadow-md">
-              <img src="/team_advante_logo.jpg" alt="Team Advante" className="h-full w-full object-contain" />
+              <img src="/team_vanmitra_logo.jpg" alt="Team Vanmitra" className="h-full w-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold tracking-wider text-base text-white">ADVANTE</span>
+                <span className="font-extrabold tracking-wider text-base text-white">VANMITRA</span>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-red-700/90 text-white px-1.5 py-0.5 rounded">
                   Officer Portal
                 </span>

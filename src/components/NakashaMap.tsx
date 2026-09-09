@@ -1,6 +1,6 @@
 /**
  * NakashaMap.tsx
- * Full-screen OpenLayers map for ADVANTE - Maharashtra land intelligence.
+ * Full-screen OpenLayers map for VANMITRA - Maharashtra land intelligence.
  * District/taluka/village vector boundaries + BhuNaksha cadastral ImageWMS overlay
  * + village-wise sorting panel + plot-level parcel detail.
  */
@@ -1418,15 +1418,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       <header className="relative z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm text-slate-800">
         <div className="flex items-center gap-3">
           <img
-            src="/team_advante_logo.jpg"
-            alt="Team Advante"
+            src="/team_vanmitra_logo.jpg"
+            alt="Team Vanmitra"
             className="h-11 w-auto max-w-[150px] object-contain cursor-pointer hover:opacity-95 transition-opacity"
             onClick={() => resetView()}
-            title="ADVANTE - Innovate • Integrate • Elevate"
+            title="VANMITRA - Innovate • Integrate • Elevate"
           />
           <div className="hidden sm:block border-l border-slate-200 pl-3">
             <div className="flex items-center gap-2">
-              <span className="font-extrabold tracking-tight text-sm text-slate-900 font-display">ADVANTE</span>
+              <span className="font-extrabold tracking-tight text-sm text-slate-900 font-display">VANMITRA</span>
               <span className="text-[10px] font-bold uppercase tracking-wider rounded bg-red-50 border border-red-200 text-red-700 px-1.5 py-0.5">
                 Nakasha WebGIS
               </span>
@@ -2023,7 +2023,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         {/* ATTRIBUTION */}
         <div className="absolute bottom-3 z-20 hidden md:flex items-center gap-2 rounded-lg bg-white/90 backdrop-blur-md px-2.5 py-1 text-slate-600 text-[10px] shadow border border-slate-200" style={{ left: panelOpen ? 396 : 80 }}>
           <span className="size-1.5 rounded-full bg-emerald-500" />
-          <span className="font-medium">TEAM ADVANTE Nakasha • MahaBhuNakasha • GADM 4.1 • DataMeet</span>
+          <span className="font-medium">TEAM VANMITRA Nakasha • MahaBhuNakasha • GADM 4.1 • DataMeet</span>
         </div>
       </div>
 
@@ -2040,12 +2040,12 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
             <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
               <img
-                src="/team_advante_logo.jpg"
-                alt="TEAM ADVANTE"
+                src="/team_vanmitra_logo.jpg"
+                alt="TEAM VANMITRA"
                 className="h-10 w-auto object-contain rounded border border-slate-200 p-0.5 bg-white shadow-xs"
               />
               <div>
-                <h3 className="text-lg font-bold text-slate-900">About ADVANTE Nakasha WebGIS</h3>
+                <h3 className="text-lg font-bold text-slate-900">About VANMITRA Nakasha WebGIS</h3>
                 <p className="text-xs text-slate-500">Maharashtra Automated Cadastral & Territorial Intelligence Platform</p>
               </div>
             </div>
@@ -2056,7 +2056,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                   <span>🎯</span> Purpose & Mission
                 </h4>
                 <p>
-                  ADVANTE Nakasha bridges citizens, revenue officers, and GIS surveyors by unifying <strong>official Maharashtra administrative boundaries</strong> (Districts, Talukas, Villages) with <strong>MahaBhuNakasha live cadastral maps</strong> and <strong>high-resolution satellite imagery</strong>.
+                  VANMITRA Nakasha bridges citizens, revenue officers, and GIS surveyors by unifying <strong>official Maharashtra administrative boundaries</strong> (Districts, Talukas, Villages) with <strong>MahaBhuNakasha live cadastral maps</strong> and <strong>high-resolution satellite imagery</strong>.
                 </p>
               </div>
 
@@ -2081,7 +2081,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 font-medium">TEAM ADVANTE • Smart India Hackathon</span>
+              <span className="text-[11px] text-slate-400 font-medium">TEAM VANMITRA • Smart India Hackathon</span>
               <button
                 onClick={() => setAboutModalOpen(false)}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"

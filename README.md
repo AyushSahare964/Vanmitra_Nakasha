@@ -1,16 +1,16 @@
-# 🏛️ ADVANTE | Automated Geospatial Harmonization & Cadastral WebGIS
+# 🌿 VANMITRA | Automated Geospatial Harmonization & Cadastral WebGIS
 
 <div align="center">
-  <img src="public/team_advante_logo.jpg" alt="TEAM ADVANTE" width="380" />
+  <img src="public/team_vanmitra_logo.jpg" alt="TEAM VANMITRA" width="380" />
 
   <p><strong>Smart India Hackathon 2026 • Problem Statement ID: 26013</strong></p>
-  <p><em>Automated Integration and Intelligent Harmonization of Multi-source Geospatial Data for Urban Land Record Management</em></p>
+  <p><em>Automated Integration and Intelligent Harmonization of Multi-source Geospatial Data for Urban Land Record Management & Tribal Community Empowerment</em></p>
 
   <div>
     <img src="https://img.shields.io/badge/SIH-2026_Finalist-emerald?style=for-the-badge" alt="SIH 2026" />
     <img src="https://img.shields.io/badge/Coverage-43%2C665_Villages-blue?style=for-the-badge" alt="Maharashtra Villages" />
     <img src="https://img.shields.io/badge/Cadastral_Parcels-13.8M+-indigo?style=for-the-badge" alt="Cadastral Parcels" />
-    <img src="https://img.shields.io/badge/Stack-TanStack_Start_%7C_OpenLayers_10-orange?style=for-the-badge" alt="Tech Stack" />
+    <img src="https://img.shields.io/badge/Theme-Tribal_Community_White-forest?style=for-the-badge" alt="Tribal Theme" />
   </div>
 </div>
 
@@ -18,7 +18,7 @@
 
 ## 📌 Executive Summary
 
-**ADVANTE** is an enterprise-grade AI-powered Geospatial Harmonization and Cadastral WebGIS platform designed for the **Department of Land Records (Bhumilekhan), Government of Maharashtra**. 
+**VANMITRA** is an enterprise-grade AI-powered Geospatial Harmonization and Cadastral WebGIS platform designed for the **Department of Land Records (Bhumilekhan), Government of Maharashtra** with dedicated tribal innovation and community land governance workflows. 
 
 The platform resolves deep-rooted discrepancies between satellite orthoimagery (Cartosat-3 / Sentinel), legacy paper cadastral survey maps, and revenue land record registers (Form 7/12 RoR, Property Cards, and e-Chawadi). It establishes a single, verified **Golden Land Record** per cadastral parcel with sub-centimeter geometric precision.
 
@@ -79,9 +79,9 @@ The platform resolves deep-rooted discrepancies between satellite orthoimagery (
 │   │   ├── mh_districts.geojson
 │   │   ├── mh_talukas.geojson
 │   │   └── village_index.json  # 43,665 real Maharashtra villages
-│   ├── advante_icon.png        # Team Advante brand icon
+│   ├── vanmitra_icon.png       # Team Vanmitra brand icon
 │   ├── favicon.svg             # Vector favicon
-│   └── team_advante_logo.jpg   # Official Team Advante emblem
+│   └── team_vanmitra_logo.jpg  # Official Team Vanmitra emblem
 ├── src/
 │   ├── components/             # Reusable UI & WebGIS components
 │   │   ├── NakashaMap.tsx      # MahaBhuNakasha OpenLayers WebGIS engine
@@ -96,7 +96,7 @@ The platform resolves deep-rooted discrepancies between satellite orthoimagery (
 │   ├── routes/                 # TanStack file-based routes
 │   │   ├── __root.tsx          # HTML shell, metadata, and branding
 │   │   └── index.tsx           # Main application view switcher
-│   └── styles.css              # Design system & cadastral glassmorphism styles
+│   └── styles.css              # Tribal community design system & styles
 ├── docs/                       # Project documentation & presentations
 │   ├── presentations/          # Pitch decks, presentations, and competition formats
 │   └── specifications/         # Architectural specs, prompt engineering & technical briefs
@@ -140,8 +140,8 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ---
 
-## 👥 Team ADVANTE • Smart India Hackathon 2026
+## 👥 Team VANMITRA • Smart India Hackathon 2026
 
 - **Problem Statement**: PS 26013 (Automated Integration and Intelligent Harmonization of Multi-source Geospatial Data for Urban Land Record Management)
 - **Organization**: Ministry of Housing and Urban Affairs / Department of Land Resources
-- **Motto**: *Innovate • Integrate • Elevate*
+- **Motto**: *Innovate • Integrate • Elevate • Empower Tribal Communities*

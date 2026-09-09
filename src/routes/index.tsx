@@ -33,9 +33,9 @@ const SatelliteCadastralMap = lazy(() =>
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ADVANTE | Maharashtra Cadastral & Land Intelligence" },
+      { title: "VANMITRA | Maharashtra Cadastral & Land Intelligence" },
       { name: "description", content: "AI-powered geospatial harmonization & MahaBhuNakasha cadastral intelligence." },
-      { property: "og:title", content: "ADVANTE | Maharashtra Cadastral & Land Intelligence" },
+      { property: "og:title", content: "VANMITRA | Maharashtra Cadastral & Land Intelligence" },
       { property: "og:description", content: "AI-powered geospatial harmonization & MahaBhuNakasha cadastral intelligence." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -83,7 +83,7 @@ function Index() {
   // Officer authentication state
   const [currentUser, setCurrentUser] = useState<OfficerProfile | null>(() => {
     try {
-      const saved = localStorage.getItem("advante_officer_user");
+      const saved = localStorage.getItem("vanmitra_officer_user");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -94,7 +94,7 @@ function Index() {
   const handleLoginSuccess = (user: OfficerProfile) => {
     setCurrentUser(user);
     try {
-      localStorage.setItem("advante_officer_user", JSON.stringify(user));
+      localStorage.setItem("vanmitra_officer_user", JSON.stringify(user));
     } catch {}
     setLoginModalOpen(false);
     setShowMap(false); // Seamlessly transition to Officer Dashboard
@@ -104,7 +104,7 @@ function Index() {
   const handleLogout = () => {
     setCurrentUser(null);
     try {
-      localStorage.removeItem("advante_officer_user");
+      localStorage.removeItem("vanmitra_officer_user");
     } catch {}
     setShowMap(true); // Return to public Nakasha WebGIS
     showNotice("Logged out successfully.");
@@ -129,7 +129,7 @@ function Index() {
       <div className="flex h-screen w-screen items-center justify-center bg-slate-50 text-slate-900">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-          <span className="text-sm font-medium tracking-wide">Initializing ADVANTE Nakasha GIS...</span>
+          <span className="text-sm font-medium tracking-wide">Initializing VANMITRA Nakasha GIS...</span>
         </div>
       </div>
     );
@@ -166,17 +166,17 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* ── Header (Light Theme with TEAM ADVANTE Logo & Officer Profile) ── */}
+      {/* ── Header (Light Theme with TEAM VANMITRA Logo & Officer Profile) ── */}
       <header className="sticky top-0 z-30 flex h-[70px] items-center border-b border-slate-200 bg-white px-4 text-slate-800 shadow-sm md:px-7">
         <div className={`flex shrink-0 items-center gap-3 ${collapsed ? "w-[58px]" : "w-[246px]"}`}>
           <img
-            src="/team_advante_logo.jpg"
-            alt="TEAM ADVANTE"
+            src="/team_vanmitra_logo.jpg"
+            alt="TEAM VANMITRA"
             className="h-10 w-auto object-contain rounded border border-slate-200 p-0.5 bg-white shadow-xs"
           />
           {!collapsed && (
             <div>
-              <div className="font-display text-lg font-extrabold tracking-tight text-slate-900">ADVANTE</div>
+              <div className="font-display text-lg font-extrabold tracking-tight text-slate-900">VANMITRA</div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-700">Officer Dashboard</div>
             </div>
           )}
@@ -684,7 +684,7 @@ function Dashboard({ onNavigate, onSelect }: { onNavigate: (view: ViewKey) => vo
         <div className="relative max-w-2xl">
           <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-signal"><Sparkles className="size-4" /> Bhumi-Nakasha Harmonization</div>
           <h2 className="font-display text-2xl font-bold md:text-3xl">A clearer view of Ozar land claims.</h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-primary-foreground/70">ADVANTE brings register attributes, survey boundaries and cadastral intelligence into one traceable workspace — powered by the 8-stage GeoAI engine.</p>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-primary-foreground/70">VANMITRA brings register attributes, survey boundaries and cadastral intelligence into one traceable workspace — powered by the 8-stage GeoAI engine.</p>
           <div className="mt-6 flex flex-wrap gap-6 text-sm">
             <div><div className="text-2xl font-bold">{ozarDataset.totalClaims}</div><div className="text-primary-foreground/60">source claims</div></div>
             <div className="h-10 w-px bg-primary-foreground/20" />
@@ -795,7 +795,7 @@ function Dashboard({ onNavigate, onSelect }: { onNavigate: (view: ViewKey) => vo
             <div className="mt-1 text-xs text-ink-soft">Problem Statement 26013 · Automated Integration and Intelligent Harmonization of Multi-source Geospatial Data for Urban Land Record Management</div>
           </div>
         </div>
-        <Badge variant="outline" className="whitespace-nowrap border-forest/20 bg-background text-forest-deep">Team Advante</Badge>
+        <Badge variant="outline" className="whitespace-nowrap border-forest/20 bg-background text-forest-deep">Team Vanmitra</Badge>
       </section>
     </div>
   );
@@ -847,7 +847,7 @@ function ModuleView({ view, onNavigate, onNotice }: { view: ViewKey; onNavigate:
 
   if (isAI) return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeading eyebrow="Decision support" title="Ask ADVANTE AI" subtitle="Query the Ozar register in English, Marathi or Hindi." actions={<Badge variant="outline" className="gap-2 border-forest/20 text-forest"><span className="size-2 rounded-full bg-forest" /> AI online</Badge>} />
+      <PageHeading eyebrow="Decision support" title="Ask VANMITRA AI" subtitle="Query the Ozar register in English, Marathi or Hindi." actions={<Badge variant="outline" className="gap-2 border-forest/20 text-forest"><span className="size-2 rounded-full bg-forest" /> AI online</Badge>} />
       <div className="overflow-hidden rounded-lg border border-border bg-card panel-shadow">
         <div className="min-h-[420px] space-y-5 p-5 md:p-8">
           {messages.map((item, index) => (
