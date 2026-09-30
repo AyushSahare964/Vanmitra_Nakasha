@@ -49,8 +49,8 @@ export default function VillageCadastreDirectoryPage({
 }: VillageCadastreDirectoryPageProps) {
   const [allVillages, setAllVillages] = useState<RealVillageRecord[]>(SAMPLE_REAL_VILLAGES);
   const [loading, setLoading] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("Gondia");
-  const [selectedTaluka, setSelectedTaluka] = useState<string>("All");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
+  const [selectedTaluka, setSelectedTaluka] = useState<string>("सर्व");
   const [selectedVillage, setSelectedVillage] = useState<RealVillageRecord>(SAMPLE_REAL_VILLAGES[0]);
   const [searchQuery, setSearchQuery] = useState("");
   const [basemapKey, setBasemapKey] = useState<"hybrid" | "carto">("hybrid");
@@ -77,6 +77,24 @@ export default function VillageCadastreDirectoryPage({
       active = false;
     };
   }, []);
+
+  // Once real village data loads, auto-select the first district & village
+  useEffect(() => {
+    if (allVillages.length === 0) return;
+    const districts = Array.from(new Set(allVillages.map((v) => v.d))).filter(Boolean).sort();
+    if (districts.length === 0) return;
+    const firstDistrict = districts[0];
+    // Only auto-init if user hasn't manually selected a district yet
+    if (!selectedDistrict) {
+      setSelectedDistrict(firstDistrict);
+      setSelectedTaluka("सर्व");
+      const firstVillage = allVillages.find((v) => v.d === firstDistrict);
+      if (firstVillage) {
+        setSelectedVillage(firstVillage);
+        updateMarker(firstVillage);
+      }
+    }
+  }, [allVillages]);
 
   // Initialize Cadastre OpenLayers Map
   useEffect(() => {
@@ -214,15 +232,19 @@ export default function VillageCadastreDirectoryPage({
   };
 
   const availableDistricts = Array.from(new Set(allVillages.map((v) => v.d))).filter(Boolean).sort();
+
+  // Auto-select first district once villages load
+  const effectiveDistrict = selectedDistrict || availableDistricts[0] || "";
+
   const availableTalukas = Array.from(
-    new Set(allVillages.filter((v) => v.d === selectedDistrict).map((v) => v.t))
+    new Set(allVillages.filter((v) => v.d === effectiveDistrict).map((v) => v.t))
   )
     .filter(Boolean)
     .sort();
 
   const filteredVillages = allVillages.filter((v) => {
-    if (v.d !== selectedDistrict) return false;
-    if (selectedTaluka !== "All" && v.t !== selectedTaluka) return false;
+    if (v.d !== effectiveDistrict) return false;
+    if (selectedTaluka !== "सर्व" && v.t !== selectedTaluka) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return v.n.toLowerCase().includes(q) || v.t.toLowerCase().includes(q) || v.villageCode.includes(q);
@@ -238,7 +260,7 @@ export default function VillageCadastreDirectoryPage({
 
   const handleDistrictChange = (dist: string) => {
     setSelectedDistrict(dist);
-    setSelectedTaluka("All");
+    setSelectedTaluka("सर्व");
     const first = allVillages.find((v) => v.d === dist);
     if (first) {
       setSelectedVillage(first);
@@ -528,13 +550,13 @@ export default function VillageCadastreDirectoryPage({
 
           <div className="flex flex-wrap items-center gap-2">
             <select
-              value={selectedDistrict}
+              value={effectiveDistrict}
               onChange={(e) => handleDistrictChange(e.target.value)}
               className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 focus:border-emerald-600 focus:outline-none cursor-pointer"
             >
               {availableDistricts.map((d) => (
                 <option key={d} value={d}>
-                  District: {d}
+                  जिल्हा: {d}
                 </option>
               ))}
             </select>
@@ -544,7 +566,7 @@ export default function VillageCadastreDirectoryPage({
               onChange={(e) => setSelectedTaluka(e.target.value)}
               className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-none cursor-pointer"
             >
-              <option value="All">All Talukas ({availableTalukas.length})</option>
+              <option value="सर्व">सर्व तालुके ({availableTalukas.length})</option>
               {availableTalukas.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -558,7 +580,7 @@ export default function VillageCadastreDirectoryPage({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search village or Census code..."
+                placeholder="गाव किंवा जनगणना कोड शोधा..."
                 className="rounded-xl border border-slate-300 pl-8 pr-3 py-1.5 text-xs font-medium focus:border-emerald-600 focus:outline-none w-52"
               />
             </div>
@@ -628,7 +650,7 @@ export default function VillageCadastreDirectoryPage({
               {filteredVillages.length === 0 && (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-slate-400">
-                    No matching villages found in {selectedDistrict}.
+                    {effectiveDistrict} जिल्ह्यात कोणतेही गाव आढळले नाही.
                   </td>
                 </tr>
               )}

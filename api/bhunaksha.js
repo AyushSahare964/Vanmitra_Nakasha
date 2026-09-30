@@ -154,6 +154,8 @@ export default async function handler(req, res) {
       }
     });
 
+    // Fail fast instead of holding the connection while the portal hangs.
+    pr.setTimeout(90000, () => pr.destroy(new Error("BhuNaksha did not answer within 90s")));
     if (body.length) pr.write(body);
     pr.end();
   };

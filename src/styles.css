@@ -570,6 +570,17 @@
   pointer-events: none;
 }
 
+/* Cadastral Layer Pointer Events & Smooth Transition */
+.cadastral-village-layer {
+  pointer-events: none;
+}
+.cadastral-selected-plot-layer {
+  pointer-events: none;
+}
+.cadastral-plot-marker-layer {
+  pointer-events: none;
+}
+
 /* GPU Acceleration & Smooth Rendering for WebGIS Map Viewports */
 .ol-viewport,
 .leaflet-container {
@@ -585,5 +596,3 @@
   transform: translateZ(0);
   will-change: transform;
 }
-
-

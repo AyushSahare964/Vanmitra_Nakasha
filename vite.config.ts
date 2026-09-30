@@ -1,7 +1,10 @@
 // Project Vite configuration for TanStack Start and MahaBhuNakasha WebGIS engine
+process.env.NITRO_PRESET = process.env.NITRO_PRESET || "vercel";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import https from "node:https";
 import type { IncomingMessage, ServerResponse } from "node:http";
+// @ts-ignore — plain JS module shared with the Vercel function
+import cfrHandler from "./api/cfr.js";
 
 // Session cookie cache for MahaBhuNakasha portal
 let cachedCookie = "";
@@ -122,6 +125,8 @@ function handleBhuNaksha(req: IncomingMessage, res: ServerResponse) {
           res.end(JSON.stringify({ error: "BhuNaksha gateway error", message: e.message }));
         }
       });
+      // Fail fast (the client shows a message) instead of holding the socket while the portal hangs.
+      pr.setTimeout(90000, () => pr.destroy(new Error("BhuNaksha did not answer within 90s")));
       if (body.length) pr.write(body);
       pr.end();
     };
@@ -198,6 +203,8 @@ export default defineConfig({
           server.middlewares.use((req, res, next) => {
             if (req.url && req.url.startsWith("/bhunaksha")) {
               handleBhuNaksha(req, res);
+            } else if (req.url && req.url.startsWith("/api/cfr")) {
+              cfrHandler(req, res);
             } else if (req.url && req.url.startsWith("/api/reverse-geocode")) {
               handleReverseGeocode(req, res);
             } else {

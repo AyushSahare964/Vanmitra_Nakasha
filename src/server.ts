@@ -44,9 +44,16 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+import { handleServerProxy } from "./lib/server-proxy";
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // 1. Intercept server-side API proxy routes (BhuNaksha, CFR, Reverse-geocode)
+      const proxyResponse = await handleServerProxy(request);
+      if (proxyResponse) return proxyResponse;
+
+      // 2. Delegate to TanStack Start SSR application handler
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

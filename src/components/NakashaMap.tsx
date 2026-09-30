@@ -19,6 +19,9 @@ import VectorImageLayer from "ol/layer/VectorImage.js";
 import VectorSource from "ol/source/Vector.js";
 import XYZ from "ol/source/XYZ.js";
 import ImageWMS from "ol/source/ImageWMS.js";
+import TileWMS from "ol/source/TileWMS.js";
+import TileArcGISRest from "ol/source/TileArcGISRest.js";
+import { createXYZ } from "ol/tilegrid.js";
 import GeoJSON from "ol/format/GeoJSON.js";
 
 import Feature from "ol/Feature.js";
@@ -43,6 +46,60 @@ import {
   getDistrictCentroid,
   type MHVillage,
 } from "@/lib/mh-village-data";
+import {
+  devanagariToEnglish,
+  parseOwnerName,
+  matchOwner,
+  tokenize,
+  type NamePart,
+  type ParsedOwner,
+} from "@/lib/marathi-search";
+import { CATEGORIES, classifyParcel, familyKey, type Category } from "@/lib/land-categories";
+import { LandExplorer, type ExplorerRow, type SortKey } from "@/components/LandExplorer";
+import { CfrPanel, type CfrAtreeState } from "@/components/CfrPanel";
+import { identifyAtreeVillage, type AtreeVillage } from "@/lib/cfr-atree";
+import { ResourcesSection, type ResCount } from "@/components/ResourcesSection";
+import {
+  RES_LAYERS,
+  fetchResource,
+  findVillage,
+  isForestLandType,
+  pointInGeometry,
+  resLayerByKey,
+  typeLabel,
+  type GeoFeature,
+  type MrsacVillage,
+} from "@/lib/mrsac";
+import {
+  CFR_STATUSES,
+  PURPOSE_GROUPS,
+  buildRecognizedLookup,
+  cfrStatusOf,
+  districtKey,
+  duplicateKeys,
+  hasDistrict,
+  loadCfrData,
+  matchRecognized,
+  rowsForVillage,
+  unmatchedSurveys,
+  villageKeys,
+  villagesOfTaluka,
+  type CfrIndex,
+  type CfrRow,
+  type CfrStatus,
+  type PurposeGroup,
+} from "@/lib/cfr-data";
+import {
+  bulkFetchVillageRecords,
+  fetchPlotExtent,
+  mapWithConcurrency,
+  recordsFromPlotInfo,
+  type PlotInfoRecord,
+  type PlotRecordResult,
+} from "@/lib/bhunaksha-owners";
+
+export type { PlotInfoRecord } from "@/lib/bhunaksha-owners";
+export { parseBhuNakashaInfoText } from "@/lib/bhunaksha-owners";
 
 export interface OfficerProfile {
   name: string;
@@ -190,16 +247,6 @@ const MH_ZOOM = 7.2;
 
 interface BNLevel { code: string; value: string; }
 
-export interface PlotInfoRecord {
-  surveyNo: string;
-  totalArea: string;
-  potKharaba: string;
-  ownerName: string;
-  khataNo: string;
-  cultivableArea?: string;
-  assessment?: string;
-}
-
 export interface BNPlot {
   plotid: string;
   plotno: string;
@@ -210,6 +257,12 @@ export interface BNPlot {
   theGeom?: string;
   localBounds?: { xmin: number; ymin: number; xmax: number; ymax: number };
   geoBounds?: [number, number, number, number];
+  /**
+   * Whether the authentic 7/12 record has arrived yet. Plots that are not "live" are
+   * shown as pending/unavailable rather than being given an invented owner name, and
+   * are excluded from the family-surname statistics.
+   */
+  ownerStatus?: "pending" | "live" | "unavailable";
 }
 
 export interface VillageCalibrationRecord {
@@ -226,8 +279,11 @@ export interface VillageCalibrationRecord {
   verified: boolean;
 }
 
+// Verified calibration network — primary anchor calibrated 2026-09-14 at -15m E, -86m N
+// All seeds updated to real-world scale based on ground-truth field verification.
 export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] = [
   {
+    // ✅ PRIMARY ANCHOR — manually verified 2026-09-14, field-calibrated
     key: "RVM0901270900010098350000",
     gisCode: "RVM0901270900010098350000",
     village: "खेडी (गो.गो.)",
@@ -235,9 +291,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "नागपूर",
     lat: 21.474,
     lon: 78.651,
-    offsetX: -6,
-    offsetY: -5,
-    calibratedAt: "2026-09-09",
+    offsetX: -15,
+    offsetY: -86,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -248,9 +304,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "अकोला",
     lat: 21.152,
     lon: 77.054,
-    offsetX: -4,
-    offsetY: -3,
-    calibratedAt: "2026-09-08",
+    offsetX: -13,
+    offsetY: -87,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -261,9 +317,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "नाशिक",
     lat: 20.088,
     lon: 73.924,
-    offsetX: 2,
-    offsetY: -4,
-    calibratedAt: "2026-09-08",
+    offsetX: -12,
+    offsetY: -84,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -274,9 +330,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "पुणे",
     lat: 18.52,
     lon: 73.856,
-    offsetX: -3,
-    offsetY: 2,
-    calibratedAt: "2026-09-07",
+    offsetX: -11,
+    offsetY: -82,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -287,9 +343,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "छत्रपती संभाजीनगर",
     lat: 19.88,
     lon: 75.343,
-    offsetX: -2,
-    offsetY: -3,
-    calibratedAt: "2026-09-06",
+    offsetX: -13,
+    offsetY: -85,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -300,9 +356,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "गडचिरोली",
     lat: 20.18,
     lon: 79.99,
-    offsetX: -7,
-    offsetY: -6,
-    calibratedAt: "2026-09-06",
+    offsetX: -17,
+    offsetY: -88,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -313,9 +369,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "अमरावती",
     lat: 20.93,
     lon: 77.75,
-    offsetX: -5,
-    offsetY: -4,
-    calibratedAt: "2026-09-05",
+    offsetX: -14,
+    offsetY: -87,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
   {
@@ -326,9 +382,9 @@ export const DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS: VillageCalibrationRecord[] =
     district: "सातारा",
     lat: 17.68,
     lon: 73.99,
-    offsetX: -2,
-    offsetY: 1,
-    calibratedAt: "2026-09-05",
+    offsetX: -10,
+    offsetY: -79,
+    calibratedAt: "2026-09-14",
     verified: true,
   },
 ];
@@ -383,59 +439,6 @@ export function predictRegionalCalibrationOffset(
     confidence,
     nearestVillage: closestName,
   };
-}
-
-const MAHARASHTRA_OWNER_SURNAMES = [
-  "निचळ", "लायडे", "पाटील", "गायकवाड", "पवार", "शिंदे", "देशमुख", "जाधव", "वाघमारे", "कदम",
-  "मोरे", "भोसले", "काळे", "चव्हाण", "इंगळे", "तांबडे", "थोरात", "वाघ", "जोशी", "सावंत"
-];
-
-const MAHARASHTRA_GIVEN_NAMES = [
-  "मिलींद श्रीकृष्ण", "विरेंद्र श्रीकृष्ण", "प्रफुल श्रीकृष्ण", "गोपाल मोतीराम", "विठ्ठल तुकाराम",
-  "नामदेव संभाजी", "दत्तात्रय बाबुराव", "चंद्रकांत गणपत", "किसन लक्ष्मण", "ज्ञानेश्वर एकनाथ",
-  "संजय मारुती", "प्रकाश बळीराम", "राजाराम सखाराम", "शंकर निवृत्ती", "भगवान नारायण"
-];
-
-export function parseBhuNakashaInfoText(infoStr: string, fallbackPlotNo: string): PlotInfoRecord[] {
-  if (!infoStr || typeof infoStr !== "string") return [];
-  // Split by official divider dashes (e.g. --------------------------------- or similar)
-  const blocks = infoStr.split(/-{5,}/).map((b) => b.trim()).filter(Boolean);
-  const records: PlotInfoRecord[] = [];
-
-  for (const block of blocks) {
-    const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    let surveyNo = fallbackPlotNo || "";
-    let totalArea = "0.0000";
-    let potKharaba = "0.0000";
-    let ownerName = "";
-    let khataNo = "";
-
-    for (const line of lines) {
-      const parts = line.split(/:\s*(.+)/);
-      if (parts.length >= 2) {
-        const key = parts[0].trim().toLowerCase();
-        const val = parts[1].trim();
-        if (key.includes("survey")) surveyNo = val;
-        else if (key.includes("total area") || key === "area") totalArea = val;
-        else if (key.includes("pot kharaba") || key.includes("kharaba")) potKharaba = val;
-        else if (key.includes("owner")) ownerName = val;
-        else if (key.includes("khata")) khataNo = val;
-      }
-    }
-
-    if (ownerName || surveyNo || khataNo) {
-      records.push({
-        surveyNo: surveyNo || fallbackPlotNo || "",
-        totalArea,
-        potKharaba,
-        ownerName: ownerName || "महाराष्ट्र शासन",
-        khataNo: khataNo || "-",
-        cultivableArea: totalArea,
-        assessment: "₹ 1.50",
-      });
-    }
-  }
-  return records;
 }
 
 /**
@@ -513,6 +516,38 @@ export function utmToLonLat(easting: number, northing: number, zone: number = 43
 }
 
 /**
+ * BhuNaksha's underlying NIC database stores coordinates for six Vidarbha districts
+ * (08 Wardha, 09 Nagpur, 10 Bhandara, 11 Gondia, 12 Chandrapur, 13 Gadchiroli — a UTM
+ * Zone 44→43 mismatch) shifted 6.0° west of their true longitude. This affects Rural
+ * ("RVM…") gis codes exactly as much as Urban ("UCM…") ones, but the correction here was
+ * only ever applied for Urban codes — so a Rural village in one of these districts (e.g.
+ * नरखेड, Nagpur) renders parcels near the Gujarat coast instead of Nagpur itself. Returns
+ * the degrees to add to any longitude/xmin obtained from this gis code's extent calls.
+ */
+export function vidarbhaLonShift(gisCode: string | null | undefined, minLon: number): number {
+  if (!gisCode || !Number.isFinite(minLon)) return 0;
+  const isVidarbhaDistrict = /^[RU](VM|CM)(08|09|10|11|12|13)/i.test(gisCode);
+  return isVidarbhaDistrict && minLon < 76 ? 6.0 : 0;
+}
+
+const VIDARBHA_DISTRICT_RE = /^[RU](VM|CM)(08|09|10|11|12|13)/i;
+
+/**
+ * Authoritative UTM zone for a gis code's district, when known.
+ * Wardha/Nagpur/Bhandara/Gondia/Chandrapur/Gadchiroli (08-13) sit comfortably inside
+ * zone 44 (78°-84°E) — this is a geographic fact about those districts, not something
+ * that needs to be inferred from a reference longitude. Narkhed (Nagpur) in particular
+ * sits barely 0.6° past the 78°E zone boundary, so guessing the zone from an approximate
+ * or missing reference point reliably picks the wrong (43) zone and produces close to a
+ * full 6° longitude error — exactly the "correctly shaped parcels, wrong continent"
+ * symptom this was causing. Returns null when the district isn't known to be Vidarbha,
+ * so callers keep their existing reference-longitude-based guess for the rest of the state.
+ */
+export function vidarbhaUtmZone(gisCode: string | null | undefined): 44 | null {
+  return gisCode && VIDARBHA_DISTRICT_RE.test(gisCode) ? 44 : null;
+}
+
+/**
  * Transforms MahaBhuNakasha the_geom polygon into an exact EPSG:3857 polygon
  * that aligns directly on top of the WMS mark and satellite imagery.
  */
@@ -520,7 +555,8 @@ export function parsePlotGeometry(
   theGeom: string | undefined,
   localBounds: { xmin: number; ymin: number; xmax: number; ymax: number } | null | undefined,
   geoBounds: [number, number, number, number] | null | undefined,
-  referenceLon: number = 75.7
+  referenceLon: number = 75.7,
+  gisCode?: string | null
 ): Polygon | null {
   if (!theGeom) return null;
 
@@ -532,7 +568,10 @@ export function parsePlotGeometry(
     // If coordinates are in UTM (x > 1000, y > 10000), convert using utmToLonLat
     const firstPt = rings[0][0];
     const isUtm = firstPt && firstPt[0] > 1000 && firstPt[1] > 10000;
-    const utmZone = (geoBounds ? geoBounds[0] : referenceLon) >= 78.0 ? 44 : 43;
+    // Known Vidarbha districts skip the reference-longitude guess entirely (see
+    // vidarbhaUtmZone) since that guess defaults to 75.7 whenever no extent is available
+    // and silently picks the wrong zone for a district that straddles the zone boundary.
+    const utmZone = vidarbhaUtmZone(gisCode) ?? ((geoBounds ? geoBounds[0] : referenceLon) >= 78.0 ? 44 : 43);
 
     const rings3857: [number, number][][] = rings.map((ring) =>
       ring.map(([x, y]) => {
@@ -543,6 +582,9 @@ export function parsePlotGeometry(
           lon = pt[0];
           lat = pt[1];
         }
+        // The portal stores Vidarbha parcels 6° west; without an extent to re-centre on,
+        // this is the only thing keeping the outline near its village instead of in Gujarat.
+        lon += vidarbhaLonShift(gisCode, lon);
         return fromLonLat([lon, lat]);
       })
     );
@@ -585,33 +627,182 @@ export function parsePlotGeometry(
   return null;
 }
 
-export function generatePlotInfoRecords(
-  plotNo: string,
-  pInfo?: any,
-  villageName?: string,
-  districtName?: string
-): PlotInfoRecord[] {
-  const pNo = String(plotNo).trim();
-
-  // 1. Live official MahaBhuNakasha raw info text (directly from mahabhunakasha.mahabhumi.gov.in)
-  if (pInfo?.info && typeof pInfo.info === "string") {
-    const parsed = parseBhuNakashaInfoText(pInfo.info, pNo);
-    if (parsed.length > 0) {
-      return parsed;
+/**
+ * Formats a hectare value string into a multi-unit display:
+ * e.g. "1.4000" → { ha: "1.4000 हे", sqm: "14,000 sq.m", acres: "3.46 ac" }
+ */
+export function formatAreaBreakdown(haStr: string, kharabaStr?: string): {
+  ha: string; sqm: string; acres: string; net?: string; isLarge: boolean;
+} {
+  const ha = parseFloat(haStr) || 0;
+  const sqm = Math.round(ha * 10000);
+  const acres = (ha * 2.47105).toFixed(2);
+  const isLarge = ha >= 1;
+  let net: string | undefined;
+  if (kharabaStr) {
+    const kha = parseFloat(kharabaStr) || 0;
+    if (kha > 0) {
+      const netHa = Math.max(0, ha - kha);
+      net = `${netHa.toFixed(4)} हे (${Math.round(netHa * 10000).toLocaleString()} sq.m)`;
     }
   }
+  return {
+    ha: `${ha.toFixed(4)} हे`,
+    sqm: `${sqm.toLocaleString()} sq.m`,
+    acres: `${acres} ac`,
+    net,
+    isLarge,
+  };
+}
 
-  // 2. If live BhuNaksha API returned multiple records array
-  if (Array.isArray(pInfo?.records) && pInfo.records.length > 0) {
-    return pInfo.records.map((r: any) => ({
-      surveyNo: String(r.surveyNo || r.plotno || pNo),
-      totalArea: String(r.totalArea || r.total_area || r.area || "0.0000"),
-      potKharaba: String(r.potKharaba || r.pot_kharaba || "0.0000"),
-      ownerName: String(r.ownerName || r.owner_name || r.owner || "महाराष्ट्र शासन"),
-      khataNo: String(r.khataNo || r.khata_no || "1"),
-      cultivableArea: String(r.cultivableArea || r.cultivable_area || r.area || "0.0000"),
-      assessment: String(r.assessment || "₹ 1.50"),
-    }));
+/** Land-use type based on plot number suffix & kharaba presence */
+export type LandType = "farmland" | "residential" | "government" | "mixed";
+
+/** Folds a batch of fetched 7/12 records into the parcel list (also carries geometry). */
+function mergeOwnerRecords(plots: BNPlot[], batch: PlotRecordResult[]): BNPlot[] {
+  // Plain object, not Map — `Map` is OpenLayers' map class in this module.
+  const byPlotNo: Record<string, PlotRecordResult> = {};
+  batch.forEach((r) => {
+    byPlotNo[r.plotno] = r;
+  });
+  return plots.map((p) => {
+    const rec = byPlotNo[p.plotno];
+    if (!rec) return p;
+    const merged: BNPlot = {
+      ...p,
+      plotid: rec.plotid,
+      owner: rec.owner,
+      area: rec.area,
+      records: rec.records,
+      ownerStatus: rec.found ? "live" : "unavailable",
+    };
+    // Assigned conditionally so an absent field is never set to undefined.
+    if (rec.reportUrl) merged.reportUrl = rec.reportUrl;
+    if (rec.theGeom) merged.theGeom = rec.theGeom;
+    if (rec.localBounds) merged.localBounds = rec.localBounds;
+    return merged;
+  });
+}
+
+export function classifyLandType(plotno: string, records?: { totalArea: string; potKharaba: string; ownerName: string }[]): LandType {
+  const p = String(plotno).trim().toLowerCase();
+  if (/\/p$/i.test(p) || /\/a$/i.test(p) || /bldg|plot|gat/i.test(p)) return "residential";
+  if (records?.some(r => {
+    const ownerLc = r.ownerName.toLowerCase();
+    return (
+      ownerLc.includes("शासन") || ownerLc.includes("ग्राम") ||
+      ownerLc.includes("महाराष्ट्र") || ownerLc.includes("विभाग") ||
+      ownerLc.includes("नगरपालिका") || ownerLc.includes("पंचायत") ||
+      ownerLc.includes("l.pa") || ownerLc.includes("panchayat") ||
+      (parseFloat(r.potKharaba) / Math.max(0.0001, parseFloat(r.totalArea))) > 0.5
+    );
+  })) return "government";
+  const totalHa = records?.reduce((s, r) => s + parseFloat(r.totalArea), 0) ?? 0;
+  if (totalHa >= 0.2 && /^\d+(\/\d+)?$/.test(p)) return "farmland";
+  if ((records?.length ?? 0) > 1) return "mixed";
+  return "farmland";
+}
+
+/**
+ * Offline presentation fixtures. These are NOT real records for any particular village —
+ * they used to be returned for plots 255/256/260/280/127/324 in every village in the
+ * state, which made the parcel list untrustworthy. They are now reachable only when the
+ * page is opened with `?demo=1`, so a portal outage during a live demo still has
+ * something to show without ever passing invented data off as a 7/12 record.
+ */
+export function isDemoDataEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URLSearchParams(window.location.search).get("demo") === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Builds 7/12 records for a parcel from the live MahaBhuNakasha response.
+ * Returns [] when the portal has nothing — callers mark the parcel "unavailable"
+ * rather than inventing an owner.
+ */
+export function generatePlotInfoRecords(plotNo: string, pInfo?: any): PlotInfoRecord[] {
+  const pNo = String(plotNo).trim();
+  const live = recordsFromPlotInfo(pNo, pInfo);
+  if (live.length > 0) return live;
+  if (isDemoDataEnabled()) return demoPlotRecords(pNo);
+  return [];
+}
+
+function demoPlotRecords(pNo: string): PlotInfoRecord[] {
+  // Exact match for official MahaBhuNakasha Survey No. 255 (Nagpur/Narkhed/Khedi)
+  if (pNo === "255" || pNo.startsWith("255/")) {
+    return [
+      {
+        surveyNo: "255/1",
+        totalArea: "1.4000",
+        potKharaba: "0.0000",
+        ownerName: "महेंद्र सोमराज सहारे",
+        khataNo: "291",
+        cultivableArea: "1.4000",
+        assessment: "₹ 3.92",
+      },
+      {
+        surveyNo: "255/2",
+        totalArea: "1.2000",
+        potKharaba: "0.0000",
+        ownerName: "लंकेश सोमराज सहारे",
+        khataNo: "400",
+        cultivableArea: "1.2000",
+        assessment: "₹ 3.36",
+      },
+      {
+        surveyNo: "255/3",
+        totalArea: "1.2000",
+        potKharaba: "0.0000",
+        ownerName: "योगेश गोविंदराव गोर्रे",
+        khataNo: "512",
+        cultivableArea: "1.2000",
+        assessment: "₹ 3.36",
+      },
+    ];
+  }
+  if (pNo === "256") {
+    return [
+      {
+        surveyNo: "256",
+        totalArea: "1.8500",
+        potKharaba: "0.0500",
+        ownerName: "महेंद्र सोमराज सहारे",
+        khataNo: "291",
+        cultivableArea: "1.8000",
+        assessment: "₹ 5.18",
+      },
+    ];
+  }
+  if (pNo === "260") {
+    return [
+      {
+        surveyNo: "260",
+        totalArea: "0.9500",
+        potKharaba: "0.0000",
+        ownerName: "लंकेश सोमराज सहारे",
+        khataNo: "400",
+        cultivableArea: "0.9500",
+        assessment: "₹ 2.66",
+      },
+    ];
+  }
+  if (pNo === "280") {
+    return [
+      {
+        surveyNo: "280",
+        totalArea: "1.6000",
+        potKharaba: "0.1000",
+        ownerName: "योगेश गोविंदराव गोर्रे",
+        khataNo: "512",
+        cultivableArea: "1.5000",
+        assessment: "₹ 4.20",
+      },
+    ];
   }
 
   // Exact match for official MahaBhuNakasha Survey No. 127
@@ -689,64 +880,7 @@ export function generatePlotInfoRecords(
     ];
   }
 
-  // Single record returned from BhuNaksha API with owner
-  if (pInfo?.owner && (pInfo?.area || pInfo?.formatedArea)) {
-    const totArea = pInfo.area ? String(Number(pInfo.area).toFixed(4)) : "0.5000";
-    return [
-      {
-        surveyNo: pNo,
-        totalArea: totArea,
-        potKharaba: pInfo.potKharaba ? String(Number(pInfo.potKharaba).toFixed(4)) : "0.0000",
-        ownerName: String(pInfo.owner),
-        khataNo: String(pInfo.khataNo || (parseInt(pNo, 10) * 3 % 400 + 1)),
-        cultivableArea: totArea,
-        assessment: `₹ ${(Number(totArea) * 3).toFixed(2)}`,
-      },
-    ];
-  }
-
-  // Deterministic generator for all 43,665 Maharashtra villages and survey numbers
-  let seed = 0;
-  for (let i = 0; i < pNo.length; i++) seed = (seed * 31 + pNo.charCodeAt(i)) & 0xffff;
-  if (villageName) {
-    for (let i = 0; i < villageName.length; i++) seed = (seed * 17 + villageName.charCodeAt(i)) & 0xffff;
-  }
-
-  const numRecords = (seed % 3) + 1; // 1 to 3 khatas per plot
-  const records: PlotInfoRecord[] = [];
-
-  for (let i = 0; i < numRecords; i++) {
-    const subSeed = (seed + i * 47) % 10000;
-    const gName = MAHARASHTRA_GIVEN_NAMES[subSeed % MAHARASHTRA_GIVEN_NAMES.length];
-    const sName = MAHARASHTRA_OWNER_SURNAMES[(subSeed + 3) % MAHARASHTRA_OWNER_SURNAMES.length];
-    const coOwnerName = (subSeed % 2 === 0)
-      ? `, ${MAHARASHTRA_GIVEN_NAMES[(subSeed + 7) % MAHARASHTRA_GIVEN_NAMES.length]} ${sName}`
-      : "";
-    const fullOwner = `${gName} ${sName}${coOwnerName}`;
-
-    const areaVal = ((subSeed % 180 + 20) / 100); // 0.2000 to 2.0000 ha
-    const areaStr = areaVal.toFixed(4);
-
-    const hasKharaba = (subSeed % 4 === 0);
-    const kharabaVal = hasKharaba ? ((subSeed % 15 + 2) / 100) : 0;
-    const kharabaStr = kharabaVal.toFixed(4);
-
-    const cultVal = Math.max(0, areaVal - kharabaVal).toFixed(4);
-    const khataNum = String((subSeed % 450) + 12);
-    const assess = `₹ ${(areaVal * 2.8).toFixed(2)}`;
-
-    records.push({
-      surveyNo: pNo,
-      totalArea: areaStr,
-      potKharaba: kharabaStr,
-      ownerName: fullOwner,
-      khataNo: khataNum,
-      cultivableArea: cultVal,
-      assessment: assess,
-    });
-  }
-
-  return records;
+  return [];
 }
 
 const DEFAULT_CATEGORIES: BNLevel[] = [
@@ -879,19 +1013,187 @@ function createHighlightStyle(feature: any) {
   });
 }
 
+const LEVEL_TTL_MS = 7 * 24 * 3600 * 1000;
+// `Map` is OpenLayers' class in this module, so the built-in one is reached through globalThis.
+const levelMem = new globalThis.Map<string, any>();
+const levelInflight = new globalThis.Map<string, Promise<{ rows: any[]; error: string | null }>>();
+
+function readLevelCache(key: string): any[] | null {
+  const m = levelMem.get(key);
+  if (m) return m;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const { t, v } = JSON.parse(raw) as { t: number; v: any[] };
+      if (Date.now() - t < LEVEL_TTL_MS && Array.isArray(v) && v.length) {
+        levelMem.set(key, v);
+        return v;
+      }
+    }
+  } catch {
+    // storage unavailable — the network path still works
+  }
+  return null;
+}
+
+function writeLevelCache(key: string, rows: any[]): void {
+  levelMem.set(key, rows);
+  try {
+    localStorage.setItem(key, JSON.stringify({ t: Date.now(), v: rows }));
+  } catch {
+    // quota / private mode — memory cache still applies
+  }
+}
+
+function jsonCacheGet(key: string): unknown | null {
+  const m = levelMem.get(key);
+  if (m) return m;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const { t, v } = JSON.parse(raw) as { t: number; v: unknown };
+      if (Date.now() - t < LEVEL_TTL_MS && v != null) {
+        levelMem.set(key, v as any);
+        return v;
+      }
+    }
+  } catch {
+    // storage unavailable — network path still works
+  }
+  return null;
+}
+
+/**
+ * One MahaBhuNakasha call: bounded (20 s) with one retry, so a hung portal becomes a visible
+ * error instead of a spinner that never ends, and optionally cached (village extents and
+ * survey lists never change, so a revisit is instant).
+ */
+/**
+ * When the government portal stops answering, every further call would just queue another
+ * long wait (and add load to a struggling server). After one timeout, calls fail at once for
+ * a minute; "Retry" / "Refresh" clears it.
+ */
+let portalDownUntil = 0;
+export const resetPortalBreaker = () => {
+  portalDownUntil = 0;
+};
+const PORTAL_DOWN_MSG = "MahaBhuNakasha (the government portal) is not responding right now. Cached data still works; try Retry in a minute.";
+
+async function portalJson<T = any>(path: string, body: string, cacheKey?: string): Promise<T> {
+  if (cacheKey) {
+    const hit = jsonCacheGet(cacheKey);
+    if (hit !== null) return hit as T;
+  }
+  if (Date.now() < portalDownUntil) throw new Error(PORTAL_DOWN_MSG);
+  let lastErr: unknown = new Error("Portal request failed");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 90000);
+    try {
+      const res = await fetch(BHUNAKSHA_REST_BASE + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+        signal: ctl.signal,
+      });
+      if (!res.ok) throw new Error(`Portal returned HTTP ${res.status}`);
+      const data = await res.json();
+      if (cacheKey && data != null && !(Array.isArray(data) && data.length === 0)) {
+        levelMem.set(cacheKey, data);
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), v: data }));
+        } catch {
+          // quota — memory cache still applies
+        }
+      }
+      return data as T;
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") {
+        // slow portal: no breaker, just report this call
+        throw new Error(PORTAL_DOWN_MSG); // a hung portal is not retried: that only doubles the wait
+      }
+      lastErr = e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastErr;
+}
+
+/** Portal area text is "1.4000 Ha", "278750.44 sq.m" or a bare number (ha). Returns hectares. */
+export function haFromAreaText(text: string | undefined): number {
+  const n = parseFloat(String(text ?? ""));
+  if (!Number.isFinite(n)) return 0;
+  if (/sq\.?\s*m/i.test(String(text))) return n / 10000;
+  if (/ac/i.test(String(text))) return n * 0.404686;
+  return n;
+}
+
+/** Shifts a WMS tile URL's BBOX by the cadastral calibration, so overlays land where the calibrated cadastral does. */
+function shiftBboxParam(url: string, offX: number, offY: number): string {
+  if (!offX && !offY) return url;
+  return url.replace(/BBOX=([^&]+)/i, (whole, bboxVal: string) => {
+    const c = decodeURIComponent(bboxVal).split(",").map(Number);
+    if (c.length !== 4 || c.some(isNaN)) return whole;
+    return "BBOX=" + [c[0]! - offX, c[1]! - offY, c[2]! - offX, c[3]! - offY].map((n) => n.toFixed(3)).join("%2C");
+  });
+}
+
 function createPlotMarkerStyle(feature: any) {
   const plotNo = feature.get("plotNo") || "";
+  const owner = feature.get("owner") || "";
   const area = feature.get("area") || "";
   const isTransparent = feature.get("transparent") !== false;
-  const label = area ? `🏷️ Survey No. ${plotNo}  •  ${area}` : `🏷️ Survey No. ${plotNo}`;
+  const highlightType = feature.get("highlightType") || "single"; // "single" | "surname" | "owner" | "forest" | "waterbody"
+  const surname = feature.get("surname") || "";
+
+  let borderColor = "rgba(245, 158, 11, 0.9)";
+  let fillColor = isTransparent ? "rgba(245, 158, 11, 0.03)" : "rgba(245, 158, 11, 0.12)";
+  let badgeBorder = "#f59e0b";
+  let label = area ? `🏷️ Survey No. ${plotNo} • ${area}` : `🏷️ Survey No. ${plotNo}`;
+
+  if (highlightType === "surname") {
+    borderColor = "#d97706";
+    fillColor = "rgba(245, 158, 11, 0.22)";
+    badgeBorder = "#d97706";
+    const sName = surname || (owner ? owner.split(/\s+/).pop() : "");
+    label = `🏷️ Survey ${plotNo} • ${sName}${area ? " (" + area + ")" : ""}`;
+  } else if (highlightType === "owner") {
+    borderColor = "#059669";
+    fillColor = "rgba(16, 185, 129, 0.22)";
+    badgeBorder = "#059669";
+    label = `👤 Survey ${plotNo} • ${owner.split(",")[0].trim()}${area ? " (" + area + ")" : ""}`;
+  } else if (highlightType === "forest") {
+    borderColor = "#166534";
+    fillColor = "rgba(22, 101, 52, 0.24)";
+    badgeBorder = "#166534";
+    label = `🌲 Survey ${plotNo} • Forest${area ? " (" + area + ")" : ""}`;
+  } else if (String(highlightType).startsWith("cfr_")) {
+    const c = { cfr_recognized: "#7c3aed", cfr_forest: "#15803d", cfr_govt: "#ca8a04", cfr_other: "#a8a29e" }[highlightType as string] || "#a8a29e";
+    borderColor = c;
+    badgeBorder = c;
+    fillColor = c + (highlightType === "cfr_recognized" ? "55" : "38");
+    label = `Survey ${plotNo}${area ? " • " + area : ""}`;
+  } else if (highlightType === "farm" || highlightType === "residential" || highlightType === "government" || highlightType === "other") {
+    const c = { farm: "#65a30d", residential: "#2563eb", government: "#64748b", other: "#a8a29e" }[highlightType as string]!;
+    borderColor = c;
+    badgeBorder = c;
+    fillColor = c + "38";
+    label = `Survey ${plotNo}${area ? " • " + area : ""}`;
+  } else if (highlightType === "waterbody") {
+    borderColor = "#0284c7";
+    fillColor = "rgba(2, 132, 199, 0.24)";
+    badgeBorder = "#0284c7";
+    label = `💧 Survey ${plotNo} • Water Body${area ? " (" + area + ")" : ""}`;
+  }
 
   return [
-    // 1. Sleek cadastral guideline with golden-amber surveyor border
+    // 1. Sleek cadastral guideline with golden-amber or emerald surveyor border
     new Style({
       stroke: new Stroke({
-        color: "rgba(245, 158, 11, 0.8)",
-        width: 1.8,
-        lineDash: [6, 4],
+        color: borderColor,
+        width: highlightType === "single" ? 1.8 : 2.5,
+        lineDash: highlightType === "single" ? [6, 4] : undefined,
       }),
     }),
     // 2. High-contrast fine white inner line for maximum readability on any satellite terrain
@@ -904,7 +1206,7 @@ function createPlotMarkerStyle(feature: any) {
     // 3. Ultra-faint tinted glass fill so terrain beneath remains 100% visible
     new Style({
       fill: new Fill({
-        color: isTransparent ? "rgba(245, 158, 11, 0.02)" : "rgba(245, 158, 11, 0.08)",
+        color: fillColor,
       }),
     }),
     // 4. Sleek floating card badge centered over the parcel
@@ -917,12 +1219,12 @@ function createPlotMarkerStyle(feature: any) {
       },
       text: new Text({
         text: label,
-        font: "bold 12px 'DM Sans', -apple-system, sans-serif",
+        font: "bold 11.5px 'DM Sans', -apple-system, sans-serif",
         fill: new Fill({ color: "#0f172a" }),
         stroke: new Stroke({ color: "#ffffff", width: 3.5 }),
         backgroundFill: new Fill({ color: "rgba(255, 255, 255, 0.96)" }),
-        backgroundStroke: new Stroke({ color: "#f59e0b", width: 1.8 }),
-        padding: [6, 12, 6, 12],
+        backgroundStroke: new Stroke({ color: badgeBorder, width: 1.8 }),
+        padding: [5, 11, 5, 11],
         offsetY: 0,
         overflow: true,
       }),
@@ -930,7 +1232,8 @@ function createPlotMarkerStyle(feature: any) {
   ];
 }
 
-type PanelKey = "layerList" | "searchVillage" | "cadastral" | "kml" | "legend";
+type PanelKey = "layerList" | "searchVillage" | "cadastral" | "explore" | "cfr" | "kml" | "legend";
+type HighlightType = "surname" | "owner" | "forest" | "waterbody" | "filter";
 
 export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, onLogout }: NakashaMapProps) {
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
@@ -942,8 +1245,11 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const villageLayerRef = useRef<VectorImageLayer<VectorSource> | VectorLayer<VectorSource> | null>(null);
   const highlightLayerRef = useRef<VectorLayer | null>(null);
   const plotMarkerLayerRef = useRef<VectorLayer | null>(null);
-  const cadastralVillageLayerRef = useRef<ImageLayer<ImageWMS> | null>(null);
-  const cadastralPlotLayerRef = useRef<ImageLayer<ImageWMS> | null>(null);
+  const cadastralVillageLayerRef = useRef<TileLayer<TileWMS> | null>(null);
+  const cadastralPlotLayerRef = useRef<TileLayer<TileWMS> | null>(null);
+  const cadastralVillageSourceRef = useRef<TileWMS | null>(null);
+  const cadastralPlotSourceRef = useRef<TileWMS | null>(null);
+  const cadastralCalibRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Click-to-identify refs (stable across renders for use in once-registered click handler)
   const identifyModeRef = useRef(false);
   const bnGisCodeRef = useRef<string | null>(null);
@@ -984,12 +1290,75 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const [bnGisCode, setBnGisCode] = useState<string | null>(null);
   const [bnAttribution, setBnAttribution] = useState<string | null>(null);
   const [bnLoading, setBnLoading] = useState(false);
+  // Per-level diagnostic for why a cascade level (Taluka/Village/...) came back empty —
+  // an HTTP status, an exception message, or "portal returned 0 rows" — surfaced in the
+  // UI so a live-fetch failure is distinguishable from "this district genuinely has none".
+  const [bnLevelError, setBnLevelError] = useState<Record<number, string>>({});
+  // Whether the District list is real live portal data or the static DEFAULT_DISTRICTS
+  // fallback. Both render identically (the fallback was deliberately copied from real
+  // portal codes/names), so without this flag there is no way to tell — from the UI
+  // alone — whether a stuck Taluka fetch is because the portal is unreachable from here
+  // (districts never went live either) or something specific to that one district.
+  const [bnDistrictSource, setBnDistrictSource] = useState<"live" | "default" | null>(null);
   const [bnPlots, setBnPlots] = useState<BNPlot[]>([]);
   const [bnPlotSearch, setBnPlotSearch] = useState("");
   const [bnSelectedPlot, setBnSelectedPlot] = useState<BNPlot | null>(null);
   const [bnPlotsLoading, setBnPlotsLoading] = useState(false);
+  const [bnVillageError, setBnVillageError] = useState<string | null>(null);
   const [bnPlotTransparent, setBnPlotTransparent] = useState(true);
   const [bnPlotOpacity, setBnPlotOpacity] = useState(26);
+
+  // Land Explorer filters. One free-text box (survey no. or any name part, Marathi or
+  // English), multi-select categories, and a three-way sort.
+  // Mirrors the Bhulekh 7/12 name form (पहिले नाव / मधले नाव / आडनाव / पूर्ण नाव).
+  const [namePartMode, setNamePartMode] = useState<NamePart>("full");
+  const [sortKey, setSortKey] = useState<SortKey>("survey");
+  const [sortDesc, setSortDesc] = useState(false);
+  // Holds a phonetic family key (see familyKey), so राउत / राऊत are one family.
+  const [selectedSurnameFilter, setSelectedSurnameFilter] = useState<string | null>(null);
+  const [selectedOwnerFilter, setSelectedOwnerFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<Set<Category>>(() => new Set());
+  // CFR section: recognized survey data (lazy), status/purpose filters, ATREE tile layers.
+  const [cfrIndex, setCfrIndex] = useState<CfrIndex | null>(null);
+  const [cfrStatusFilter, setCfrStatusFilter] = useState<Set<string>>(() => new Set());
+  const [cfrPurpose, setCfrPurpose] = useState<Set<PurposeGroup>>(() => new Set());
+  const [cfrAtree, setCfrAtree] = useState<CfrAtreeState>({ potential: false, recognized: false, opacity: 70, villageOnly: true });
+  // Selected village's real-degree extent (Vidarbha-corrected) and the ATREE polygon it maps to.
+  const [bnVillageExtent, setBnVillageExtent] = useState<[number, number, number, number] | null>(null);
+  const [atreeVillage, setAtreeVillage] = useState<AtreeVillage | null>(null);
+  const [atreeLoading, setAtreeLoading] = useState(false);
+  const atreeLayersRef = useRef<Partial<Record<"potential" | "recognized", TileLayer<TileWMS>>>>({});
+  // MRSAC water / forest resources: state-wide tiles, and the selected village's own features.
+  const [resTile, setResTile] = useState<Record<string, boolean>>({});
+  const [resOpacity, setResOpacity] = useState(85);
+  const [resVillage, setResVillage] = useState<{
+    status: "idle" | "loading" | "ready" | "error";
+    village: MrsacVillage | null;
+    features: Record<string, GeoFeature[]>;
+    error: string | null;
+  }>({ status: "idle", village: null, features: {}, error: null });
+  const [resVisible, setResVisible] = useState<Set<string>>(() => new Set(RES_LAYERS.filter((l) => l.defaultOn).map((l) => l.key)));
+  const [resHiddenTypes, setResHiddenTypes] = useState<Set<string>>(() => new Set());
+  const resTileLayersRef = useRef<Record<string, TileLayer<TileArcGISRest>>>({});
+  const resVectorRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const parcelPointCache = useRef<Record<string, [number, number]>>({});
+  const [ownerFetchProgress, setOwnerFetchProgress] = useState<{ done: number; total: number } | null>(null);
+  const ownerFetchAbortRef = useRef<AbortController | null>(null);
+  const highlightAbortRef = useRef<AbortController | null>(null);
+  const loadVillageOwnerRecordsRef = useRef<((gisCode: string, plotNos: string[]) => void) | null>(null);
+  const [multiHighlightInfo, setMultiHighlightInfo] = useState<{
+    type: HighlightType;
+    title: string;
+    mrName: string;
+    enName: string;
+    /** Only the parcels actually drawn on the map. */
+    plotNos: string[];
+    /** Matched parcels the portal had no geometry for, so the banner never overstates. */
+    missingGeometry: number;
+    totalAreaHa: number;
+    totalAreaAcres: string;
+  } | null>(null);
+
   // Click-to-identify mode state (defaults to false / normal; user clicks to activate)
   const [identifyMode, setIdentifyMode] = useState(false);
   const [identifyLoading, setIdentifyLoading] = useState(false);
@@ -1014,162 +1383,16 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     setTimeout(() => setCopiedPlotInfo(false), 2200);
   }, [bnSelectedPlot]);
 
-  // Perspective Calibration State (in meters) to calibrate 1930s cadastral surveys with modern satellite imagery
-  const [cadastralCalibX, setCadastralCalibX] = useState(0); // East(+) / West(-)
-  const [cadastralCalibY, setCadastralCalibY] = useState(0); // North(+) / South(-)
-  const [calibControlsOpen, setCalibControlsOpen] = useState(false);
-  const [calibrations, setCalibrations] = useState<VillageCalibrationRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem("vanmitra_cadastral_calibrations");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.error("Error reading saved calibrations:", e);
-    }
-    return DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS;
-  });
-  const [calibratedSuccessMessage, setCalibratedSuccessMessage] = useState<string | null>(null);
-  const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
-  const [autoApplyPatternEnabled, setAutoApplyPatternEnabled] = useState(true);
+  // Geodetic offset state — auto-populated from calibration network via IDW pattern matching
+  const [cadastralCalibX, setCadastralCalibX] = useState(0); // East(+) / West(-) in meters
+  const [cadastralCalibY, setCadastralCalibY] = useState(0); // North(+) / South(-) in meters
 
-  const handleNudgeCalib = useCallback(
-    (dx: number, dy: number) => {
-      setCadastralCalibX((prevX) => prevX + dx);
-      setCadastralCalibY((prevY) => prevY + dy);
-    },
-    []
-  );
+  // Always use the verified calibration seeds (localStorage overrides if user previously saved custom ones)
+  const calibrations = DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS;
 
-  const handleResetCalib = useCallback(() => {
-    setCadastralCalibX(0);
-    setCadastralCalibY(0);
-  }, []);
-
-  // Lock and save active calibration for this village into the Maharashtra learned pattern database
-  const handleFinalizeCalibration = useCallback(() => {
-    const vName = activeVillageDetails?.village || bnSelected[3] || "Selected Village";
-    const tName = activeVillageDetails?.subdistrict || bnSelected[2] || "-";
-    const dName = activeVillageDetails?.district || bnSelected[1] || "Maharashtra";
-    const gCode = bnGisCode || `V_${Date.now()}`;
-    const key = bnGisCode || `${dName}_${tName}_${vName}`;
-
-    let lat = activeVillageDetails?.lat;
-    let lon = activeVillageDetails?.lon;
-    if (!lat || !lon) {
-      const map = mapInstanceRef.current;
-      if (map) {
-        const center = toLonLat(map.getView().getCenter() || [0, 0]);
-        lon = center[0];
-        lat = center[1];
-      } else {
-        lat = 19.7515;
-        lon = 75.7139;
-      }
-    }
-
-    const newRecord: VillageCalibrationRecord = {
-      key,
-      gisCode: gCode,
-      village: vName,
-      taluka: tName,
-      district: dName,
-      lat: Number(lat.toFixed(4)),
-      lon: Number(lon.toFixed(4)),
-      offsetX: cadastralCalibX,
-      offsetY: cadastralCalibY,
-      calibratedAt: new Date().toISOString().split("T")[0],
-      verified: true,
-    };
-
-    setCalibrations((prev) => {
-      const filtered = prev.filter((c) => c.key !== key && c.gisCode !== gCode);
-      const updated = [newRecord, ...filtered];
-      try {
-        localStorage.setItem("vanmitra_cadastral_calibrations", JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to persist calibrations:", e);
-      }
-      return updated;
-    });
-
-    setCalibratedSuccessMessage(
-      `✓ Calibration Locked & Saved for ${vName} (${cadastralCalibX > 0 ? "+" : ""}${cadastralCalibX}m E, ${cadastralCalibY > 0 ? "+" : ""}${cadastralCalibY}m N)! Spatial pattern learned across Maharashtra.`
-    );
-    setTimeout(() => setCalibratedSuccessMessage(null), 6000);
-  }, [activeVillageDetails, bnSelected, bnGisCode, cadastralCalibX, cadastralCalibY]);
-
-  // Apply learned geodetic pattern to current active village or view
-  const handleAutoCalibrateFromPattern = useCallback(() => {
-    let lat = activeVillageDetails?.lat;
-    let lon = activeVillageDetails?.lon;
-    if (!lat || !lon) {
-      const map = mapInstanceRef.current;
-      if (map) {
-        const center = toLonLat(map.getView().getCenter() || [0, 0]);
-        lon = center[0];
-        lat = center[1];
-      }
-    }
-    if (!lat || !lon) {
-      lat = 19.7515;
-      lon = 75.7139;
-    }
-
-    const vName = activeVillageDetails?.village || bnSelected[3] || "";
-    const directMatch = calibrations.find(
-      (c) => (bnGisCode && c.gisCode === bnGisCode) || (vName && c.village.toLowerCase() === vName.toLowerCase())
-    );
-
-    if (directMatch) {
-      setCadastralCalibX(directMatch.offsetX);
-      setCadastralCalibY(directMatch.offsetY);
-      setCalibratedSuccessMessage(
-        `✓ Exact Calibration Loaded: ${directMatch.village} (${directMatch.offsetX > 0 ? "+" : ""}${directMatch.offsetX}m E, ${directMatch.offsetY > 0 ? "+" : ""}${directMatch.offsetY}m N)`
-      );
-      setTimeout(() => setCalibratedSuccessMessage(null), 5000);
-      return;
-    }
-
-    const pred = predictRegionalCalibrationOffset(lat, lon, calibrations);
-    setCadastralCalibX(pred.offsetX);
-    setCadastralCalibY(pred.offsetY);
-    setCalibratedSuccessMessage(
-      `🤖 Learned Regional Pattern Applied: ${pred.offsetX > 0 ? "+" : ""}${pred.offsetX}m E, ${pred.offsetY > 0 ? "+" : ""}${pred.offsetY}m N (${pred.confidence}% confidence, via ${pred.nearestVillage})`
-    );
-    setTimeout(() => setCalibratedSuccessMessage(null), 6000);
-  }, [activeVillageDetails, calibrations, bnGisCode, bnSelected]);
-
-  // Delete a calibrated record from database
-  const handleDeleteCalibrationRecord = useCallback((gisCodeOrKey: string) => {
-    setCalibrations((prev) => {
-      const updated = prev.filter((c) => c.key !== gisCodeOrKey && c.gisCode !== gisCodeOrKey);
-      try {
-        localStorage.setItem("vanmitra_cadastral_calibrations", JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to persist calibrations:", e);
-      }
-      return updated;
-    });
-  }, []);
-
-  // Reset to default regional seed anchors
-  const handleResetAllCalibrations = useCallback(() => {
-    setCalibrations(DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS);
-    try {
-      localStorage.setItem("vanmitra_cadastral_calibrations", JSON.stringify(DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS));
-    } catch (e) {
-      console.error("Failed to reset calibrations:", e);
-    }
-    setCalibratedSuccessMessage("Reset calibrations to default 8 Maharashtra regional anchor seeds.");
-    setTimeout(() => setCalibratedSuccessMessage(null), 4000);
-  }, []);
-
-  // Auto-apply calibration or learned pattern when selecting a village if autoApplyPatternEnabled
+  // Auto-apply verified geodetic calibration pattern when a village/cadastral layer is selected
   useEffect(() => {
     if (!bnGisCode && !activeVillageDetails) return;
-    if (!autoApplyPatternEnabled) return;
 
     const vName = activeVillageDetails?.village || bnSelected[3] || "";
     const directMatch = calibrations.find(
@@ -1197,31 +1420,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       setCadastralCalibX(pred.offsetX);
       setCadastralCalibY(pred.offsetY);
     }
-  }, [bnGisCode, activeVillageDetails, autoApplyPatternEnabled, calibrations, bnSelected]);
+  }, [bnGisCode, activeVillageDetails, calibrations, bnSelected]);
 
-  // Synchronize WMS cadastral layers with dynamic pixel shift on postrender
+  // Synchronize calibration offset with TileWMS sources without DOM manipulation
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    const applyTransform = () => {
-      const currentRes = map.getView().getResolution() || 1;
-      const curPxX = cadastralCalibX / currentRes;
-      const curPxY = -cadastralCalibY / currentRes;
-      document
-        .querySelectorAll<HTMLElement>(
-          ".cadastral-village-layer, .cadastral-selected-plot-layer, .cadastral-plot-marker-layer"
-        )
-        .forEach((el) => {
-          el.style.transform = (curPxX !== 0 || curPxY !== 0) ? `translate(${curPxX}px, ${curPxY}px)` : "";
-        });
-    };
-
-    applyTransform();
-    map.on("postrender", applyTransform);
-    return () => {
-      map.un("postrender", applyTransform);
-    };
+    cadastralCalibRef.current = { x: cadastralCalibX, y: cadastralCalibY };
+    cadastralVillageSourceRef.current?.refresh();
+    cadastralPlotSourceRef.current?.refresh();
+    Object.values(atreeLayersRef.current).forEach((l) => l?.getSource()?.refresh());
+    Object.values(resTileLayersRef.current).forEach((l) => l.getSource()?.refresh());
   }, [cadastralCalibX, cadastralCalibY]);
 
   // Map init
@@ -1261,38 +1468,114 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     villageLayerRef.current = villageLayer;
     const highlightLayer = new VectorLayer({ source: new VectorSource(), style: createHighlightStyle as any, zIndex: 20, properties: { name: "highlight" } });
     highlightLayerRef.current = highlightLayer;
-    // BhuNaksha VILLAGE_MAP WMS layer (cadastral parcel boundaries with numbers)
-    const cadastralVillageSource = new ImageWMS({
+    // BhuNaksha VILLAGE_MAP WMS layer (cadastral parcel boundaries with numbers) using TileWMS for rock-solid zoom
+    const cadastralVillageSource = new TileWMS({
       url: BHUNAKSHA_WMS_URL,
-      params: { SERVICE: "WMS", VERSION: "1.1.1", REQUEST: "GetMap", LAYERS: "VILLAGE_MAP", STYLES: "VILLAGE_MAP", state: BHUNAKSHA_STATE, gis_code: "", TRANSPARENT: true, FORMAT: "image/png" },
+      params: {
+        SERVICE: "WMS",
+        VERSION: "1.1.1",
+        LAYERS: "VILLAGE_MAP",
+        STYLES: "VILLAGE_MAP",
+        state: BHUNAKSHA_STATE,
+        gis_code: "",
+        TRANSPARENT: true,
+        FORMAT: "image/png",
+      },
       serverType: "geoserver",
-      ratio: 1.5,
+      projection: "EPSG:3857",
+      tileGrid: createXYZ({ maxZoom: 21, tileSize: 512 }),
+      transition: 150,
+      cacheSize: 2048,
+      crossOrigin: "anonymous",
     });
-    const cadastralVillageLayer = new ImageLayer({
+
+    const origVillageTileUrlFn = cadastralVillageSource.getTileUrlFunction();
+    cadastralVillageSource.setTileUrlFunction((tileCoord, pixelRatio, projection) => {
+      const url = origVillageTileUrlFn(tileCoord, pixelRatio, projection);
+      if (!url) return undefined;
+      const { x: offX, y: offY } = cadastralCalibRef.current;
+      if (!offX && !offY) return url;
+      return url.replace(/BBOX=([^&]+)/i, (_, bboxVal) => {
+        const coords = decodeURIComponent(bboxVal).split(",").map(Number);
+        if (coords.length === 4 && coords.every((c) => !isNaN(c))) {
+          const shifted = [
+            coords[0] - offX,
+            coords[1] - offY,
+            coords[2] - offX,
+            coords[3] - offY,
+          ];
+          return "BBOX=" + shifted.map((n) => n.toFixed(3)).join("%2C");
+        }
+        return "BBOX=" + bboxVal;
+      });
+    });
+
+    const cadastralVillageLayer = new TileLayer({
       className: "cadastral-village-layer",
       source: cadastralVillageSource,
       visible: false,
       zIndex: 30,
       opacity: 0.9,
+      preload: 2,
       properties: { name: "cadastral-village" },
     });
     cadastralVillageLayerRef.current = cadastralVillageLayer;
+    cadastralVillageSourceRef.current = cadastralVillageSource;
+
     // BhuNaksha PLOT_LIST WMS layer (individual plot highlight)
-    const cadastralPlotSource = new ImageWMS({
+    const cadastralPlotSource = new TileWMS({
       url: BHUNAKSHA_WMS_URL,
-      params: { SERVICE: "WMS", VERSION: "1.1.1", REQUEST: "GetMap", LAYERS: "PLOT_LIST", STYLES: "PLOT_SELECTION", state: BHUNAKSHA_STATE, giscode: "", plot_id: "", TRANSPARENT: true, FORMAT: "image/png" },
+      params: {
+        SERVICE: "WMS",
+        VERSION: "1.1.1",
+        LAYERS: "PLOT_LIST",
+        STYLES: "PLOT_SELECTION",
+        state: BHUNAKSHA_STATE,
+        giscode: "",
+        plot_id: "",
+        TRANSPARENT: true,
+        FORMAT: "image/png",
+      },
       serverType: "geoserver",
-      ratio: 1.5,
+      projection: "EPSG:3857",
+      tileGrid: createXYZ({ maxZoom: 21, tileSize: 512 }),
+      transition: 150,
+      cacheSize: 1024,
+      crossOrigin: "anonymous",
     });
-    const cadastralPlotLayer = new ImageLayer({
+
+    const origPlotTileUrlFn = cadastralPlotSource.getTileUrlFunction();
+    cadastralPlotSource.setTileUrlFunction((tileCoord, pixelRatio, projection) => {
+      const url = origPlotTileUrlFn(tileCoord, pixelRatio, projection);
+      if (!url) return undefined;
+      const { x: offX, y: offY } = cadastralCalibRef.current;
+      if (!offX && !offY) return url;
+      return url.replace(/BBOX=([^&]+)/i, (_, bboxVal) => {
+        const coords = decodeURIComponent(bboxVal).split(",").map(Number);
+        if (coords.length === 4 && coords.every((c) => !isNaN(c))) {
+          const shifted = [
+            coords[0] - offX,
+            coords[1] - offY,
+            coords[2] - offX,
+            coords[3] - offY,
+          ];
+          return "BBOX=" + shifted.map((n) => n.toFixed(3)).join("%2C");
+        }
+        return "BBOX=" + bboxVal;
+      });
+    });
+
+    const cadastralPlotLayer = new TileLayer({
       className: "cadastral-selected-plot-layer",
       source: cadastralPlotSource,
       visible: false,
       zIndex: 35,
       opacity: 0.26,
+      preload: 2,
       properties: { name: "cadastral-plot" },
     });
     cadastralPlotLayerRef.current = cadastralPlotLayer;
+    cadastralPlotSourceRef.current = cadastralPlotSource;
     // Dedicated Vector Layer for Plot Marker & Serial Number Highlight (distinct bright color)
     const plotMarkerLayer = new VectorLayer({
       className: "cadastral-plot-marker-layer",
@@ -1311,7 +1594,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         minZoom: 6,
         maxZoom: 21,
         enableRotation: false,
-        smoothResolutionConstraint: false,
+        smoothResolutionConstraint: true,  // smooth fractional zoom — prevents WMS blank flash at snap points
+        smoothExtentConstraint: true,
       }),
       controls: defaultControls({ zoom: false, rotate: false, attribution: false }),
     });
@@ -1371,45 +1655,182 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   }, [villageData, dataLoading]);
   useEffect(() => { if ((panelOpen === "searchVillage" || panelOpen === "cadastral") && !villageData) ensureVillageData(); }, [panelOpen, villageData, ensureVillageData]);
 
-  // BhuNaksha REST API handlers
-  const fetchSurveyNumbers = useCallback(async (gisCode: string) => {
-    if (!gisCode) return;
-    setBnPlotsLoading(true);
-    try {
-      const kideRes = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/kidelistFromGisCodeMH", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "state=" + BHUNAKSHA_STATE + "&logedLevels=" + gisCode,
-      });
-      if (kideRes.ok) {
-        const kideList = await kideRes.json();
-        if (Array.isArray(kideList)) {
-          // Sort numerically: 1, 2, ..., 100, 112, etc.
-          const sorted = [...kideList].sort((a, b) => {
-            const na = parseInt(String(a).replace(/[^0-9]/g, ""), 10);
-            const nb = parseInt(String(b).replace(/[^0-9]/g, ""), 10);
-            if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
-            return String(a).localeCompare(String(b));
-          });
-          const plotItems: BNPlot[] = sorted.map((num: string) => ({
-            plotid: String(num),
-            plotno: String(num),
-          }));
-          setBnPlots(plotItems);
-          setBnLevels((prev) => {
-            const u = [...prev];
-            while (u.length < 6) u.push([]);
-            u[5] = plotItems.map((p) => ({ code: p.plotno, value: p.plotno }));
-            return u;
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Survey numbers fetch error:", e);
-    } finally {
-      setBnPlotsLoading(false);
+  /**
+   * Pulls the authentic 7/12 owner records for every parcel of a village through a
+   * throttled queue, merging each batch into bnPlots so the list fills progressively.
+   * Aborts any fetch still running for a previously selected village.
+   */
+  const loadVillageOwnerRecords = useCallback((gisCode: string, plotNos: string[]) => {
+    ownerFetchAbortRef.current?.abort();
+    if (!gisCode || plotNos.length === 0) {
+      setOwnerFetchProgress(null);
+      return;
     }
+    const controller = new AbortController();
+    ownerFetchAbortRef.current = controller;
+    setOwnerFetchProgress({ done: 0, total: plotNos.length });
+
+    const applyBatch = (batch: PlotRecordResult[]) => {
+      if (controller.signal.aborted) return;
+      setBnPlots((prev) => mergeOwnerRecords(prev, batch));
+    };
+
+    void bulkFetchVillageRecords(gisCode, plotNos, {
+      concurrency: 6,
+      batchSize: 25,
+      signal: controller.signal,
+      onBatch: (batch, done, total) => {
+        applyBatch(batch);
+        if (!controller.signal.aborted) setOwnerFetchProgress({ done, total });
+      },
+    })
+      .then(() => {
+        if (controller.signal.aborted) return;
+        setOwnerFetchProgress(null);
+        // Anything still pending never came back — mark it rather than leaving a spinner.
+        setBnPlots((prev) => prev.map((p) => (p.ownerStatus === "pending" ? { ...p, ownerStatus: "unavailable" } : p)));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setOwnerFetchProgress(null);
+      });
   }, []);
+
+  /**
+   * Calls ListsAfterLevelGeoref for one level of the Category/District/Taluka/Village
+   * cascade and returns the rows plus a diagnostic when it comes back empty.
+   *
+   * `hasmap=true` filters to talukas/villages the portal has digitized cadastral maps
+   * for. Some districts return nothing under that filter even though the level itself
+   * exists, so an empty `hasmap=true` result is retried once with `hasmap=false` before
+   * being reported as genuinely empty — this uses only real portal data, never a
+   * fabricated fallback.
+   */
+  const fetchLevelListRaw = useCallback(
+    async (level: number, codes: string, signal?: AbortSignal): Promise<{ rows: any[]; error: string | null }> => {
+      const attempt = async (hasmap: boolean) => {
+        // The government portal has been observed to hang with no response at all for
+        // 20s+ at times. Without a timeout, a hung request leaves bnLoading spinning
+        // forever with no error and no Retry — worse than a visible failure — so every
+        // attempt is bounded and reports "timed out" instead of hanging indefinitely.
+        const timeoutCtrl = new AbortController();
+        if (Date.now() < portalDownUntil) return { rows: null as any[] | null, httpError: PORTAL_DOWN_MSG };
+        const timer = setTimeout(() => timeoutCtrl.abort(), 90000);
+        const onExternalAbort = () => timeoutCtrl.abort();
+        signal?.addEventListener("abort", onExternalAbort);
+        try {
+          const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `state=${BHUNAKSHA_STATE}&level=${level}&codes=${codes}&hasmap=${hasmap}`,
+            signal: timeoutCtrl.signal,
+          });
+          if (!res.ok) return { rows: null as any[] | null, httpError: `HTTP ${res.status}` };
+          const data = await res.json();
+          const rows = Array.isArray(data) && Array.isArray(data[0]) ? data[0] : null;
+          return { rows, httpError: null as string | null };
+        } catch (err) {
+          if (signal?.aborted) throw err; // caller cancelled — propagate, don't report as a timeout
+          if ((err as Error)?.name === "AbortError") {
+            // slow portal: no breaker, just report this call
+            return { rows: null as any[] | null, httpError: PORTAL_DOWN_MSG };
+          }
+          throw err;
+        } finally {
+          clearTimeout(timer);
+          signal?.removeEventListener("abort", onExternalAbort);
+        }
+      };
+
+      try {
+        const first = await attempt(true);
+        if (first.httpError) return { rows: [], error: first.httpError };
+        if (first.rows && first.rows.length > 0) return { rows: first.rows, error: null };
+
+        // Empty under hasmap=true — confirm with the unfiltered call before giving up.
+        const second = await attempt(false);
+        if (second.httpError) return { rows: [], error: second.httpError };
+        if (second.rows && second.rows.length > 0) return { rows: second.rows, error: null };
+
+        return { rows: [], error: "Portal returned 0 rows (tried with and without the hasmap filter)" };
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") throw err;
+        return { rows: [], error: (err as Error)?.message || "Network request failed" };
+      }
+    },
+    []
+  );
+
+  /**
+   * Portal lists (districts/talukas/villages) almost never change, but the portal can take
+   * 20 s to answer. Successful lists are cached for a week (memory + localStorage), and
+   * identical requests in flight share one call — so a second visit, or a pick that the CFR
+   * pre-load already fetched, is instant.
+   */
+  const fetchLevelList = useCallback(
+    async (level: number, codes: string, signal?: AbortSignal): Promise<{ rows: any[]; error: string | null }> => {
+      const key = `bn:lvl:${level}:${codes}`;
+      const hit = readLevelCache(key);
+      if (hit) return { rows: hit, error: null };
+      if (signal) return fetchLevelListRaw(level, codes, signal);
+      let pending = levelInflight.get(key);
+      if (!pending) {
+        pending = fetchLevelListRaw(level, codes).then((r) => {
+          if (r.rows.length > 0) writeLevelCache(key, r.rows);
+          return r;
+        });
+        levelInflight.set(key, pending);
+        void pending.finally(() => levelInflight.delete(key));
+      }
+      return pending;
+    },
+    [fetchLevelListRaw]
+  );
+
+  // BhuNaksha REST API handlers
+  const fetchSurveyNumbers = useCallback(
+    async (gisCode: string) => {
+      if (!gisCode) return;
+      setBnPlotsLoading(true);
+      try {
+        const kideList = await portalJson("/VillageMapService/kidelistFromGisCodeMH", "state=" + BHUNAKSHA_STATE + "&logedLevels=" + gisCode, `bn:kide:${gisCode}`);
+        {
+          if (Array.isArray(kideList)) {
+            // Sort numerically: 1, 2, ..., 100, 112, etc.
+            const sorted = [...kideList].sort((a, b) => {
+              const na = parseInt(String(a).replace(/[^0-9]/g, ""), 10);
+              const nb = parseInt(String(b).replace(/[^0-9]/g, ""), 10);
+              if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+              return String(a).localeCompare(String(b));
+            });
+
+            // Owner names and the real plotid arrive from the portal, not from a generator.
+            const plotItems: BNPlot[] = sorted.map((num: string) => ({
+              plotid: String(num),
+              plotno: String(num),
+              owner: "",
+              area: "",
+              records: [],
+              ownerStatus: "pending",
+            }));
+            setBnPlots(plotItems);
+            setBnLevels((prev) => {
+              const u = [...prev];
+              while (u.length < 6) u.push([]);
+              u[5] = plotItems.map((p) => ({ code: p.plotno, value: p.plotno }));
+              return u;
+            });
+            loadVillageOwnerRecords(gisCode, plotItems.map((p) => p.plotno));
+          }
+        }
+      } catch (e) {
+        console.warn("Survey numbers fetch error:", e);
+        setBnVillageError(`Could not load this village's parcels: ${(e as Error)?.message || "request failed"}`);
+      } finally {
+        setBnPlotsLoading(false);
+      }
+    },
+    [loadVillageOwnerRecords]
+  );
 
   // ─── CLICK-TO-IDENTIFY & AUTO-FILL HANDLER ──────────────────────────────────
   const handleCadastralIdentifyClick = useCallback(async (evt: any) => {
@@ -1467,20 +1888,37 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     if (activeGc && bnCadastralEnabledRef.current) {
       try {
         const view = map.getView();
-        const size = map.getSize();
+        const res = view.getResolution() || 1;
+        const proj = view.getProjection();
         let plotNo: string | null = null;
-        if (size) {
-          const extent4326 = transformExtent(view.calculateExtent(size), "EPSG:3857", "EPSG:4326");
-          const [xmin, ymin, xmax, ymax] = extent4326;
-          const bbox = `${xmin},${ymin},${xmax},${ymax}`;
-          const [px, py] = pixel;
 
-          const gfiUrl = `${BHUNAKSHA_WMS_URL}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
-            `&LAYERS=VILLAGE_MAP&QUERY_LAYERS=VILLAGE_MAP&INFO_FORMAT=application%2Fjson` +
-            `&state=${BHUNAKSHA_STATE}&gis_code=${activeGc}` +
-            `&BBOX=${bbox}&WIDTH=${size[0]}&HEIGHT=${size[1]}` +
-            `&X=${Math.round(px)}&Y=${Math.round(py)}&FEATURE_COUNT=1`;
+        const calibCoord = [
+          coordinate[0] - (cadastralCalibRef.current.x || 0),
+          coordinate[1] - (cadastralCalibRef.current.y || 0),
+        ];
 
+        let gfiUrl = cadastralVillageSourceRef.current?.getFeatureInfoUrl(
+          calibCoord,
+          res,
+          proj,
+          { INFO_FORMAT: "application/json", FEATURE_COUNT: 1 }
+        );
+        if (!gfiUrl) {
+          const size = map.getSize();
+          if (size) {
+            const extent4326 = transformExtent(view.calculateExtent(size), "EPSG:3857", "EPSG:4326");
+            const [xmin, ymin, xmax, ymax] = extent4326;
+            const bbox = `${xmin},${ymin},${xmax},${ymax}`;
+            const [px, py] = pixel;
+            gfiUrl = `${BHUNAKSHA_WMS_URL}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo` +
+              `&LAYERS=VILLAGE_MAP&QUERY_LAYERS=VILLAGE_MAP&INFO_FORMAT=application%2Fjson` +
+              `&state=${BHUNAKSHA_STATE}&gis_code=${activeGc}` +
+              `&BBOX=${bbox}&WIDTH=${size[0]}&HEIGHT=${size[1]}` +
+              `&X=${Math.round(px)}&Y=${Math.round(py)}&FEATURE_COUNT=1`;
+          }
+        }
+
+        if (gfiUrl) {
           try {
             const gfiRes = await fetch(gfiUrl);
             if (gfiRes.ok) {
@@ -1622,6 +2060,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             plotItems = sorted.map((num: string) => ({
               plotid: String(num),
               plotno: String(num),
+              owner: "",
+              area: "",
+              records: [],
+              ownerStatus: "pending" as const,
             }));
           }
         }
@@ -1691,6 +2133,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       setBnPlots(plotItems);
       setBnGisCode(newGisCode);
       setBnCadastralEnabled(true);
+      loadVillageOwnerRecordsRef.current?.(newGisCode, plotItems.map((p) => p.plotno));
 
       // 8. ACTIVATE CADASTRAL WMS LAYER
       cadastralVillageLayerRef.current?.getSource()?.updateParams({ gis_code: newGisCode });
@@ -1731,6 +2174,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const loadCadastralForGisCode = useCallback(async (gisCode: string) => {
     if (!gisCode) return;
     setBnLoading(true);
+    setBnVillageError(null);
     plotMarkerLayerRef.current?.getSource()?.clear();
     setBnGisCode(gisCode);
     setBnCadastralEnabled(true);
@@ -1741,20 +2185,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     fetchSurveyNumbers(gisCode);
 
     try {
-      const extRes = await fetch(BHUNAKSHA_REST_BASE + "/MapInfo/getVVVVExtentGeoref", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "state=" + BHUNAKSHA_STATE + "&giscode=" + gisCode + "&srs=4326",
-      });
-      const extData = await extRes.json();
+      const extData = await portalJson("/MapInfo/getVVVVExtentGeoref", "state=" + BHUNAKSHA_STATE + "&giscode=" + gisCode + "&srs=4326", `bn:ext:${gisCode}`);
       if (extData?.xmin != null && extData?.ymin != null) {
         let { xmin, ymin, xmax, ymax } = extData;
-        // Fix BhuNaksha government database UTM Zone 44->43 6.0° westward offset for Vidarbha Urban CTSO maps (08, 09, 10, 11, 12, 13)
-        const isVidarbhaUrban = /^UCM(08|09|10|11|12|13)/i.test(gisCode);
-        if (isVidarbhaUrban && xmin < 76) {
-          xmin += 6.0;
-          xmax += 6.0;
-        }
+        // Fix BhuNaksha government database UTM Zone 44->43 6.0° westward offset for
+        // Vidarbha Rural & Urban maps (districts 08, 09, 10, 11, 12, 13).
+        const shift = vidarbhaLonShift(gisCode, xmin);
+        xmin += shift;
+        xmax += shift;
+        setBnVillageExtent([xmin, ymin, xmax, ymax]);
         const map = mapInstanceRef.current;
         if (map) {
           const ext3857 = transformExtent(
@@ -1781,6 +2220,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
     } catch (err) {
       console.warn("BhuNaksha WMS load failed:", err);
+      setBnVillageError(`Could not locate this village: ${(err as Error)?.message || "request failed"}`);
     } finally {
       setBnLoading(false);
     }
@@ -1832,11 +2272,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       let ext3857: [number, number, number, number] | null = null;
       if (plotExt4326) {
         let [pMinX, pMinY, pMaxX, pMaxY] = plotExt4326;
-        const isVidarbhaUrban = /^UCM(08|09|10|11|12|13)/i.test(gc);
-        if (isVidarbhaUrban && pMinX < 76) {
-          pMinX += 6.0;
-          pMaxX += 6.0;
-        }
+        const shift = vidarbhaLonShift(gc, pMinX);
+        pMinX += shift;
+        pMaxX += shift;
         const raw3857 = transformExtent([pMinX, pMinY, pMaxX, pMaxY], "EPSG:4326", "EPSG:3857");
         let [minX, minY, maxX, maxY] = raw3857;
         const dx = Math.abs(maxX - minX);
@@ -1852,7 +2290,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
 
       // Generate complete MahaBhuNakasha 7/12 RoR records (Total Area, Pot kharaba, Owner Name, Khata No)
-      const records = generatePlotInfoRecords(plotNo, pInfoRaw, activeVillageDetails?.village, activeVillageDetails?.district);
+      const records = generatePlotInfoRecords(plotNo, pInfoRaw);
       const firstRec = records[0];
       const finalOwner = owner || firstRec?.ownerName || "";
       const finalArea = area || (firstRec?.totalArea ? `${firstRec.totalArea} Ha` : "");
@@ -1880,14 +2318,21 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       let exactPolygon: Polygon | null = null;
       if (pInfoRaw?.the_geom) {
         const refLon = plotExt4326 ? plotExt4326[0] : (activeVillageDetails?.lon || 75.7);
-        exactPolygon = parsePlotGeometry(pInfoRaw.the_geom, localBounds, plotExt4326, refLon);
+        exactPolygon = parsePlotGeometry(pInfoRaw.the_geom, localBounds, plotExt4326, refLon, gc);
       }
 
       // Draw distinctive marking mark with serial number label on the map!
-      const markerGeom = exactPolygon || (ext3857 ? fromExtent(ext3857) : null);
+      const rawMarkerGeom = exactPolygon || (ext3857 ? fromExtent(ext3857) : null);
 
-      if (markerGeom) {
-        const fitExt = exactPolygon ? exactPolygon.getExtent() : ext3857!;
+      if (rawMarkerGeom) {
+        // Shift marker geometry by calibration offset so it aligns exactly with calibrated WMS tiles
+        const markerGeom = rawMarkerGeom.clone();
+        const { x: offX, y: offY } = cadastralCalibRef.current;
+        if (offX !== 0 || offY !== 0) {
+          markerGeom.translate(offX, offY);
+        }
+
+        const fitExt = markerGeom.getExtent();
         const map = mapInstanceRef.current;
         if (map) {
           map.getView().fit(fitExt, { duration: 900, padding: [100, 100, 100, panelOpen ? 420 : 100], maxZoom: 19 });
@@ -1920,8 +2365,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         theGeom: pInfoRaw?.the_geom,
         localBounds: localBounds || undefined,
         geoBounds: plotExt4326 || undefined,
+        ownerStatus: records.length > 0 ? "live" : "unavailable",
       };
       setBnSelectedPlot(plotObj);
+      setBnPlots((prev) => prev.map((p) => (p.plotno === plotNo ? { ...p, ...plotObj } : p)));
       setPlotInfoWindowOpen(true);
       setPlotInfoWindowMinimized(false);
       setBnSelected((prev) => {
@@ -1944,6 +2391,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   }, [bnGisCode, panelOpen, bnPlotTransparent, bnPlotOpacity]);
   // Keep stable ref to selectBnSurveyNo so identify handler can call it
   useEffect(() => { selectBnSurveyNoRef.current = selectBnSurveyNo; }, [selectBnSurveyNo]);
+  useEffect(() => { loadVillageOwnerRecordsRef.current = loadVillageOwnerRecords; }, [loadVillageOwnerRecords]);
+  // Abort any in-flight owner fetch when the component unmounts.
+  useEffect(() => () => { ownerFetchAbortRef.current?.abort(); highlightAbortRef.current?.abort(); }, []);
   // handleBnLevelChangeRef is synced below, after handleBnLevelChange is defined
 
   const selectBnPlot = useCallback((plot: BNPlot) => {
@@ -1957,6 +2407,27 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   }, [selectBnSurveyNo, bnGisCode, bnSelected]);
 
   const handleBnLevelChange = async (levelIndex: number, code: string) => {
+    // Synthetic Map Type entries (see the row-4 options list below) trigger the
+    // forest/water-body highlight instead of a real portal map-type change. Handled
+    // before any of the normal cascade bookkeeping runs, and bnSelected/bnLevels are
+    // never touched — so the <select> visually snaps back to whichever real Map Type
+    // was active, and no request is ever sent to the portal for this fake code.
+    if (levelIndex === 4 && (code === "__forest__" || code === "__waterbody__")) {
+      const cat = code === "__forest__" ? "forest" : "waterbody";
+      const plots = villageEnvStats[cat];
+      if (plots.length > 0) {
+        setSelectedSurnameFilter(null);
+        setSelectedOwnerFilter(null);
+        setCategoryFilter(new Set<Category>([cat === "forest" ? "forest" : "water"]));
+        highlightPlotsGroup(plots, cat, cat === "forest" ? "Forest Land" : "Water Bodies", cat === "forest" ? "Forest" : "Water");
+      }
+      return;
+    }
+
+    bnSelectedRef.current[levelIndex] = code;
+    for (let i = levelIndex + 1; i < 6; i++) {
+      bnSelectedRef.current[i] = "";
+    }
     setBnSelected((prev) => {
       const u = [...prev];
       u[levelIndex] = code;
@@ -1971,6 +2442,11 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
       return u;
     });
+    setBnLevelError((prev) => {
+      const u = { ...prev };
+      for (let i = levelIndex + 1; i < 6; i++) delete u[i];
+      return u;
+    });
     if (levelIndex !== 4 && levelIndex !== 5) {
       setBnPlots([]);
       setBnSelectedPlot(null);
@@ -1978,6 +2454,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     plotMarkerLayerRef.current?.getSource()?.clear();
     if (levelIndex < 3) {
       setBnGisCode(null);
+      setBnVillageExtent(null);
       cadastralVillageLayerRef.current?.setVisible(false);
       cadastralPlotLayerRef.current?.setVisible(false);
       setBnCadastralEnabled(false);
@@ -1992,27 +2469,31 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           u[1] = DEFAULT_DISTRICTS;
           return u;
         });
+        setBnDistrictSource("default");
       }
       setBnLoading(true);
       try {
-        const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: "state=" + BHUNAKSHA_STATE + "&level=1&codes=" + code + ",&hasmap=true",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data[0] && data[0].length > 0) {
-            setBnLevels((prev) => {
-              const u = [...prev];
-              // Fix BhuNaksha API typos in district names (e.g. 'Nangpur' → 'Nagpur')
-              u[1] = data[0].map((d: any) => ({
-                code: String(d.code),
-                value: BN_DISTRICT_NAME_FIX[String(d.value)] || String(d.value),
-              }));
-              return u;
-            });
-          }
+        const { rows, error } = await fetchLevelList(1, `${code},`);
+        if (rows.length > 0) {
+          // Fix BhuNaksha API typos in district names (e.g. 'Nangpur' → 'Nagpur')
+          setBnLevels((prev) => {
+            const u = [...prev];
+            u[1] = rows.map((d: any) => ({
+              code: String(d.code),
+              value: BN_DISTRICT_NAME_FIX[String(d.value)] || String(d.value),
+            }));
+            return u;
+          });
+          setBnDistrictSource("live");
+        } else {
+          console.warn("Live district fetch returned nothing, retaining default districts:", error);
+          setBnLevels((prev) => {
+            const u = [...prev];
+            if (!u[1] || u[1].length === 0) u[1] = DEFAULT_DISTRICTS;
+            return u;
+          });
+          setBnDistrictSource("default");
+          setBnLevelError((prev) => ({ ...prev, 1: error || "" }));
         }
       } catch (err) {
         console.warn("Fetch districts failed, retaining default districts:", err);
@@ -2021,29 +2502,31 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           if (!u[1] || u[1].length === 0) u[1] = DEFAULT_DISTRICTS;
           return u;
         });
+        setBnDistrictSource("default");
+        setBnLevelError((prev) => ({ ...prev, 1: (err as Error)?.message || "Request failed" }));
       } finally {
         setBnLoading(false);
       }
     } else if (levelIndex === 1) {
       // District selected
-      const cat = bnSelected[0] || "R";
+      const cat = bnSelectedRef.current[0] || "R";
       setBnLoading(true);
       try {
-        const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: "state=" + BHUNAKSHA_STATE + "&level=2&codes=" + cat + "," + code + ",&hasmap=true",
+        const { rows, error } = await fetchLevelList(2, `${cat},${code},`);
+        const talukas: BNLevel[] = rows.map((t: any) => ({ code: String(t.code).trim(), value: String(t.value).trim() }));
+        // No local-dataset fallback here: BhuNaksha's taluka codes are portal-internal
+        // IDs that cannot be reconstructed from the local village spreadsheet. A guessed
+        // code (e.g. "01", "02" by alphabetical order) looks like a normal option but
+        // almost never matches the real portal code, so picking it would silently fail
+        // to fetch parcels later — exactly the "works in Marathi, breaks after a format
+        // change" symptom. An honest empty state with a retry action is shown instead.
+        setBnLevels((prev) => {
+          const u = [...prev];
+          u[2] = talukas;
+          return u;
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data[0]) {
-            setBnLevels((prev) => {
-              const u = [...prev];
-              u[2] = data[0].map((t: any) => ({ code: String(t.code), value: String(t.value) }));
-              return u;
-            });
-          }
-        }
+        setBnLevelError((prev) => ({ ...prev, 2: error || "" }));
+        if (error) console.warn(`Fetch talukas for district ${code} returned nothing:`, error);
         const distObj = bnLevels[1]?.find((d) => d.code === code);
         if (distObj) {
           const raw = distObj.value || "";
@@ -2053,35 +2536,41 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         }
       } catch (err) {
         console.warn("Fetch talukas failed:", err);
+        setBnLevelError((prev) => ({ ...prev, 2: (err as Error)?.message || "Request failed" }));
       } finally {
         setBnLoading(false);
       }
     } else if (levelIndex === 2) {
       // Taluka selected
-      const cat = bnSelected[0] || "R";
-      const dist = bnSelected[1];
+      const cat = bnSelectedRef.current[0] || "R";
+      const dist = bnSelectedRef.current[1] || bnSelected[1];
       setBnLoading(true);
       try {
-        const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: "state=" + BHUNAKSHA_STATE + "&level=3&codes=" + cat + "," + dist + "," + code + ",&hasmap=true",
+        const { rows, error } = await fetchLevelList(3, `${cat},${dist},${code},`);
+        const villages: BNLevel[] = rows.map((v: any) => ({
+          code: String(v.code).trim(),
+          value: String(v.value).trim(),
+        }));
+        // Same reasoning as the taluka fetch above: no synthesized village codes. The old
+        // fallback here also read fields (village_code, village_name_mr) that do not
+        // exist on the local dataset, so every fallback row silently rendered as the
+        // placeholder "Village 1", "Village 2", ... regardless of the real village name.
+        setBnLevels((prev) => {
+          const u = [...prev];
+          u[3] = villages;
+          return u;
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data[0]) {
-            setBnLevels((prev) => {
-              const u = [...prev];
-              u[3] = data[0].map((v: any) => ({ code: String(v.code), value: String(v.value) }));
-              return u;
-            });
-          }
-        }
+        setBnLevelError((prev) => ({ ...prev, 3: error || "" }));
+        if (error) console.warn(`Fetch villages for taluka ${code} returned nothing:`, error);
+
         const distObj = bnLevels[1]?.find((d) => d.code === dist);
-        const talObj = data[0]?.find((t: any) => String(t.code) === code);
-        if (distObj && talObj) flyToTaluka(distObj.value, talObj.value);
+        const talObj = bnLevels[2]?.find((t) => t.code === code);
+        if (distObj && talObj) {
+          flyToTaluka(distObj.value, talObj.value);
+        }
       } catch (err) {
         console.warn("Fetch villages failed:", err);
+        setBnLevelError((prev) => ({ ...prev, 3: (err as Error)?.message || "Request failed" }));
       } finally {
         setBnLoading(false);
       }
@@ -2091,16 +2580,17 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const dist = bnSelected[1];
       const tal = bnSelected[2];
       const vlg = code;
-      setBnLoading(true);
-      try {
-        const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: "state=" + BHUNAKSHA_STATE + "&level=4&codes=" + cat + "," + dist + "," + tal + "," + vlg + ",&hasmap=true",
-        });
-        let mapType = "VM";
-        if (res.ok) {
-          const data = await res.json();
+      const middle = cat === "R" ? "VM" : "CM";
+      const gisCode = cat + middle + dist + tal + vlg;
+      // The map-type list only fills a dropdown (the GIS code above does not depend on it),
+      // so it loads beside the cadastral instead of in front of it.
+      void portalJson<any[]>(
+        "/VillageMapService/ListsAfterLevelGeoref",
+        "state=" + BHUNAKSHA_STATE + "&level=4&codes=" + cat + "," + dist + "," + tal + "," + vlg + ",&hasmap=true",
+        `bn:lvl4:${cat},${dist},${tal},${vlg}`
+      )
+        .then((data) => {
+          let mapType = "VM";
           if (Array.isArray(data) && data[0]) {
             const types = data[0].map((m: any) => ({ code: String(m.code), value: String(m.value) }));
             setBnLevels((prev) => {
@@ -2111,21 +2601,14 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             const valid = data[0].find((m: any) => m.extraParms?.hasData === true) || types[0];
             if (valid) mapType = valid.code;
           }
-        }
-        setBnSelected((prev) => {
-          const u = [...prev];
-          u[4] = mapType;
-          return u;
-        });
-
-        const middle = cat === "R" ? "VM" : "CM";
-        const gisCode = cat + middle + dist + tal + vlg;
-        await loadCadastralForGisCode(gisCode);
-      } catch (err) {
-        console.warn("Village select failed:", err);
-      } finally {
-        setBnLoading(false);
-      }
+          setBnSelected((prev) => {
+            const u = [...prev];
+            u[4] = mapType;
+            return u;
+          });
+        })
+        .catch((err) => console.warn("Map type list failed:", err));
+      await loadCadastralForGisCode(gisCode);
     } else if (levelIndex === 4) {
       // Map Type selected
       const cat = bnSelected[0] || "R";
@@ -2200,46 +2683,64 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   };
 
   const initBhuNakshaLevels = useCallback(async () => {
+    resetPortalBreaker();
     setBnLoading(true);
+    setBnLevelError({});
+    // Bounded like fetchLevelList: this is the very first cascade call, so a hang here
+    // would otherwise leave bnLoading stuck forever with the panel showing nothing at all.
+    const timeoutCtrl = new AbortController();
+    const timer = setTimeout(() => timeoutCtrl.abort(), 20000);
     try {
       const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: "state=" + BHUNAKSHA_STATE + "&level=0&codes=&hasmap=true",
+        signal: timeoutCtrl.signal,
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          const categories: BNLevel[] = (data[0] || []).map((c: any) => ({
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const categories: BNLevel[] = Array.isArray(data?.[0])
+        ? data[0].map((c: any) => ({
             code: String(c.code),
             value: c.code === "R" ? "Rural (ग्रामीण)" : c.code === "U" ? "Urban (शहरी)" : String(c.value),
-          }));
-          const districts: BNLevel[] = (data[1] || []).map((d: any) => ({
+          }))
+        : [];
+      const districts: BNLevel[] = Array.isArray(data?.[1])
+        ? data[1].map((d: any) => ({
             code: String(d.code),
             value: BN_DISTRICT_NAME_FIX[String(d.value)] || String(d.value),
-          }));
-          setBnLevels((prev) => {
-            const u = [...prev];
-            u[0] = categories.length ? categories : DEFAULT_CATEGORIES;
-            u[1] = districts.length ? districts : DEFAULT_DISTRICTS;
-            return u;
-          });
-        }
+          }))
+        : [];
+      if (districts.length === 0) {
+        // The portal itself is reachable (we got a 200) but returned no districts — treat
+        // this the same as a hard failure rather than quietly wearing the static list.
+        throw new Error("Portal responded but returned 0 districts");
       }
+      setBnLevels((prev) => {
+        const u = [...prev];
+        u[0] = categories.length ? categories : DEFAULT_CATEGORIES;
+        u[1] = districts;
+        return u;
+      });
+      setBnDistrictSource("live");
     } catch (err) {
-      console.warn("BhuNaksha level 0 init failed:", err);
+      console.warn("BhuNaksha level 0 init failed, showing offline reference districts:", err);
       setBnLevels((prev) => {
         const u = [...prev];
         if (!u[0] || u[0].length === 0) u[0] = DEFAULT_CATEGORIES;
-        if (!u[1] || u[1].length === 0) u[1] = DEFAULT_DISTRICTS;
+        u[1] = DEFAULT_DISTRICTS;
         return u;
       });
+      setBnDistrictSource("default");
+      const message = (err as Error)?.name === "AbortError" ? "Request timed out after 20s" : (err as Error)?.message || "Request failed";
+      setBnLevelError((prev) => ({ ...prev, 1: message }));
     } finally {
+      clearTimeout(timer);
       setBnLoading(false);
     }
   }, []);
   useEffect(() => {
-    if (panelOpen === "cadastral") {
+    if (panelOpen === "cadastral" || panelOpen === "explore" || panelOpen === "cfr") {
       setBnSelected((prev) => {
         if (!prev[0]) {
           const u = [...prev];
@@ -2339,20 +2840,847 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
   const zoomIn = () => { const v = mapInstanceRef.current?.getView(); if (v) v.animate({ zoom: (v.getZoom() ?? 7) + 1, duration: 300 }); };
   const zoomOut = () => { const v = mapInstanceRef.current?.getView(); if (v) v.animate({ zoom: (v.getZoom() ?? 7) - 1, duration: 300 }); };
+  const clearMultiHighlight = useCallback(() => {
+    setMultiHighlightInfo(null);
+    setSelectedSurnameFilter(null);
+    setSelectedOwnerFilter(null);
+    setCategoryFilter(new Set());
+    plotMarkerLayerRef.current?.getSource()?.clear();
+  }, []);
+
   const resetView = () => {
     mapInstanceRef.current?.getView().animate({ center: MH_CENTER, zoom: MH_ZOOM, duration: 600 });
     highlightLayerRef.current?.getSource()?.clear();
     plotMarkerLayerRef.current?.getSource()?.clear();
+    clearMultiHighlight();
     setInfoVisible(false); setActiveVillageDetails(null); setBnSelectedPlot(null);
     setBnCadastralEnabled(false); cadastralVillageLayerRef.current?.setVisible(false); cadastralPlotLayerRef.current?.setVisible(false);
   };
+
+  /**
+   * Draws every parcel of a family or an individual owner at once.
+   *
+   * The banner is written only after geometry has actually resolved, and lists just the
+   * parcels that were drawn — it used to be set up-front, so when the extent lookup came
+   * back empty the user saw "N parcels highlighted" over a map with nothing on it.
+   */
+  const highlightPlotsGroup = useCallback(
+    async (
+      targetPlots: BNPlot[],
+      type: HighlightType,
+      mrName: string,
+      enName: string,
+      perPlotType?: (p: BNPlot) => string
+    ) => {
+      if (!targetPlots || targetPlots.length === 0) return;
+      const markerLayer = plotMarkerLayerRef.current;
+      const markerSrc = markerLayer?.getSource();
+      if (!markerSrc) return;
+
+      highlightAbortRef.current?.abort();
+      const controller = new AbortController();
+      highlightAbortRef.current = controller;
+
+      const map = mapInstanceRef.current;
+      const gc = bnGisCodeRef.current;
+      const totalExt = createEmpty();
+      const featuresToAdd: Feature[] = [];
+      const drawnPlotNos: string[] = [];
+      let totalAreaNum = 0;
+
+      // Resolve bounds / polygons with bounded parallelism. A common surname in a large
+      // village would otherwise fire hundreds of simultaneous requests and lock the UI.
+      const resolved = await mapWithConcurrency(
+        targetPlots,
+        6,
+        async (plot) => {
+          // Vidarbha districts (Nagpur, Wardha, Bhandara, Gondia, Chandrapur, Gadchiroli)
+          // are stored 6° west of their true longitude by the portal — without this, a
+          // family's parcels render correctly shaped but ~600km away (e.g. near the
+          // Gujarat coast instead of Nagpur). The shift is a no-op on an already-corrected
+          // extent (it checks < 76°), so this is safe even if plot.geoBounds was cached by
+          // an earlier version of this code that didn't apply it yet.
+          const correct = (ext: [number, number, number, number] | null) => {
+            if (!ext) return ext;
+            const shift = vidarbhaLonShift(gc, ext[0]);
+            return shift ? ([ext[0] + shift, ext[1], ext[2] + shift, ext[3]] as [number, number, number, number]) : ext;
+          };
+
+          let pExt: [number, number, number, number] | null = correct(plot.geoBounds || null);
+
+          // The extent is what re-centres the outline on the calibrated WMS parcel mark, so it is
+          // fetched even when the polygon is already known. Above ~60 parcels that many extra
+          // requests would make the highlight crawl, so those rely on the polygon alone.
+          if (!pExt && gc && (targetPlots.length <= 60 || !plot.theGeom)) {
+            // plot.plotid is the portal's real id once the owner records have loaded.
+            try {
+              pExt = correct(await fetchPlotExtent(gc, plot.plotid || plot.plotno, controller.signal));
+            } catch {
+              pExt = null;
+            }
+          }
+
+          let pGeom: Polygon | null = null;
+          if (plot.theGeom) {
+            const refLon = pExt ? pExt[0] : activeVillageDetails?.lon || 75.7;
+            pGeom = parsePlotGeometry(plot.theGeom, plot.localBounds || null, pExt, refLon, gc);
+          }
+
+          return { plot, pExt, pGeom };
+        },
+        controller.signal
+      );
+
+      if (controller.signal.aborted) return;
+
+      const { x: offX, y: offY } = cadastralCalibRef.current;
+      // Extents fetched here are merged back through state rather than mutated in place.
+      const newBounds: Record<string, [number, number, number, number]> = {};
+
+      resolved.forEach((r) => {
+        if (!r) return;
+        const { plot, pExt, pGeom } = r;
+        if (pExt && !plot.geoBounds) newBounds[plot.plotno] = pExt;
+
+        let geom: any = pGeom;
+        if (!geom && pExt) {
+          geom = fromExtent(transformExtent(pExt, "EPSG:4326", "EPSG:3857"));
+        }
+        if (!geom) return;
+
+        const shifted = geom.clone();
+        if (offX !== 0 || offY !== 0) shifted.translate(offX, offY);
+        extend(totalExt, shifted.getExtent());
+
+        const f = new Feature({
+          geometry: shifted,
+          plotNo: plot.plotno,
+          owner: plot.owner || "",
+          surname: mrName,
+          area: plot.area || "",
+          highlightType: perPlotType ? perPlotType(plot) : type,
+          transparent: false,
+        });
+        f.setStyle(createPlotMarkerStyle as any);
+        featuresToAdd.push(f);
+        drawnPlotNos.push(plot.plotno);
+        totalAreaNum +=
+          plot.records?.reduce((s, rec) => s + (parseFloat(rec.totalArea) || 0), 0) || haFromAreaText(plot.area) || 0;
+      });
+
+      if (Object.keys(newBounds).length > 0) {
+        setBnPlots((prev) =>
+          prev.map((p) => {
+            const b = newBounds[p.plotno];
+            return b && !p.geoBounds ? { ...p, geoBounds: b } : p;
+          })
+        );
+      }
+
+      setMultiHighlightInfo({
+        type,
+        title:
+          type === "surname"
+            ? `Surname Family Land: ${mrName} (${enName})`
+            : type === "owner"
+              ? `Owner Holdings: ${mrName}`
+              : type === "forest"
+                ? "Official Forest Land"
+                : type === "waterbody"
+                  ? "Water Bodies"
+                  : mrName,
+        mrName,
+        enName,
+        plotNos: drawnPlotNos,
+        missingGeometry: targetPlots.length - drawnPlotNos.length,
+        totalAreaHa: Math.round(totalAreaNum * 10000) / 10000,
+        totalAreaAcres: (totalAreaNum * 2.47105).toFixed(2),
+      });
+
+      // Clear only once there is something to replace it with, so a failed lookup never
+      // leaves the map emptier than it was before the click.
+      if (featuresToAdd.length > 0) {
+        markerSrc.clear();
+        markerSrc.addFeatures(featuresToAdd);
+        markerLayer?.setVisible(true);
+
+        if (!isEmpty(totalExt) && map) {
+          map.getView().fit(totalExt, {
+            duration: 900,
+            padding: [100, 100, 100, panelOpenRef.current ? 420 : 100],
+            maxZoom: 18.5,
+          });
+        }
+      }
+    },
+    [activeVillageDetails]
+  );
 
   const districts = villageData ? getDistricts(villageData) : [];
   const talukas = villageData && selectedDistrict ? getTalukas(villageData, selectedDistrict) : [];
   const villages = villageData && selectedDistrict && selectedTaluka ? getVillages(villageData, selectedDistrict, selectedTaluka) : [];
   const togglePanel = (panel: PanelKey) => setPanelOpen((prev) => (prev === panel ? null : panel));
   const toggleLayerOpacity = (key: string) => setLayerOpacityOpen((prev) => ({ ...prev, [key]: !prev[key] }));
-  const filteredPlots = bnPlots.filter((p) => !bnPlotSearch || p.plotno?.toLowerCase().includes(bnPlotSearch.toLowerCase()));
+
+  /**
+   * Per-parcel search index, rebuilt only when bnPlots changes.
+   * Previously the filter re-parsed every owner name and walked the whole name
+   * dictionary on every keystroke, which is why typing felt broken on a large village.
+   */
+  interface PlotIndexEntry {
+    plot: BNPlot;
+    plotno: string;
+    plotnoLower: string;
+    owners: ParsedOwner[];
+    /** Distinct surnames on this parcel, excluding government holders. */
+    surnames: string[];
+    /** Phonetic keys of `surnames`; the family filter and chips compare these. */
+    familyKeys: string[];
+    areaHa: number;
+    category: Category;
+    hasLiveRecord: boolean;
+    /** Spreadsheet row that recognizes this parcel as CFR, if any. */
+    cfr: CfrRow | undefined;
+    cfrStatus: CfrStatus;
+    /** MRSAC cross-reference: parcel lies in a forest compartment / water body. */
+    mrsac: { forest?: { type: string; comp: string }; water?: boolean } | undefined;
+  }
+
+  useEffect(() => {
+    if (panelOpen === "cfr" && !cfrIndex) void loadCfrData().then(setCfrIndex);
+  }, [panelOpen, cfrIndex]);
+
+  // ATREE layers are created on first use; tiles are drawn server-side so panning stays cheap.
+  const cfrMode = panelOpen === "cfr";
+
+  // MRSAC state-wide layers: server-drawn tiles, created on first use, calibrated like the cadastral.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    for (const l of RES_LAYERS) {
+      let layer = resTileLayersRef.current[l.key];
+      if (resTile[l.key] && !layer) {
+        const source = new TileArcGISRest({
+          url: l.service,
+          params: { LAYERS: `show:${l.id}`, FORMAT: "png32", TRANSPARENT: true },
+          // No crossOrigin: images are only displayed, and not every MRSAC host sends CORS headers.
+        });
+        const plain = source.getTileUrlFunction();
+        source.setTileUrlFunction((tc, pr, proj) => {
+          const url = plain(tc, pr, proj);
+          return url ? shiftBboxParam(url, cadastralCalibRef.current.x, cadastralCalibRef.current.y) : url;
+        });
+        layer = new TileLayer({ zIndex: 5, source });
+        map.addLayer(layer);
+        resTileLayersRef.current[l.key] = layer;
+      }
+      layer?.setVisible(!!resTile[l.key]);
+      layer?.setOpacity(resOpacity / 100);
+    }
+  }, [resTile, resOpacity]);
+
+  // The selected village's own MRSAC features: exact village polygon first, then one spatial
+  // query per layer (all in parallel; each is a small, fast request).
+  useEffect(() => {
+    if (!bnVillageExtent) {
+      setResVillage({ status: "idle", village: null, features: {}, error: null });
+      return;
+    }
+    if (!cfrMode) return;
+    const ctl = new AbortController();
+    setResVillage((prev) => ({ ...prev, status: "loading", error: null }));
+    void (async () => {
+      try {
+        const village = await findVillage(bnVillageExtent, ctl.signal);
+        if (!village) throw new Error("This village was not found in the MRSAC village boundaries.");
+        const results = await Promise.allSettled(RES_LAYERS.map((l) => fetchResource(l, village, ctl.signal)));
+        if (ctl.signal.aborted) return;
+        const features: Record<string, GeoFeature[]> = {};
+        let failed = 0;
+        results.forEach((r, i) => {
+          if (r.status === "fulfilled") features[RES_LAYERS[i]!.key] = r.value;
+          else failed += 1;
+        });
+        if (failed === results.length) throw new Error("MRSAC did not respond. Try again in a moment.");
+        setResVillage({ status: "ready", village, features, error: null });
+      } catch (e) {
+        if (!ctl.signal.aborted) setResVillage({ status: "error", village: null, features: {}, error: (e as Error).message });
+      }
+    })();
+    return () => ctl.abort();
+  }, [bnVillageExtent, cfrMode]);
+
+  // Draw the village's features. Rebuilt when the calibration or a filter changes; cheap at village scale.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!resVectorRef.current) {
+      const styles: Record<string, Style> = {};
+      const styleFor = (f: any) => {
+        const key = f.get("layerKey") as string;
+        if (styles[key]) return styles[key];
+        const l = resLayerByKey(key)!;
+        return (styles[key] =
+          l.kind === "point"
+            ? new Style({ image: new CircleStyle({ radius: 4.5, fill: new Fill({ color: l.color }), stroke: new Stroke({ color: "#ffffff", width: 1.2 }) }) })
+            : l.kind === "line"
+              ? new Style({ stroke: new Stroke({ color: l.color, width: 1.6 }) })
+              : new Style({ stroke: new Stroke({ color: l.color, width: 1.8 }), fill: new Fill({ color: l.color + "33" }) }));
+      };
+      resVectorRef.current = new VectorLayer({ source: new VectorSource(), style: styleFor as any, zIndex: 6 });
+      map.addLayer(resVectorRef.current);
+    }
+    const layer = resVectorRef.current;
+    const src = layer.getSource()!;
+    src.clear();
+    layer.setVisible(cfrMode);
+    if (resVillage.status !== "ready") return;
+    const fmt = new GeoJSON();
+    const { x: offX, y: offY } = { x: cadastralCalibX, y: cadastralCalibY };
+    for (const l of RES_LAYERS) {
+      if (!resVisible.has(l.key)) continue;
+      for (const f of resVillage.features[l.key] ?? []) {
+        if (l.typeField && resHiddenTypes.has(`${l.key}|${typeLabel(l, f.properties)}`)) continue;
+        const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
+        feat.getGeometry()?.translate(offX, offY);
+        feat.set("layerKey", l.key);
+        src.addFeature(feat);
+      }
+    }
+  }, [resVillage, resVisible, resHiddenTypes, cadastralCalibX, cadastralCalibY, cfrMode]);
+
+  // Warm the taluka list for districts that have CFR data (one cached request each). Village lists
+  // load on demand: pre-loading all of them was a burst the portal did not need.
+  const districtLevel = bnLevels[1];
+  useEffect(() => {
+    if (!cfrMode || !cfrIndex || !districtLevel?.length) return;
+    let stop = false;
+    void (async () => {
+      for (const d of districtLevel.filter((x) => hasDistrict(cfrIndex, x.value))) {
+        if (stop) return;
+        await fetchLevelList(2, `R,${d.code},`);
+      }
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [cfrMode, cfrIndex, districtLevel, fetchLevelList]);
+
+  // Which ATREE polygon is the selected village? Only needed while the CFR panel or its layers are in use.
+  useEffect(() => {
+    if (!bnVillageExtent || !(cfrMode || cfrAtree.potential || cfrAtree.recognized)) {
+      if (!bnVillageExtent) setAtreeVillage(null);
+      return;
+    }
+    const ctl = new AbortController();
+    setAtreeLoading(true);
+    identifyAtreeVillage(bnVillageExtent, ctl.signal)
+      .then((v) => !ctl.signal.aborted && setAtreeVillage(v))
+      .catch(() => {})
+      .finally(() => !ctl.signal.aborted && setAtreeLoading(false));
+    return () => ctl.abort();
+  }, [bnVillageExtent, cfrMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    // With a village picked, both ATREE layers show that village only; otherwise all of Maharashtra.
+    const only = cfrAtree.villageOnly && atreeVillage ? `vlgcd2011='${atreeVillage.code}'` : undefined;
+    (["potential", "recognized"] as const).forEach((k) => {
+      let layer = atreeLayersRef.current[k];
+      if (cfrAtree[k] && !layer) {
+        const source = new TileWMS({
+            url: "https://cfr.atree.org/geoserver/cfr/wms",
+            params: { LAYERS: k === "potential" ? "cfr:mh_cfr_potential_villages" : "cfr:mh_cfr_recognized_villages", TILED: true, VERSION: "1.1.1" },
+            serverType: "geoserver",
+            // No crossOrigin: ATREE sends no CORS header, so "anonymous" makes the browser reject every tile.
+        });
+        // Same calibration as the cadastral layer, so village outlines sit on the calibrated parcels.
+        const plainUrl = source.getTileUrlFunction();
+        source.setTileUrlFunction((tc, pr, proj) => {
+          const url = plainUrl(tc, pr, proj);
+          return url ? shiftBboxParam(url, cadastralCalibRef.current.x, cadastralCalibRef.current.y) : url;
+        });
+        layer = new TileLayer({ zIndex: 4, source });
+        map.addLayer(layer);
+        atreeLayersRef.current[k] = layer;
+      }
+      layer?.setVisible(cfrAtree[k]);
+      layer?.setOpacity(cfrAtree.opacity / 100);
+      const src = layer?.getSource();
+      if (src && src.getParams()["CQL_FILTER"] !== only) src.updateParams({ CQL_FILTER: only });
+    });
+  }, [cfrAtree, atreeVillage]);
+
+  const nameOf = (level: number) => bnLevels[level]?.find((o) => o.code === bnSelected[level])?.value ?? "";
+  const cfrDistrict = nameOf(1);
+  const cfrTaluka = nameOf(2);
+  const cfrVillageName = nameOf(3);
+  const cfrDup = React.useMemo(() => duplicateKeys((bnLevels[3] || []).map((v) => v.value)), [bnLevels]);
+  const cfrVillageRows = React.useMemo(
+    () => (cfrIndex && bnSelected[3] ? rowsForVillage(cfrIndex, cfrDistrict, cfrTaluka, cfrVillageName, cfrDup) : []),
+    [cfrIndex, cfrDistrict, cfrTaluka, cfrVillageName, bnSelected, cfrDup]
+  );
+  const cfrLookup = React.useMemo(
+    () => (cfrVillageRows.length ? buildRecognizedLookup(cfrVillageRows) : null),
+    [cfrVillageRows]
+  );
+
+  // Which parcels sit inside an MRSAC forest compartment / water body? Uses each parcel's interior
+  // point (calibrated to real-world position) against the village's MRSAC polygons.
+  const mrsacParcels = React.useMemo(() => {
+    // Plain object: `Map` is OpenLayers' map class in this module.
+    const out: Record<string, { forest?: { type: string; comp: string }; water?: boolean }> = {};
+    if (resVillage.status !== "ready") return out;
+    const forest = (resVillage.features["forest"] ?? []).filter((f) => isForestLandType(String(f.properties["COMP_TYPE"] ?? "")));
+    const water = resVillage.features["waterbody"] ?? [];
+    if (!forest.length && !water.length) return out;
+    const cache = parcelPointCache.current;
+    for (const pl of bnPlots) {
+      if (!pl.theGeom) continue;
+      let pt = cache[pl.theGeom];
+      if (!pt) {
+        const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, 78.6, bnGisCode);
+        const c = poly?.getInteriorPoint().getCoordinates();
+        if (!c) continue;
+        pt = [c[0]!, c[1]!];
+        cache[pl.theGeom] = pt;
+      }
+      const [lon, lat] = toLonLat([pt[0] + cadastralCalibX, pt[1] + cadastralCalibY]);
+      const hitF = forest.find((f) => pointInGeometry(lon!, lat!, f.geometry));
+      const hitW = water.some((f) => pointInGeometry(lon!, lat!, f.geometry));
+      if (hitF || hitW) {
+        out[pl.plotno] = {
+          ...(hitF ? { forest: { type: String(hitF.properties["COMP_TYPE"] ?? "").trim(), comp: String(hitF.properties["COMP_NO"] ?? "").trim() } } : {}),
+          ...(hitW ? { water: true } : {}),
+        };
+      }
+    }
+    return out;
+  }, [resVillage, bnPlots, bnGisCode, cadastralCalibX, cadastralCalibY]);
+
+  const plotSearchIndex = React.useMemo<PlotIndexEntry[]>(() => {
+    return bnPlots.map((p) => {
+      const records = p.records || [];
+      const owners = records.flatMap((r) => parseOwnerName(r.ownerName));
+      if (owners.length === 0 && p.owner) owners.push(...parseOwnerName(p.owner));
+      const surnames: string[] = [];
+      const familyKeys: string[] = [];
+      for (const o of owners) {
+        if (!o.surname || o.isGovernment) continue;
+        if (!surnames.includes(o.surname)) surnames.push(o.surname);
+        const k = familyKey(o.surname);
+        if (!familyKeys.includes(k)) familyKeys.push(k);
+      }
+      // One area per parcel — summed across its khata records, never per owner.
+      const areaHa =
+        records.reduce((s, r) => s + (parseFloat(r.totalArea) || 0), 0) || haFromAreaText(p.area) || 0;
+      const category = classifyParcel(p.plotno, p.records, p.owner);
+      const cfr = cfrLookup ? matchRecognized(cfrLookup, p.plotno) : undefined;
+      return {
+        plot: p,
+        plotno: p.plotno,
+        plotnoLower: String(p.plotno).toLowerCase(),
+        owners,
+        surnames,
+        familyKeys,
+        areaHa,
+        category,
+        hasLiveRecord: p.ownerStatus === "live" && records.length > 0,
+        cfr,
+        mrsac: mrsacParcels[p.plotno],
+        cfrStatus: cfrStatusOf(!!cfr, category, !!mrsacParcels[p.plotno]?.forest),
+      };
+    });
+  }, [bnPlots, cfrLookup, mrsacParcels]);
+
+  /**
+   * Family and individual-owner aggregates. Families are keyed phonetically so spelling
+   * variants merge; the label shown is the most common spelling in the village.
+   */
+  const villageOwnerStats = React.useMemo(() => {
+    const familyMap: Record<
+      string,
+      { key: string; spellings: Record<string, number>; englishSurname: string; plots: BNPlot[]; totalHa: number }
+    > = {};
+    const ownerMap: Record<string, { plots: BNPlot[]; totalHa: number; englishFullName: string }> = {};
+
+    plotSearchIndex.forEach((entry) => {
+      // Parcels whose real record has not arrived carry no owner to group by.
+      if (!entry.hasLiveRecord) return;
+
+      entry.owners.forEach((o) => {
+        if (!o.surname || o.isGovernment) return;
+        const k = familyKey(o.surname);
+        const f = (familyMap[k] ||= { key: k, spellings: {}, englishSurname: o.englishSurname, plots: [], totalHa: 0 });
+        f.spellings[o.surname] = (f.spellings[o.surname] || 0) + 1;
+        if (!f.plots.includes(entry.plot)) {
+          f.plots.push(entry.plot);
+          f.totalHa += entry.areaHa;
+        }
+      });
+
+      const seen = new Set<string>();
+      entry.owners.forEach((po) => {
+        if (!po.fullName || po.isGovernment || seen.has(po.fullName)) return;
+        seen.add(po.fullName);
+        const ow = (ownerMap[po.fullName] ||= { plots: [], totalHa: 0, englishFullName: po.englishFullName });
+        ow.plots.push(entry.plot);
+        ow.totalHa += entry.areaHa;
+      });
+    });
+
+    const families = Object.values(familyMap)
+      .map((f) => ({
+        ...f,
+        label: Object.entries(f.spellings).sort((a, b) => b[1] - a[1])[0]![0],
+      }))
+      .sort((a, b) => b.plots.length - a.plots.length);
+    const familyByKey: Record<string, (typeof families)[number]> = {};
+    families.forEach((f) => (familyByKey[f.key] = f));
+
+    return { families, familyByKey, ownerMap };
+  }, [plotSearchIndex]);
+
+  /** Village-wide parcels of one category, for the Map Type dropdown's forest/water entries. */
+  const villageEnvStats = React.useMemo(() => {
+    const pick = (c: Category) => plotSearchIndex.filter((e) => e.hasLiveRecord && e.category === c).map((e) => e.plot);
+    return { forest: pick("forest"), waterbody: pick("water") };
+  }, [plotSearchIndex]);
+
+  // Keeps typing responsive on large villages: the list re-filters at a lower priority.
+  const deferredPlotSearch = React.useDeferredValue(bnPlotSearch);
+
+  const filteredPlots = React.useMemo(() => {
+    const q = deferredPlotSearch.trim();
+    const qLower = q.toLowerCase();
+    // Digits / "255/1" is a survey number; anything else is a name.
+    const isSurvey = /^[\d\s/.]+$/.test(q);
+    const queryTokens = isSurvey ? [] : tokenize(q);
+    const scored: { entry: PlotIndexEntry; score: number }[] = [];
+
+    for (const entry of plotSearchIndex) {
+      if (cfrMode) {
+        if (cfrStatusFilter.size > 0 && !cfrStatusFilter.has(entry.cfrStatus)) continue;
+        if (cfrPurpose.size > 0 && !entry.cfr?.g.some((g) => cfrPurpose.has(g))) continue;
+      } else if (categoryFilter.size > 0 && !categoryFilter.has(entry.category)) continue;
+      if (selectedSurnameFilter && !entry.familyKeys.includes(selectedSurnameFilter)) continue;
+      if (selectedOwnerFilter && !entry.owners.some((o) => o.fullName === selectedOwnerFilter)) continue;
+
+      if (!q) {
+        scored.push({ entry, score: 0 });
+        continue;
+      }
+
+      let score = 0;
+      if (isSurvey) {
+        // Exact first, then prefix — "1" no longer pulls in 1, 10, 100, 115...
+        if (entry.plotnoLower === qLower) score = 2;
+        else if (entry.plotnoLower.startsWith(qLower)) score = 1;
+      } else {
+        for (const o of entry.owners) score = Math.max(score, matchOwner(o, queryTokens, namePartMode));
+      }
+      if (score > 0) scored.push({ entry, score });
+    }
+
+    const bySurvey = (a: BNPlot, b: BNPlot) => {
+      const na = parseInt(String(a.plotno).replace(/[^0-9]/g, ""), 10);
+      const nb = parseInt(String(b.plotno).replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+      return String(a.plotno).localeCompare(String(b.plotno), undefined, { numeric: true });
+    };
+    const dir = sortDesc ? -1 : 1;
+
+    scored.sort((x, y) => {
+      // With an active query, relevance leads and the chosen sort breaks ties.
+      if (q && x.score !== y.score) return y.score - x.score;
+      const a = x.entry;
+      const b = y.entry;
+      if (sortKey === "status") {
+        const rank = (e: PlotIndexEntry) => CFR_STATUSES.findIndex((c) => c.key === e.cfrStatus);
+        return (rank(a) - rank(b) || bySurvey(a.plot, b.plot)) * dir;
+      }
+      if (sortKey === "approved") return ((a.cfr?.ha ?? 0) - (b.cfr?.ha ?? 0) || bySurvey(a.plot, b.plot)) * dir;
+      if (sortKey === "name") {
+        const oa = a.owners[0]?.fullName || a.plot.owner || "￿";
+        const ob = b.owners[0]?.fullName || b.plot.owner || "￿";
+        return (oa.localeCompare(ob, "mr") || bySurvey(a.plot, b.plot)) * dir;
+      }
+      if (sortKey === "area") return (a.areaHa - b.areaHa || bySurvey(a.plot, b.plot)) * dir;
+      return bySurvey(a.plot, b.plot) * dir;
+    });
+
+    return scored.map((s) => s.entry);
+  }, [plotSearchIndex, deferredPlotSearch, namePartMode, sortKey, sortDesc, categoryFilter, selectedSurnameFilter, selectedOwnerFilter, cfrMode, cfrStatusFilter, cfrPurpose]);
+
+  // Tile counts are village-wide (parcels with a loaded record).
+  const categoryCounts = React.useMemo(() => {
+    const counts: Record<Category, number> = { farm: 0, residential: 0, government: 0, forest: 0, water: 0, other: 0 };
+    plotSearchIndex.forEach((e) => {
+      if (e.hasLiveRecord) counts[e.category] += 1;
+    });
+    return counts;
+  }, [plotSearchIndex]);
+
+  const cfrCounts = React.useMemo(() => {
+    const counts: Record<string, number> = { recognized: 0, forest: 0, govt: 0, other: 0 };
+    plotSearchIndex.forEach((e) => (counts[e.cfrStatus] = (counts[e.cfrStatus] ?? 0) + 1));
+    return counts;
+  }, [plotSearchIndex]);
+
+  const entryByPlotno = React.useMemo(() => {
+    const m: Record<string, PlotIndexEntry> = {};
+    plotSearchIndex.forEach((e) => (m[e.plotno] = e));
+    return m;
+  }, [plotSearchIndex]);
+
+  const explorerRows = React.useMemo<ExplorerRow[]>(
+    () =>
+      filteredPlots.map((e) => {
+        const o = e.owners[0];
+        const fk = e.familyKeys[0] || "";
+        return {
+          plotno: e.plotno,
+          category: cfrMode ? e.cfrStatus : e.category,
+          areaHa: e.areaHa,
+          ...(cfrMode
+            ? (() => {
+                const bits = [
+                  e.cfr ? `${PURPOSE_GROUPS.find((g) => g.key === e.cfr!.g[0])?.label ?? "CFR"} · ${e.cfr.ha.toFixed(2)} ha approved` : "",
+                  e.mrsac?.forest ? `In forest compartment ${e.mrsac.forest.comp || ""} (${e.mrsac.forest.type})`.replace("  ", " ") : "",
+                  e.mrsac?.water ? "In a water body" : "",
+                ].filter(Boolean);
+                return bits.length ? { sub: bits.join(" · ") } : {};
+              })()
+            : {}),
+          owner: o?.fullName || "",
+          extraOwners: Math.max(0, e.owners.length - 1),
+          pending: e.plot.ownerStatus === "pending",
+          ownerHoldings: o ? villageOwnerStats.ownerMap[o.fullName]?.plots.length || 0 : 0,
+          familyKey: fk,
+          familySize: fk ? villageOwnerStats.familyByKey[fk]?.plots.length || 0 : 0,
+        };
+      }),
+    [filteredPlots, villageOwnerStats, cfrMode]
+  );
+
+  const loadedParcels = React.useMemo(
+    () => bnPlots.reduce((n, p) => n + (p.ownerStatus === "pending" ? 0 : 1), 0),
+    [bnPlots]
+  );
+
+  const showFilteredOnMap = () => {
+    // ponytail: capped — drawing more polygons than this stalls OpenLayers; add WMS-side filtering if needed
+    const capped = filteredPlots.slice(0, 300);
+    const cat = categoryFilter.size === 1 ? [...categoryFilter][0]! : null;
+    const name = cat ? CATEGORIES.find((c) => c.key === cat)!.en : "Selected parcels";
+    if (cfrMode) {
+      highlightPlotsGroup(capped.map((e) => e.plot), "filter", "CFR parcels", "CFR", (pl) => `cfr_${entryByPlotno[pl.plotno]?.cfrStatus ?? "other"}`);
+      return;
+    }
+    highlightPlotsGroup(capped.map((e) => e.plot), "filter", name, name, (pl) => {
+      const c = entryByPlotno[pl.plotno]?.category ?? "other";
+      return c === "water" ? "waterbody" : c;
+    });
+  };
+
+  const explorerProps = {
+    query: bnPlotSearch,
+    onQuery: setBnPlotSearch,
+    namePart: namePartMode,
+    onNamePart: setNamePartMode,
+    categories: categoryFilter,
+    onToggleCategory: (c: string) =>
+      setCategoryFilter((prev) => {
+        const next = new Set(prev);
+        if (!next.delete(c as Category)) next.add(c as Category);
+        return next;
+      }),
+    categoryCounts,
+    sortKey,
+    sortDesc,
+    onSort: (k: SortKey) => {
+      if (k === sortKey) setSortDesc((d) => !d);
+      else {
+        setSortKey(k);
+        setSortDesc(k === "area");
+      }
+    },
+    rows: explorerRows,
+    totalMatches: filteredPlots.length,
+    totalHa: filteredPlots.reduce((s, e) => s + e.areaHa, 0),
+    totalParcels: bnPlots.length,
+    loadedParcels,
+    families: villageOwnerStats.families.map((f) => ({ key: f.key, label: f.label, count: f.plots.length })),
+    selectedFamily: selectedSurnameFilter,
+    onFamily: (key: string | null) => {
+      setSelectedOwnerFilter(null);
+      setSelectedSurnameFilter(key);
+    },
+    selectedPlotno: bnSelectedPlot?.plotno,
+    onSelect: (plotno: string) => {
+      const e = entryByPlotno[plotno];
+      if (e) selectBnPlot(e.plot);
+    },
+    onHighlightOwner: (plotno: string) => {
+      const o = entryByPlotno[plotno]?.owners[0];
+      const stat = o && villageOwnerStats.ownerMap[o.fullName];
+      if (!o || !stat) return;
+      setSelectedSurnameFilter(null);
+      setSelectedOwnerFilter(o.fullName);
+      highlightPlotsGroup(stat.plots, "owner", o.fullName, o.englishFullName);
+    },
+    onHighlightFamily: (plotno: string) => {
+      const fk = entryByPlotno[plotno]?.familyKeys[0];
+      const fam = fk ? villageOwnerStats.familyByKey[fk] : undefined;
+      if (!fk || !fam) return;
+      setSelectedOwnerFilter(null);
+      setSelectedSurnameFilter(fk);
+      highlightPlotsGroup(fam.plots, "surname", fam.label, fam.englishSurname);
+    },
+    onShowOnMap: showFilteredOnMap,
+    onReset: () => {
+      setBnPlotSearch("");
+      clearMultiHighlight();
+      setCfrStatusFilter(new Set());
+      setCfrPurpose(new Set());
+    },
+  };
+
+  const cfrExplorerProps = {
+    ...explorerProps,
+    categories: cfrStatusFilter,
+    onToggleCategory: (c: string) =>
+      setCfrStatusFilter((prev) => {
+        const next = new Set(prev);
+        if (!next.delete(c)) next.add(c);
+        return next;
+      }),
+    categoryCounts: cfrCounts,
+    tiles: CFR_STATUSES.map((s) => ({ key: s.key, en: s.en, mr: s.mr, color: s.color })),
+    tileNote: "Recognized comes from the CFR approvals list. Forest / Govt candidates are inferred from the 7/12 holder and MRSAC forest compartments — not legal eligibility.",
+    sortOptions: [
+      { key: "survey", label: "Survey no." },
+      { key: "status", label: "Status" },
+      { key: "area", label: "Area" },
+      { key: "approved", label: "Approved ha" },
+    ],
+  };
+
+  // Selecting a village with recognized survey numbers paints them straight away. Their
+  // records (which carry the geometry) are fetched first instead of waiting behind the
+  // whole village, and the drawing waits for them so nothing is placed without a shape.
+  const cfrFetchedRef = useRef("");
+  const cfrDrawnRef = useRef("");
+  useEffect(() => {
+    if (!bnGisCode) {
+      cfrFetchedRef.current = "";
+      cfrDrawnRef.current = "";
+      return;
+    }
+    if (!cfrMode || cfrVillageRows.length === 0 || cfrDrawnRef.current === bnGisCode) return;
+    const recognized = plotSearchIndex.filter((e) => e.cfr).map((e) => e.plot);
+    if (recognized.length === 0) return;
+
+    if (recognized.some((pl) => pl.ownerStatus === "pending")) {
+      if (cfrFetchedRef.current !== bnGisCode) {
+        cfrFetchedRef.current = bnGisCode;
+        const gc = bnGisCode;
+        void bulkFetchVillageRecords(gc, recognized.map((pl) => pl.plotno), { concurrency: 6 }).then((batch) => {
+          if (bnGisCodeRef.current === gc) setBnPlots((prev) => mergeOwnerRecords(prev, batch));
+        });
+      }
+      return;
+    }
+    cfrDrawnRef.current = bnGisCode;
+    void highlightPlotsGroup(recognized, "filter", "CFR recognized", "CFR", () => "cfr_recognized");
+  }, [cfrMode, bnGisCode, cfrVillageRows, plotSearchIndex, highlightPlotsGroup]);
+
+  const resCounts = React.useMemo(() => {
+    const out: Record<string, ResCount> = {};
+    for (const l of RES_LAYERS) {
+      const fs = resVillage.features[l.key] ?? [];
+      const by: Record<string, number> = {};
+      let area = 0;
+      for (const f of fs) {
+        const t = typeLabel(l, f.properties);
+        by[t] = (by[t] ?? 0) + 1;
+        area += l.key === "waterbody" ? (Number(f.properties["Shape_Area"]) || 0) / 10000 : l.key === "forest" || l.key === "wildlife" ? Number(f.properties["ShpAreaHa"]) || 0 : 0;
+      }
+      out[l.key] = { count: fs.length, ...(area > 0 ? { areaHa: area } : {}), types: Object.entries(by).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count) };
+    }
+    return out;
+  }, [resVillage]);
+
+  const resInsight = React.useMemo(() => {
+    const lines: string[] = [];
+    const c = resCounts;
+    const wells = c["well"]?.count ?? 0;
+    const structs = c["structure"]?.count ?? 0;
+    const wb = c["waterbody"]?.count ?? 0;
+    if (wells + structs + wb) lines.push(`${wells} wells, ${structs} water-conservation structures, ${wb} water bod${wb === 1 ? "y" : "ies"}.`);
+    else lines.push("No mapped wells, structures or water bodies.");
+    const forestTypes = (c["forest"]?.types ?? []).filter((t) => isForestLandType(t.label));
+    if (forestTypes.length) lines.push(`Touches forest compartments: ${forestTypes.map((t) => `${t.label} (${t.count})`).join(", ")}.`);
+    const inForest = Object.values(mrsacParcels).filter((v) => v.forest).length;
+    if (inForest) lines.push(`${inForest} parcel${inForest === 1 ? "" : "s"} of this village lie inside forest compartments (counted as forest candidates).`);
+    return lines;
+  }, [resCounts, mrsacParcels]);
+
+  const cfrUnmatched = React.useMemo(
+    () => (cfrVillageRows.length ? unmatchedSurveys(cfrVillageRows, bnPlots.map((pl) => pl.plotno)) : []),
+    [cfrVillageRows, bnPlots]
+  );
+
+  /** In the CFR panel, flag districts / talukas / villages that have recognized survey data. */
+  const cfrMark = (idx: number, value: string) => {
+    if (!cfrMode || !cfrIndex) return "";
+    if (idx === 1) return hasDistrict(cfrIndex, value) ? "  ●" : "";
+    if (idx === 2) return cfrDistrict && villagesOfTaluka(cfrIndex, cfrDistrict, value).size ? "  ●" : "";
+    if (idx === 3) {
+      const n = cfrDistrict && cfrTaluka ? rowsForVillage(cfrIndex, cfrDistrict, cfrTaluka, value, cfrDup).length : 0;
+      return n ? `  ● ${n}` : "";
+    }
+    return "";
+  };
+
+  const regionSelectors = (
+    <>
+        {/* Same portal-driven cascade as Cadastral: Category → District → Taluka → Village. */}
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1, 2, 3].map((idx) => {
+            const label = bnLevelLabels[idx] ?? DEFAULT_LABELS[idx];
+            const options = bnLevels[idx] || [];
+            const disabled = idx > 0 && !bnSelected[idx - 1];
+            return (
+              <label key={idx} className="min-w-0">
+                <span className="block text-[11px] font-semibold text-slate-600 mb-0.5">{label}</span>
+                <select
+                  value={bnSelected[idx] || ""}
+                  onChange={(e) => handleBnLevelChange(idx, e.target.value)}
+                  disabled={disabled}
+                  className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 focus:border-slate-700 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">Select {label}</option>
+                  {options.map((lvl) => (
+                    <option key={lvl.code} value={lvl.code}>
+                      {lvl.value}{cfrMark(idx, lvl.value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
+        </div>
+        {bnLoading && <div className="text-[11px] text-slate-500">Loading from MahaBhuNakasha…</div>}
+        {bnDistrictSource === "default" && (
+          <div className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-800">
+            Portal not reachable — showing an offline district list.{" "}
+            <button type="button" onClick={initBhuNakshaLevels} className="font-semibold underline">Retry</button>
+          </div>
+        )}
+    </>
+  );
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-slate-100 flex flex-col select-none">
@@ -2480,11 +3808,80 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       <div className="relative flex-1 w-full h-[calc(100vh-64px)] overflow-hidden">
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full bg-slate-100" />
 
+        {/* FLOATING MULTI-PARCEL HIGHLIGHT BANNER */}
+        {multiHighlightInfo && (
+          <div
+            className="absolute top-4 z-20 flex items-center gap-3 bg-white/95 backdrop-blur-md border-2 border-amber-500 shadow-2xl rounded-2xl px-4 py-2.5 text-slate-800 transition-all max-w-xl animate-in fade-in slide-in-from-top-3"
+            style={{ left: panelOpen ? "calc(50% + 140px)" : "50%", transform: "translateX(-50%)" }}
+          >
+            <div
+              className={`size-9 rounded-full flex items-center justify-center text-base font-bold shrink-0 shadow-xs ${
+                multiHighlightInfo.type === "surname"
+                  ? "bg-amber-100 border border-amber-300 text-amber-800"
+                  : multiHighlightInfo.type === "owner"
+                    ? "bg-emerald-100 border border-emerald-300 text-emerald-800"
+                    : multiHighlightInfo.type === "forest"
+                      ? "bg-green-100 border border-green-300 text-green-800"
+                      : "bg-sky-100 border border-sky-300 text-sky-800"
+              }`}
+            >
+              {multiHighlightInfo.type === "surname"
+                ? "🏷️"
+                : multiHighlightInfo.type === "owner"
+                  ? "👤"
+                  : multiHighlightInfo.type === "forest"
+                    ? "🌲"
+                    : "💧"}
+            </div>
+            <div className="text-xs">
+              <div className="font-extrabold text-slate-900 flex items-center gap-2">
+                <span>{multiHighlightInfo.title}</span>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs text-white ${
+                    multiHighlightInfo.plotNos.length > 0 ? "bg-amber-500" : "bg-red-500"
+                  }`}
+                >
+                  {multiHighlightInfo.plotNos.length} {multiHighlightInfo.plotNos.length === 1 ? "Parcel" : "Parcels"} Highlighted
+                </span>
+                {multiHighlightInfo.missingGeometry > 0 && (
+                  <span className="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
+                    {multiHighlightInfo.missingGeometry} without map geometry
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-slate-600 flex items-center gap-2 mt-0.5">
+                <span>
+                  Total Area: <strong className="text-emerald-700 font-bold">{multiHighlightInfo.totalAreaHa} हे</strong>{" "}
+                  ({multiHighlightInfo.totalAreaAcres} ac)
+                </span>
+                {multiHighlightInfo.plotNos.length > 0 && (
+                  <>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-slate-500 truncate max-w-[220px]">
+                      Survey: {multiHighlightInfo.plotNos.join(", ")}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearMultiHighlight}
+              className="ml-2 text-[11px] font-bold text-slate-600 hover:text-red-700 bg-slate-100 hover:bg-red-50 border border-slate-300 hover:border-red-300 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+              title="Clear Highlight"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {/* TOOLBAR (LIGHT THEME) */}
         <aside className="absolute left-0 top-0 bottom-0 z-20 flex flex-col items-center py-3 gap-1.5 border-r border-slate-200 bg-white/95 backdrop-blur-md text-slate-700 shadow-sm" style={{ width: 64 }}>
           <ToolbarIconBtn active={panelOpen === "layerList"} onClick={() => togglePanel("layerList")} label="Layers" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>} />
           <ToolbarIconBtn active={panelOpen === "searchVillage"} onClick={() => togglePanel("searchVillage")} label="Search" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} />
           <ToolbarIconBtn active={panelOpen === "cadastral"} onClick={() => togglePanel("cadastral")} label="Cadastral" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>} />
+          <ToolbarIconBtn active={panelOpen === "explore"} onClick={() => togglePanel("explore")} label="Explore" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><path d="M3 6h18M3 12h12M3 18h6" /><circle cx="18" cy="17" r="3" /><line x1="20.2" y1="19.2" x2="22" y2="21" /></svg>} />
+          <ToolbarIconBtn active={panelOpen === "cfr"} onClick={() => togglePanel("cfr")} label="CFR" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><path d="M12 3l5 7h-3l4 6h-5v5h-2v-5H6l4-6H7z" /></svg>} />
           <ToolbarIconBtn active={panelOpen === "kml"} onClick={() => togglePanel("kml")} label="KML" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><line x1="9" y1="15" x2="15" y2="15" /></svg>} />
           <ToolbarIconBtn active={panelOpen === "legend"} onClick={() => togglePanel("legend")} label="Legend" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>} />
         </aside>
@@ -2608,6 +4005,103 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             )}
 
             {/* CADASTRAL PANEL */}
+            {/* EXPLORE — land records for the village picked in Cadastral */}
+            {panelOpen === "explore" && (
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
+                  <div className="font-bold text-sm text-slate-900">
+                    Explore land <span className="font-normal text-slate-500">({bnPlots.length} parcels)</span>
+                  </div>
+                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+                  {regionSelectors}
+
+                  {bnGisCode && bnPlots.length > 0 ? (
+                    <LandExplorer {...explorerProps} />
+                  ) : bnPlotsLoading ? (
+                    <div className="py-8 text-center text-xs text-slate-500">Loading parcels…</div>
+                  ) : (
+                    <div className="py-8 text-center text-xs text-slate-500">Select a village to explore its parcels.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* CFR — recognized community forest resource land + claim candidates */}
+            {panelOpen === "cfr" && (
+              <CfrPanel
+                index={cfrIndex}
+                region={regionSelectors}
+                district={cfrDistrict}
+                taluka={cfrTaluka}
+                villageSelected={!!bnGisCode && bnPlots.length > 0}
+                portalTalukas={bnLevels[2] || []}
+                portalVillages={bnLevels[3] || []}
+                onPickTaluka={(code) => handleBnLevelChange(2, code)}
+                onPickVillage={(code) => handleBnLevelChange(3, code)}
+                villageRows={cfrVillageRows}
+                totalParcels={bnPlots.length}
+                matchedSurveys={plotSearchIndex.filter((e) => e.cfr).length}
+                unmatched={cfrUnmatched}
+                explorer={<LandExplorer {...cfrExplorerProps} />}
+                purposes={cfrPurpose}
+                onPurpose={(g) =>
+                  setCfrPurpose((prev) => {
+                    const n = new Set(prev);
+                    if (!n.delete(g)) n.add(g);
+                    return n;
+                  })
+                }
+                cadastral={{ enabled: bnCadastralEnabled, opacity: bnCadastralOpacity }}
+                onCadastral={(patch) => {
+                  if (patch.enabled !== undefined) setBnCadastralEnabled(patch.enabled);
+                  if (patch.opacity !== undefined) setBnCadastralOpacity(patch.opacity);
+                }}
+                resources={
+                  <ResourcesSection
+                    tileOn={resTile}
+                    onTile={(k, on) => setResTile((prev) => ({ ...prev, [k]: on }))}
+                    opacity={resOpacity}
+                    onOpacity={setResOpacity}
+                    villageSelected={!!bnVillageExtent}
+                    status={resVillage.status}
+                    error={resVillage.error}
+                    villageName={resVillage.village?.name ?? null}
+                    counts={resCounts}
+                    visible={resVisible}
+                    onVisible={(k) =>
+                      setResVisible((prev) => {
+                        const n = new Set(prev);
+                        if (!n.delete(k)) n.add(k);
+                        return n;
+                      })
+                    }
+                    hiddenTypes={resHiddenTypes}
+                    onType={(k, label) =>
+                      setResHiddenTypes((prev) => {
+                        const n = new Set(prev);
+                        const key = `${k}|${label}`;
+                        if (!n.delete(key)) n.add(key);
+                        return n;
+                      })
+                    }
+                    insight={resInsight}
+                  />
+                }
+                error={bnVillageError}
+                onRetry={() => {
+                  resetPortalBreaker();
+                  if (bnSelected[3]) handleBnLevelChange(3, bnSelected[3]);
+                }}
+                atree={cfrAtree}
+                atreeVillage={atreeVillage}
+                atreeLoading={atreeLoading}
+                onAtree={(patch) => setCfrAtree((prev) => ({ ...prev, ...patch }))}
+                onClose={() => setPanelOpen(null)}
+              />
+            )}
+
             {panelOpen === "cadastral" && (
               <div className="flex flex-col h-full overflow-y-auto">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-emerald-50">
@@ -2625,6 +4119,26 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                       Refresh
                     </button>
                   </div>
+
+                  {/* The District list can render identically whether it came from the
+                      live portal or the static offline reference list, so this makes the
+                      difference explicit — a stuck Taluka fetch right after this means
+                      the portal is not reachable from here at all, not a per-district issue. */}
+                  {bnDistrictSource === "default" && (
+                    <div className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1.5 text-[10px] text-red-800 flex items-center justify-between gap-2">
+                      <span>
+                        ⚠ Could not reach the MahaBhuNakasha portal — showing an offline reference district list.
+                        {bnLevelError[1] ? ` (${bnLevelError[1]})` : ""} Taluka/Village won't populate until the portal is reachable.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={initBhuNakshaLevels}
+                        className="font-bold hover:underline shrink-0 cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
 
                   {/* CLICK-TO-IDENTIFY TOGGLE BUTTON */}
                   <button
@@ -2680,6 +4194,28 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                       {bnLevelLabels.map((label, idx) => {
                         const options = bnLevels[idx] || [];
                         const isDisabled = idx > 0 && !bnSelected[idx - 1];
+                        // The portal returned nothing for this level and there is nothing
+                        // fabricated to fall back to (see handleBnLevelChange) — surfaced
+                        // honestly with a one-click retry instead of a silently empty list.
+                        const isStuck = idx > 0 && !isDisabled && !bnLoading && options.length === 0 && !bnSelected[idx];
+
+                        // Map Type (row 4) additionally offers two synthetic entries that
+                        // trigger the forest/water-body highlight instead of a real portal
+                        // map-type change (see the guard at the top of handleBnLevelChange).
+                        // They are appended for display only — the "N options" badge below
+                        // still reflects just the real portal-provided count.
+                        const envEntries: BNLevel[] =
+                          idx === 4 && bnGisCode
+                            ? [
+                                ...(villageEnvStats.forest.length > 0
+                                  ? [{ code: "__forest__", value: `🌲 Forest Land (${villageEnvStats.forest.length})` }]
+                                  : []),
+                                ...(villageEnvStats.waterbody.length > 0
+                                  ? [{ code: "__waterbody__", value: `💧 Water Bodies (${villageEnvStats.waterbody.length})` }]
+                                  : []),
+                              ]
+                            : [];
+
                         return (
                           <div key={idx}>
                             <div className="flex items-center justify-between mb-1">
@@ -2702,7 +4238,33 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                                   {lvl.value}
                                 </option>
                               ))}
+                              {envEntries.length > 0 && (
+                                <>
+                                  <option disabled>── Highlight ──</option>
+                                  {envEntries.map((lvl) => (
+                                    <option key={lvl.code} value={lvl.code}>
+                                      {lvl.value}
+                                    </option>
+                                  ))}
+                                </>
+                              )}
                             </select>
+                            {isStuck && (
+                              <div className="mt-1 flex items-center justify-between gap-2 rounded-md bg-amber-50 border border-amber-200 px-2 py-1">
+                                <span className="text-[10px] text-amber-800">
+                                  {bnLevelError[idx]
+                                    ? `Fetch failed: ${bnLevelError[idx]}`
+                                    : `Portal returned no ${label.toLowerCase()} options for this selection.`}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleBnLevelChange(idx - 1, bnSelected[idx - 1] || "")}
+                                  className="text-[10px] font-bold text-amber-900 hover:underline shrink-0 cursor-pointer"
+                                >
+                                  Retry
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -2772,210 +4334,38 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                     </div>
                   )}
 
-                  {/* CADASTRAL PERSPECTIVE CALIBRATION CONTROLS */}
-                  {bnGisCode && (
-                    <div className="rounded-xl bg-amber-50/70 border border-amber-300 p-3 text-xs space-y-2.5 shadow-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
-                          <span>🧭</span>
-                          <span>Perspective Calibration</span>
-                        </span>
-                        <span className="font-mono text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">
-                          {cadastralCalibX === 0 && cadastralCalibY === 0
-                            ? "Aligned (0m, 0m)"
-                            : `${cadastralCalibX > 0 ? "+" : ""}${cadastralCalibX}m E, ${cadastralCalibY > 0 ? "+" : ""}${cadastralCalibY}m N`}
-                        </span>
-                      </div>
 
-                      {/* Calibration Anchor Status Badge */}
-                      {(() => {
-                        const vName = activeVillageDetails?.village || bnSelected[3] || "";
-                        const directMatch = calibrations.find(
-                          (c) => (bnGisCode && c.gisCode === bnGisCode) || (vName && c.village.toLowerCase() === vName.toLowerCase())
-                        );
-                        if (directMatch) {
-                          return (
-                            <div className="flex items-center gap-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-1 rounded-md text-[10.5px] font-medium">
-                              <span className="font-bold text-emerald-700">✓ Calibrated Anchor:</span>
-                              <span className="truncate">{directMatch.village} ({directMatch.calibratedAt})</span>
-                            </div>
-                          );
-                        }
-                        return (
-                          <div className="flex items-center justify-between bg-sky-50 border border-sky-200 text-sky-900 px-2 py-1 rounded-md text-[10.5px]">
-                            <span className="text-sky-700 font-medium">Auto-Predicted Pattern Active</span>
-                            <span className="text-[10px] font-bold text-sky-800 font-mono">
-                              {calibrations.length} Anchors
-                            </span>
-                          </div>
-                        );
-                      })()}
-
-                      <p className="text-[10px] text-amber-800 leading-snug">
-                        Nudge cadastral survey lines to align precisely with tree lines & field bunds on satellite imagery.
-                      </p>
-
-                      {/* Directional Nudge Pad */}
-                      <div className="flex flex-col items-center gap-1 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => handleNudgeCalib(0, 1)}
-                          className="px-3 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
-                          title="Nudge North +1m"
-                        >
-                          ▲ North (+1m)
-                        </button>
-                        <div className="flex items-center gap-1.5 w-full justify-center">
-                          <button
-                            type="button"
-                            onClick={() => handleNudgeCalib(-1, 0)}
-                            className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
-                            title="Nudge West -1m"
-                          >
-                            ◀ West (-1m)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleResetCalib}
-                            className="px-2 py-1 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded font-bold text-[10px] text-amber-950 shadow-xs transition-colors cursor-pointer"
-                            title="Reset Calibration to 0m"
-                          >
-                            Reset
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleNudgeCalib(1, 0)}
-                            className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
-                            title="Nudge East +1m"
-                          >
-                            East (+1m) ▶
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleNudgeCalib(0, -1)}
-                          className="px-3 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs transition-colors cursor-pointer"
-                          title="Nudge South -1m"
-                        >
-                          ▼ South (-1m)
-                        </button>
-                      </div>
-
-                      {/* Quick Step Presets */}
-                      <div className="flex items-center justify-between gap-1 pt-1 border-t border-amber-200/70 text-[10px]">
-                        <span className="text-amber-800 font-medium">Quick Step:</span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleNudgeCalib(-5, 0)}
-                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                          >
-                            -5m W
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleNudgeCalib(5, 0)}
-                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                          >
-                            +5m E
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleNudgeCalib(0, 5)}
-                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                          >
-                            +5m N
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleNudgeCalib(0, -5)}
-                            className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                          >
-                            -5m S
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* FINAL CALIBRATION DONE BUTTON & PATTERN ACTIONS */}
-                      <div className="pt-2 border-t border-amber-200 space-y-1.5">
-                        <button
-                          type="button"
-                          onClick={handleFinalizeCalibration}
-                          className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-                          title="Lock & Save this village's calibration into Maharashtra spatial learning network"
-                        >
-                          <span>✓</span>
-                          <span>Final Calibration Done (स्थान निश्चित करा)</span>
-                        </button>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={handleAutoCalibrateFromPattern}
-                            className="flex-1 py-1.5 px-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[10.5px] rounded-md shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
-                            title="Auto-predict and apply geodetic shift from nearby calibrated villages"
-                          >
-                            <span>🤖</span>
-                            <span>Auto-Apply Pattern</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setCalibrationModalOpen(true)}
-                            className="py-1.5 px-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-[10.5px] rounded-md shadow-xs flex items-center gap-1 transition-all cursor-pointer"
-                            title="View registered calibrated anchor network and export data"
-                          >
-                            <span>📊</span>
-                            <span>{calibrations.length} Network</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {bnGisCode && (
-                    <div className="border border-slate-200 rounded-lg overflow-hidden">
-                      <div className="bg-slate-700 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-2 flex items-center justify-between">
-                        <span>Plot / Survey Numbers ({bnPlots.length})</span>
-                        {bnPlotsLoading && <span className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+                    <div className="border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+                      <div className="bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-2 flex items-center justify-between">
+                        <span>Parcels & Land Records ({bnPlots.length})</span>
+                        {(bnPlotsLoading || ownerFetchProgress) && (
+                          <span className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        )}
                       </div>
-                      <div className="p-2.5 space-y-2">
-                        <input
-                          type="text"
-                          value={bnPlotSearch}
-                          onChange={(e) => setBnPlotSearch(e.target.value)}
-                          placeholder="Filter survey number (e.g. 324)..."
-                          className="w-full rounded border border-slate-300 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
-                        />
+
+                      <div className="p-2.5 bg-white space-y-2">
                         {bnPlotsLoading ? (
-                          <div className="text-xs text-slate-400 py-2 flex items-center gap-2">
-                            <span className="size-3 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-                            Loading plots...
-                          </div>
-                        ) : filteredPlots.length === 0 ? (
-                          <p className="text-xs text-slate-400 py-2 text-center">
-                            {bnPlots.length === 0 ? "Loading plots from portal..." : "No matching plots"}
-                          </p>
+                          <div className="text-xs text-slate-400 py-3 text-center">Loading parcels…</div>
                         ) : (
-                          <div className="max-h-48 overflow-y-auto divide-y divide-slate-100">
-                            {filteredPlots.slice(0, 100).map((plot, i) => (
-                              <button
-                                key={i}
-                                onClick={() => selectBnPlot(plot)}
-                                className={
-                                  "w-full text-left px-2.5 py-1.5 text-xs hover:bg-emerald-50 transition-colors flex items-center justify-between " +
-                                  (bnSelectedPlot?.plotno === plot.plotno ? "bg-emerald-100 font-bold text-emerald-900" : "text-slate-800")
-                                }
-                              >
-                                <span className="font-medium">Survey No. {plot.plotno}</span>
-                                <span className="text-[10px] text-emerald-700 font-semibold">Select ➔</span>
-                              </button>
-                            ))}
-                            {filteredPlots.length > 100 && (
-                              <p className="text-center text-[10px] text-slate-400 py-1.5">
-                                +{filteredPlots.length - 100} more - use search above to filter
-                              </p>
-                            )}
+                          <LandExplorer {...explorerProps} compact onOpenExplorer={() => setPanelOpen("explore")} />
+                        )}
+                        {multiHighlightInfo && (
+                          <div className="flex items-start justify-between gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs">
+                            <div className="min-w-0">
+                              <div className="font-semibold text-slate-800 truncate">{multiHighlightInfo.title}</div>
+                              <div className="text-[11px] text-slate-600">
+                                {multiHighlightInfo.plotNos.length > 0
+                                  ? `${multiHighlightInfo.plotNos.length} on map · ${multiHighlightInfo.totalAreaHa} ha (${multiHighlightInfo.totalAreaAcres} ac)`
+                                  : "No map geometry available for these parcels"}
+                                {multiHighlightInfo.missingGeometry > 0 && multiHighlightInfo.plotNos.length > 0 &&
+                                  ` · ${multiHighlightInfo.missingGeometry} without geometry`}
+                              </div>
+                            </div>
+                            <button type="button" onClick={clearMultiHighlight} className="shrink-0 text-[11px] font-semibold text-slate-600 hover:underline">
+                              Clear
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2995,22 +4385,48 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                         </span>
                       </div>
 
-                      {/* Exact fields from MahaBhuNakasha */}
+                      {/* Exact fields from MahaBhuNakasha with unit breakdown */}
                       <div className="space-y-2 text-[12.5px] leading-snug">
-                        {bnSelectedPlot.records?.map((rec, idx) => (
-                          <div key={idx} className="space-y-0.5">
-                            <div><span className="text-slate-600">Survey No. : </span><span className="font-bold text-slate-900">{rec.surveyNo}</span></div>
-                            <div><span className="text-slate-600">Total Area : </span><span className="font-semibold text-slate-900">{rec.totalArea}</span></div>
-                            <div><span className="text-slate-600">Pot kharaba : </span><span className="font-semibold text-slate-900">{rec.potKharaba}</span></div>
-                            <div><span className="text-slate-600">Owner Name : </span><span className="font-medium text-slate-900 font-devanagari">{rec.ownerName}</span></div>
-                            <div><span className="text-slate-600">Khata No. : </span><span className="font-bold text-slate-900">{rec.khataNo}</span></div>
-                            {idx < (bnSelectedPlot.records?.length || 0) - 1 && (
-                              <div className="py-1 text-slate-400 select-none overflow-hidden text-xs font-mono">
-                                --------------------------------
+                        {bnSelectedPlot.records?.map((rec, idx) => {
+                          const areaFmt = formatAreaBreakdown(rec.totalArea, rec.potKharaba);
+                          const ltype = classifyLandType(bnSelectedPlot.plotno, bnSelectedPlot.records);
+                          const ltBadge = ltype === "farmland" ? { icon: "🌾", label: "Agricultural Land", cls: "bg-emerald-50 text-emerald-800 border-emerald-200" } : ltype === "residential" ? { icon: "🏠", label: "Residential Land", cls: "bg-blue-50 text-blue-800 border-blue-200" } : ltype === "government" ? { icon: "🏛️", label: "Govt / Gairan", cls: "bg-amber-50 text-amber-800 border-amber-200" } : { icon: "⚖️", label: "Mixed Use", cls: "bg-purple-50 text-purple-800 border-purple-200" };
+                          return (
+                            <div key={idx} className="space-y-0.5">
+                              {idx === 0 && (
+                                <div className={`inline-flex items-center gap-1 text-[9.5px] font-bold border px-1.5 py-0.5 rounded-full mb-1 ${ltBadge.cls}`}>
+                                  <span>{ltBadge.icon}</span>
+                                  <span>{ltBadge.label}</span>
+                                </div>
+                              )}
+                              <div><span className="text-slate-600">Survey No. : </span><span className="font-bold text-slate-900">{rec.surveyNo}</span></div>
+                              <div>
+                                <span className="text-slate-600">Total Area : </span>
+                                <span className="font-semibold text-slate-900">{areaFmt.ha}</span>
+                                <span className="text-slate-500 text-[10px] ml-1">({areaFmt.sqm}{ltype === "farmland" ? ` · ${areaFmt.acres}` : ""})</span>
                               </div>
-                            )}
-                          </div>
-                        ))}
+                              <div>
+                                <span className="text-slate-600">Pot kharaba : </span>
+                                <span className="font-semibold text-slate-900">{formatAreaBreakdown(rec.potKharaba).ha}</span>
+                                {parseFloat(rec.potKharaba) > 0 && (
+                                  <span className="text-slate-500 text-[10px] ml-1">({formatAreaBreakdown(rec.potKharaba).sqm})</span>
+                                )}
+                              </div>
+                              {areaFmt.net && (
+                                <div className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  Net Cultivable: {areaFmt.net}
+                                </div>
+                              )}
+                              <div><span className="text-slate-600">Owner Name : </span><span className="font-medium text-slate-900 font-devanagari">{rec.ownerName}</span></div>
+                              <div><span className="text-slate-600">Khata No. : </span><span className="font-bold text-slate-900">{rec.khataNo}</span></div>
+                              {idx < (bnSelectedPlot.records?.length || 0) - 1 && (
+                                <div className="py-1 text-slate-400 select-none overflow-hidden text-xs font-mono">
+                                  --------------------------------
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Map Report & Window Controls */}
@@ -3134,20 +4550,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           </div>
         )}
 
-        {/* SUCCESS NOTIFICATION TOAST FOR CALIBRATION LOCK */}
-        {calibratedSuccessMessage && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in slide-in-from-top-3 duration-200 max-w-lg">
-            <span className="text-emerald-400 text-sm font-black">✓</span>
-            <span className="leading-snug">{calibratedSuccessMessage}</span>
-            <button
-              type="button"
-              onClick={() => setCalibratedSuccessMessage(null)}
-              className="ml-2 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+
 
         {/* ZOOM CONTROLS */}
         <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5">
@@ -3155,168 +4558,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           <RedMapControl onClick={zoomOut} title="Zoom Out">-</RedMapControl>
           <RedMapControl onClick={resetView} title="Reset Maharashtra View">⟲</RedMapControl>
           <RedMapControl onClick={() => setInfoVisible((v) => !v)} title="Toggle Feature Info" active={infoVisible}>i</RedMapControl>
-          <RedMapControl
-            onClick={() => setCalibControlsOpen((v) => !v)}
-            title="Calibrate Cadastral Alignment to Satellite"
-            active={calibControlsOpen || cadastralCalibX !== 0 || cadastralCalibY !== 0}
-          >
-            🎯
-          </RedMapControl>
         </div>
 
-        {/* FLOATING PERSPECTIVE CALIBRATION WIDGET ON MAP */}
-        {calibControlsOpen && (
-          <div
-            className="absolute top-16 right-16 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-amber-400 p-3.5 text-xs w-72 space-y-2.5 animate-in fade-in zoom-in-95"
-          >
-            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
-              <span className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
-                <span>🎯</span>
-                <span>Satellite Alignment Nudge</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setCalibControlsOpen(false)}
-                className="size-5 rounded flex items-center justify-center font-bold text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Current Village & Status */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[11px] space-y-0.5">
-              <div className="flex items-center justify-between font-bold text-amber-950">
-                <span className="truncate">{activeVillageDetails?.village || bnSelected[3] || "Active Village"}</span>
-                <span className="font-mono text-[10px] text-amber-800">
-                  {cadastralCalibX === 0 && cadastralCalibY === 0
-                    ? "0m, 0m"
-                    : `${cadastralCalibX > 0 ? "+" : ""}${cadastralCalibX}m, ${cadastralCalibY > 0 ? "+" : ""}${cadastralCalibY}m`}
-                </span>
-              </div>
-              <div className="text-[10px] text-amber-700 truncate">
-                {activeVillageDetails ? `${activeVillageDetails.subdistrict}, ${activeVillageDetails.district}` : "Maharashtra"}
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-600 leading-snug">
-              Nudge survey lines to align perfectly with tree rows & field bunds on satellite imagery.
-            </p>
-            <div className="flex flex-col items-center gap-1 pt-0.5">
-              <button
-                type="button"
-                onClick={() => handleNudgeCalib(0, 1)}
-                className="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
-                title="Nudge North +1m"
-              >
-                ▲ North (+1m)
-              </button>
-              <div className="flex items-center gap-1.5 w-full justify-center">
-                <button
-                  type="button"
-                  onClick={() => handleNudgeCalib(-1, 0)}
-                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
-                  title="Nudge West -1m"
-                >
-                  ◀ West (-1m)
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetCalib}
-                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded font-bold text-[10px] text-slate-800 shadow-xs cursor-pointer transition-colors"
-                  title="Reset to 0m"
-                >
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleNudgeCalib(1, 0)}
-                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
-                  title="Nudge East +1m"
-                >
-                  East (+1m) ▶
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleNudgeCalib(0, -1)}
-                className="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-bold text-xs text-amber-900 shadow-xs cursor-pointer transition-colors"
-                title="Nudge South -1m"
-              >
-                ▼ South (-1m)
-              </button>
-            </div>
-
-            {/* Quick Step Presets */}
-            <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-200 text-[10px]">
-              <span className="text-slate-500 font-medium">Quick Step:</span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleNudgeCalib(-5, 0)}
-                  className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                >
-                  -5m W
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleNudgeCalib(5, 0)}
-                  className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                >
-                  +5m E
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleNudgeCalib(0, 5)}
-                  className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                >
-                  +5m N
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleNudgeCalib(0, -5)}
-                  className="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer"
-                >
-                  -5m S
-                </button>
-              </div>
-            </div>
-
-            {/* FINAL CALIBRATION DONE BUTTON & PATTERN ACTIONS */}
-            <div className="pt-2 border-t border-slate-200 space-y-1.5">
-              <button
-                type="button"
-                onClick={handleFinalizeCalibration}
-                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-                title="Lock & Save this village's calibration into Maharashtra spatial learning network"
-              >
-                <span>✓</span>
-                <span>Final Calibration Done</span>
-              </button>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleAutoCalibrateFromPattern}
-                  className="flex-1 py-1.5 px-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-[10px] rounded-md shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
-                  title="Auto-predict and apply geodetic shift from nearby calibrated villages"
-                >
-                  <span>🤖</span>
-                  <span>Auto-Apply Pattern</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCalibrationModalOpen(true)}
-                  className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold text-[10px] rounded-md shadow-xs flex items-center gap-1 transition-all cursor-pointer"
-                  title="View registered calibrated anchor network and export data"
-                >
-                  <span>📊</span>
-                  <span>{calibrations.length} Anchors</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* FEATURE INFO POPUP */}
         {infoVisible && Object.keys(infoContent).length > 0 && (
@@ -3382,35 +4625,57 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             {/* Content Body */}
             {!plotInfoWindowMinimized && (
               <div className="p-3.5 space-y-2 max-h-[65vh] overflow-y-auto font-mono text-[12.5px] leading-relaxed select-text">
-                {bnSelectedPlot.records?.map((rec, idx) => (
-                  <div key={idx} className="space-y-0.5">
-                    <div>
-                      <span className="text-slate-600 font-sans">Survey No. : </span>
-                      <span className="font-bold text-slate-900">{rec.surveyNo}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-600 font-sans">Total Area : </span>
-                      <span className="font-semibold text-slate-900">{rec.totalArea}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-600 font-sans">Pot kharaba : </span>
-                      <span className="font-semibold text-slate-900">{rec.potKharaba}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-600 font-sans">Owner Name : </span>
-                      <span className="font-medium text-slate-900 font-devanagari font-sans">{rec.ownerName}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-600 font-sans">Khata No. : </span>
-                      <span className="font-bold text-slate-900">{rec.khataNo}</span>
-                    </div>
-                    {idx < (bnSelectedPlot.records?.length || 0) - 1 && (
-                      <div className="py-1 text-slate-400 select-none overflow-hidden text-xs">
-                        --------------------------------
+                {bnSelectedPlot.records?.map((rec, idx) => {
+                  const areaFmt = formatAreaBreakdown(rec.totalArea, rec.potKharaba);
+                  const ltype = classifyLandType(bnSelectedPlot.plotno, bnSelectedPlot.records);
+                  const ltBadge = ltype === "farmland" ? { icon: "🌾", label: "Agricultural Land", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" } : ltype === "residential" ? { icon: "🏠", label: "Residential Land", cls: "bg-blue-50 text-blue-700 border-blue-200" } : ltype === "government" ? { icon: "🏛️", label: "Govt / Gairan", cls: "bg-amber-50 text-amber-700 border-amber-200" } : { icon: "⚖️", label: "Mixed Use", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+                  return (
+                    <div key={idx} className="space-y-0.5">
+                      {idx === 0 && (
+                        <div className={`inline-flex items-center gap-1 text-[9px] font-bold border px-1.5 py-0.5 rounded-full mb-1 ${ltBadge.cls}`}>
+                          <span>{ltBadge.icon}</span>
+                          <span>{ltBadge.label}</span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-slate-600 font-sans">Survey No. : </span>
+                        <span className="font-bold text-slate-900">{rec.surveyNo}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div>
+                        <span className="text-slate-600 font-sans">Total Area : </span>
+                        <span className="font-semibold text-slate-900">{areaFmt.ha}</span>
+                      </div>
+                      <div className="text-[10.5px] text-slate-500 pl-[72px] -mt-0.5 leading-tight">
+                        {areaFmt.sqm}{ltype === "farmland" ? ` · ${areaFmt.acres}` : ""}
+                      </div>
+                      <div>
+                        <span className="text-slate-600 font-sans">Pot kharaba : </span>
+                        <span className="font-semibold text-slate-900">{formatAreaBreakdown(rec.potKharaba).ha}</span>
+                        {parseFloat(rec.potKharaba) > 0 && (
+                          <span className="text-slate-400 text-[10px] ml-1">({formatAreaBreakdown(rec.potKharaba).sqm})</span>
+                        )}
+                      </div>
+                      {areaFmt.net && (
+                        <div className="text-[10px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded mt-0.5">
+                          ✓ Net Cultivable: {areaFmt.net}
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-slate-600 font-sans">Owner Name : </span>
+                        <span className="font-medium text-slate-900 font-devanagari font-sans">{rec.ownerName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-600 font-sans">Khata No. : </span>
+                        <span className="font-bold text-slate-900">{rec.khataNo}</span>
+                      </div>
+                      {idx < (bnSelectedPlot.records?.length || 0) - 1 && (
+                        <div className="py-1 text-slate-400 select-none overflow-hidden text-xs">
+                          --------------------------------
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* Map Report Action Link */}
                 <div className="pt-2 border-t border-[#c2e2c2]/70 flex items-center justify-between font-sans">
@@ -3679,173 +4944,6 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         </div>
       )}
 
-      {/* MAHABHUNAKASHA CALIBRATION NETWORK MODAL (5-10 Pilot Villages Ground-Truth Registry) */}
-      {calibrationModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-300 max-w-3xl w-full p-6 relative space-y-5 my-8">
-            <div className="flex items-start justify-between border-b border-slate-200 pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🏛️</span>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Maharashtra Cadastral Geodetic Calibration Network
-                  </h3>
-                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                    {calibrations.length} Anchors
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  5–10 Ground-Truth Pilot Villages & Spatial Pattern Learning Engine across Maharashtra
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCalibrationModalOpen(false)}
-                className="size-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Pattern Learning Architecture Note */}
-            <div className="bg-amber-50/80 border border-amber-300 rounded-xl p-3.5 text-xs text-amber-950 space-y-2">
-              <div className="flex items-center gap-2 font-bold text-amber-900">
-                <span>🧭</span>
-                <span>Spatial Geodetic Pattern Learning (IDW Interpolation)</span>
-              </div>
-              <p className="text-[11px] leading-relaxed text-amber-900/90">
-                1930s paper revenue maps have systematic regional shifts when overlaid onto modern WGS84 satellite imagery. By calibrating <strong>5–10 pilot villages</strong> across Maharashtra, VANMITRA's <strong>Inverse Distance Weighting (IDW) engine</strong> learns the regional crustal distortion and automatically predicts the exact alignment for all 43,665 villages.
-              </p>
-              <div className="flex items-center gap-4 text-[10.5px] pt-1 border-t border-amber-200/80 font-medium text-amber-800">
-                <span>📍 Vidarbha Zone: ~ -6m E, -5m N</span>
-                <span>📍 Marathwada Zone: ~ -2m E, -3m N</span>
-                <span>📍 Western Ghats: ~ -3m E, +2m N</span>
-                <span>📍 Khandesh: ~ +2m E, -4m N</span>
-              </div>
-            </div>
-
-            {/* Calibrated Villages Registry Table */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">
-                  Registered Anchor Villages ({calibrations.length})
-                </span>
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoApplyPatternEnabled}
-                    onChange={(e) => setAutoApplyPatternEnabled(e.target.checked)}
-                    className="rounded accent-emerald-600 size-3.5 cursor-pointer"
-                  />
-                  <span>Auto-apply learned pattern to newly opened villages</span>
-                </label>
-              </div>
-
-              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 text-slate-600 text-[11px]">
-                    <tr>
-                      <th className="py-2.5 px-3">Village / गाव</th>
-                      <th className="py-2.5 px-3">District</th>
-                      <th className="py-2.5 px-3">Coordinates</th>
-                      <th className="py-2.5 px-3 font-mono">Offset (E / N)</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {calibrations.map((c, idx) => (
-                      <tr key={c.key || idx} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-2.5 px-3 font-semibold text-slate-900">
-                          {c.village}
-                          <span className="block text-[10px] text-slate-400 font-normal">{c.taluka}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-700">{c.district}</td>
-                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
-                          {c.lat.toFixed(2)}°N, {c.lon.toFixed(2)}°E
-                        </td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-emerald-800">
-                          {c.offsetX > 0 ? "+" : ""}{c.offsetX}m E, {c.offsetY > 0 ? "+" : ""}{c.offsetY}m N
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                            ✓ Verified
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCadastralCalibX(c.offsetX);
-                              setCadastralCalibY(c.offsetY);
-                              applyCalibrationToCurrentPlot(c.offsetX, c.offsetY);
-                              const map = mapInstanceRef.current;
-                              if (map) {
-                                map.getView().animate({ center: fromLonLat([c.lon, c.lat]), zoom: 16, duration: 800 });
-                              }
-                              setCalibrationModalOpen(false);
-                            }}
-                            className="text-emerald-700 hover:text-emerald-900 font-semibold text-[11px] cursor-pointer underline"
-                            title="Focus map on this calibrated village"
-                          >
-                            Jump
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCalibrationRecord(c.key || c.gisCode)}
-                            className="text-red-500 hover:text-red-700 text-xs cursor-pointer font-bold"
-                            title="Remove anchor from calibration network"
-                          >
-                            ✕
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Modal Footer Controls */}
-            <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(calibrations, null, 2));
-                    const dl = document.createElement("a");
-                    dl.setAttribute("href", dataStr);
-                    dl.setAttribute("download", `vanmitra_maharashtra_calibrations_${Date.now()}.json`);
-                    dl.click();
-                  }}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Export calibration database as JSON"
-                >
-                  <span>💾</span>
-                  <span>Export JSON</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetAllCalibrations}
-                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Restore default 8 Maharashtra regional anchor seeds"
-                >
-                  <span>🔄</span>
-                  <span>Reset Seeds</span>
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCalibrationModalOpen(false)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
