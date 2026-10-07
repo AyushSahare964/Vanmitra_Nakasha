@@ -74,7 +74,7 @@ function aggregate(rows: CfrRow[]): VillageAgg[] {
     name,
     rows: rs,
     ha: rs.reduce((a, r) => a + r.ha, 0),
-    surveys: rs.reduce((a, r) => a + r.s.length, 0),
+    surveys: rs.reduce((a, r) => a + r.s.length + (r.k?.length ?? 0), 0),
     date: Math.max(...rs.map((r) => Number(r.dt.split(".").reverse().join("").padEnd(8, "0")) || 0)),
     years: uniq(rs.map((r) => r.y)),
   }));
@@ -172,6 +172,7 @@ export function CfrPanel(p: Props) {
       ha: rs.reduce((a, r) => a + r.ha, 0),
       ac: rs.reduce((a, r) => a + r.ac, 0),
       surveys: rs.reduce((a, r) => a + r.s.length, 0),
+      comps: uniq(rs.flatMap((r) => r.k ?? [])),
       groups: uniq(rs.flatMap((r) => r.g)),
       dates: uniq(rs.map((r) => r.dt)).filter(Boolean),
       odd: rs.flatMap((r) => r.o ?? []),
@@ -315,7 +316,7 @@ export function CfrPanel(p: Props) {
               <div className="rounded border border-violet-200 bg-violet-50/60 p-2.5 text-xs">
                 <div className="font-semibold text-violet-900">CFR recognized in this village</div>
                 <div className="mt-0.5 text-slate-700">
-                  {p.villageRows.length} approval{p.villageRows.length > 1 ? "s" : ""} · {card.surveys} survey nos. · {fmt(card.ha)} ha ({fmt(card.ac)} ac)
+                  {p.villageRows.length} approval{p.villageRows.length > 1 ? "s" : ""} · {card.surveys ? `${card.surveys} survey nos.` : `forest compartment${card.comps.length > 1 ? "s" : ""} ${card.comps.join(", ") || "—"}`} · {fmt(card.ha)} ha ({fmt(card.ac)} ac)
                 </div>
                 <div className="text-slate-600">{card.groups.map((g) => PURPOSE_GROUPS.find((x) => x.key === g)!.label).join(", ")}</div>
                 {card.dates.length > 0 && <div className="text-slate-500">Approved {card.dates.join(", ")}</div>}
@@ -388,7 +389,7 @@ export function CfrPanel(p: Props) {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-semibold">{g.name}</span>
                         <span className="block truncate text-[11px] text-slate-500">
-                          {g.rows.length} approval{g.rows.length > 1 ? "s" : ""} · {g.surveys} survey nos.
+                          {g.rows.length} approval{g.rows.length > 1 ? "s" : ""} · {g.surveys} {g.rows.some((r) => r.k?.length) ? "compartments" : "survey nos."}
                         </span>
                       </span>
                       <span className="text-xs tabular-nums text-slate-600">{fmt(g.ha)} ha</span>

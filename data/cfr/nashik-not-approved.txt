@@ -1,0 +1,68 @@
+Dindori / चंडिकापुर: प्रलंबित, 53.74 ha
+Dindori / मुळाणे: अपात्र, 0 ha
+Dindori / वांजुळपाडा: प्रलंबित, 0 ha
+Dindori / पायरपाडा: प्रलंबित, 0 ha
+Peth / करवपाडा: अपात्र, 1.18 ha
+Peth / पवारपाडा: अपात्र, 0 ha
+Peth / बर्डापाडा: अपात्र, 0 ha
+IGT / कुशेगाव: अपात्र, 0 ha
+IGT / अवलखेड: अपात्र, 0 ha
+TBK / राजिवनगर: प्रलंबित, 0 ha
+TBK / खरशेत: प्रलंबित, 0 ha
+TBK / कास: प्रलंबित, 0 ha
+TBK / दावलेश्वर: अपात्र, 0 ha
+TBK / चिंचओहोळ: (no decision), 0 ha
+Surgana / लहाण घोडी: अपात्र, 0 ha
+Surgana / चिकाडी: अपात्र, 0 ha
+Surgana / सादुडने: अपात्र, 0 ha
+Surgana / खडकमाळ: अपात्र, 0 ha
+Surgana / मुरूमदरी: अपात्र, 0 ha
+Surgana / हेमाडपाडा: अपात्र, 0 ha
+Surgana / मेरदांड: अपात्र, 0 ha
+Surgana / भाटविहीर: अपात्र, 0 ha
+Surgana / रानपाडा: अपात्र, 0 ha
+Surgana / माणी: अपात्र, 0 ha
+Sinnar / मापारवाडी: अपात्र, 0 ha
+Sinnar / पाडळी: अपात्र, 0 ha
+Sinnar / धुळवड: अपात्र, 0 ha
+Sinnar / आशापुर: अपात्र, 0 ha
+Sinnar / खोपडी: अपात्र, 0 ha
+Sinnar / खंबाळे: अपात्र, 0 ha
+Sinnar / देवपुर: अपात्र, 0 ha
+Sinnar / पाटोळे: अपात्र, 0 ha
+Sinnar / पाटपिंप्री: अपात्र, 0 ha
+Sinnar / वडझिरे: अपात्र, 0 ha
+Sinnar / पंचाळे: अपात्र, 0 ha
+Sinnar / दावलेश्वर: अपात्र, 0 ha
+Sinnar / ठाणगाव: अपात्र, 0 ha
+Sinnar / निमगाव देवपुर: अपात्र, 0 ha
+Sinnar / किर्तागळी: अपात्र, 0 ha
+Sinnar / बारागाव पिंप्री: अपात्र, 0 ha
+Sinnar / माळेगाव: अपात्र, 0 ha
+Sinnar / वाडगाव पिंगळा: अपात्र, 0 ha
+Sinnar / नांदुरशिंगोटे: अपात्र, 0 ha
+Sinnar / आशापुर: अपात्र, 0 ha
+Sinnar / नांदुरशिंगोटे: अपात्र, 0 ha
+Sinnar / आशापुर: अपात्र, 0 ha
+Chandwad / वडनेरभैरव: प्रलंबित, 0 ha
+Chandwad / रायपुर: अपात्र, 0 ha
+Kalvan / लिंगामा: अपात्र, 0 ha
+Deola / चिंचवे: प्रलंबित, 0 ha
+Malegaon / मुंगसे: अपात्र, 0 ha
+Malegaon / साकुर: अपात्र, 0 ha
+Malegaon / कुकाणे: अपात्र, 0 ha
+Malegaon / उंबरदे: अपात्र, 0 ha
+Malegaon / पळासदरे: अपात्र, 0 ha
+Malegaon / देवघट: अपात्र, 0 ha
+Malegaon / गारेगाव: अपात्र, 0 ha
+Malegaon / लोणवाडे: अपात्र, 0 ha
+Malegaon / टिपे: अपात्र, 0 ha
+Malegaon / आघार खु.: अपात्र, 0 ha
+Malegaon / दुंधे: अपात्र, 0 ha
+Malegaon / सातमाने: अपात्र, 0 ha
+Malegaon / डाबली: अपात्र, 0 ha
+Malegaon / दहिदी: अपात्र, 0 ha
+Malegaon / राजमाने: अपात्र, 0 ha
+Baglan / टेंभे वरचे: अपात्र, 0 ha
+Baglan / बिलपुरी: अपात्र, 0 ha
+Yeola / ममदापुर: अपात्र, 0 ha

@@ -14,6 +14,7 @@ export interface CfrRow {
   v: string; // village
   p: string; // purpose
   s: string[]; // clean survey numbers
+  k?: string[]; // forest compartment nos. (Nashik sheet: no survey nos., s is empty)
   c?: string; // compartment prefix ("289 स.नं. 17,2…")
   o?: string[]; // tokens that could not be parsed
   ac: number;

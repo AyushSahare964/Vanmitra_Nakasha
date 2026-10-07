@@ -1450,6 +1450,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const [resHiddenTypes, setResHiddenTypes] = useState<Set<string>>(() => new Set());
   const resTileLayersRef = useRef<Record<string, TileLayer<TileArcGISRest>>>({});
   const resVectorRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const cfrCompLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const parcelPointCache = useRef<Record<string, [number, number]>>({});
   const [ownerFetchProgress, setOwnerFetchProgress] = useState<{ done: number; total: number } | null>(null);
   const ownerFetchAbortRef = useRef<AbortController | null>(null);
@@ -3574,6 +3575,54 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     () => (cfrVillageRows.length ? buildRecognizedLookup(cfrVillageRows) : null),
     [cfrVillageRows]
   );
+
+  // Nashik-style approvals name forest compartments, not survey numbers: draw each approved compartment's MRSAC
+  // polygon in CFR purple, always on (independent of the resource layer toggles).
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!cfrCompLayerRef.current) {
+      cfrCompLayerRef.current = new VectorLayer({
+        source: new VectorSource(),
+        zIndex: 41,
+        properties: { name: "cfr-compartments" },
+        style: ((f: any) =>
+          new Style({
+            stroke: new Stroke({ color: "#7c3aed", width: 3 }),
+            fill: new Fill({ color: "#7c3aed44" }),
+            text: new Text({
+              text: `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha`,
+              font: "600 12px sans-serif",
+              fill: new Fill({ color: "#4c1d95" }),
+              stroke: new Stroke({ color: "#ffffff", width: 3 }),
+              overflow: true,
+            }),
+          })) as any,
+      });
+    }
+    const layer = cfrCompLayerRef.current;
+    if (!map.getLayers().getArray().includes(layer)) map.addLayer(layer);
+    const src = layer.getSource()!;
+    src.clear();
+    if (!cfrMode || resVillage.status !== "ready") return;
+    // "24/2" and "49.50" count as compartment 24 / 49; the sheet's area is per approval, shared by its compartments.
+    const want = new globalThis.Map<string, number>();
+    for (const r of cfrVillageRows)
+      for (const k of r.k ?? []) want.set(k.split(/[/.]/)[0]!, (want.get(k.split(/[/.]/)[0]!) ?? 0) + r.ha / r.k!.length);
+    if (!want.size) return;
+    const fmt = new GeoJSON();
+    for (const key of ["forest", "wildlife"]) {
+      for (const f of resVillage.features[key] ?? []) {
+        const no = String(f.properties["COMP_NO"] ?? "").trim().match(/^\d+/)?.[0];
+        if (!no || !want.has(no)) continue;
+        const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
+        feat.set("compNo", no);
+        feat.set("ha", want.get(no)!.toFixed(2));
+        src.addFeature(feat);
+      }
+    }
+  }, [cfrMode, resVillage, cfrVillageRows]);
+
 
   // Which parcels sit inside an MRSAC forest compartment / water body? Uses each parcel's interior
   // point (calibrated to real-world position) against the village's MRSAC polygons.
