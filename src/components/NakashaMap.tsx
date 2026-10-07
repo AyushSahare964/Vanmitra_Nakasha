@@ -3571,6 +3571,12 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     () => (cfrIndex && bnSelected[3] ? rowsForVillage(cfrIndex, cfrDistrict, cfrTaluka, cfrVillageName, cfrDup) : []),
     [cfrIndex, cfrDistrict, cfrTaluka, cfrVillageName, bnSelected, cfrDup]
   );
+  /** Compartment-based approvals (Nashik): base compartment no. -> approval row. */
+  const cfrCompRows = React.useMemo(() => {
+    const m = new globalThis.Map<string, CfrRow>();
+    for (const r of cfrVillageRows) for (const k of r.k ?? []) m.set(k.split(/[/.]/)[0]!, r);
+    return m;
+  }, [cfrVillageRows]);
   const cfrLookup = React.useMemo(
     () => (cfrVillageRows.length ? buildRecognizedLookup(cfrVillageRows) : null),
     [cfrVillageRows]
@@ -3588,10 +3594,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         properties: { name: "cfr-compartments" },
         style: ((f: any) =>
           new Style({
-            stroke: new Stroke({ color: "#7c3aed", width: 3 }),
-            fill: new Fill({ color: "#7c3aed44" }),
+            stroke: new Stroke({ color: "#7c3aed", width: 2.5, lineDash: [8, 5] }),
             text: new Text({
-              text: `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha`,
+              text: f.get("label") ? `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha` : "",
               font: "600 12px sans-serif",
               fill: new Fill({ color: "#4c1d95" }),
               stroke: new Stroke({ color: "#ffffff", width: 3 }),
@@ -3611,6 +3616,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       for (const k of r.k ?? []) want.set(k.split(/[/.]/)[0]!, (want.get(k.split(/[/.]/)[0]!) ?? 0) + r.ha / r.k!.length);
     if (!want.size) return;
     const fmt = new GeoJSON();
+    const parts: Feature[] = [];
     for (const key of ["forest", "wildlife"]) {
       for (const f of resVillage.features[key] ?? []) {
         const no = String(f.properties["COMP_NO"] ?? "").trim().match(/^\d+/)?.[0];
@@ -3618,9 +3624,19 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
         feat.set("compNo", no);
         feat.set("ha", want.get(no)!.toFixed(2));
-        src.addFeature(feat);
+        parts.push(feat);
       }
     }
+    // A compartment arrives as several polygons (slivers + the main body): label only the largest one.
+    const biggest: Record<string, Feature> = {};
+    for (const f of parts) {
+      const a = f.getGeometry()!.getExtent();
+      const size = (a[2]! - a[0]!) * (a[3]! - a[1]!);
+      const cur = biggest[f.get("compNo")];
+      if (!cur || size > (cur.get("size") as number)) biggest[f.get("compNo")] = (f.set("size", size), f);
+    }
+    for (const f of Object.values(biggest)) f.set("label", true);
+    src.addFeatures(parts);
   }, [cfrMode, resVillage, cfrVillageRows]);
 
 
@@ -3711,7 +3727,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const areaHa =
         records.reduce((s, r) => s + (parseFloat(r.totalArea) || 0), 0) || haFromAreaText(p.area) || 0;
       const category = classifyParcel(p.plotno, p.records, p.owner);
-      const cfr = cfrLookup ? matchRecognized(cfrLookup, p.plotno) : undefined;
+      const compNo = mrsacParcels[p.plotno]?.forest?.comp.match(/^\d+/)?.[0];
+      // Survey-number approvals (Nagpur) match the 7/12 number; compartment approvals (Nashik) match the parcels the
+      // cadastral map places inside that compartment.
+      const cfr = (cfrLookup ? matchRecognized(cfrLookup, p.plotno) : undefined) ?? (compNo ? cfrCompRows.get(compNo) : undefined);
       return {
         plot: p,
         plotno: p.plotno,
@@ -3727,7 +3746,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         cfrStatus: cfrStatusOf(!!cfr, category, !!mrsacParcels[p.plotno]?.forest),
       };
     }
-  }, [bnPlots, cfrLookup, mrsacParcels]);
+  }, [bnPlots, cfrLookup, cfrCompRows, mrsacParcels]);
 
   /**
    * Family and individual-owner aggregates. Families are keyed phonetically so spelling
