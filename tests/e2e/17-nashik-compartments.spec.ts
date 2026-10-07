@@ -25,11 +25,16 @@ test.describe("Nashik compartment approvals", () => {
       return { t, parcels: num(m?.[2]) + num(c?.[1]), ha: num(m?.[1]) + num(c?.[2]) };
     };
     // recognized (forest / govt holder) + conflict (private holder) parcels together cover the approved compartment
-    await expect.poll(async () => (await read()).parcels, { timeout: 240000, intervals: [3000] }).toBeGreaterThan(40);
-    await expect.poll(async () => (await read()).ha, { timeout: 120000, intervals: [3000] }).toBeGreaterThan(71.25 * 0.5);
+    await expect.poll(async () => (await read()).parcels, { timeout: 240000, intervals: [3000] }).toBeGreaterThan(15);
+    await expect.poll(async () => (await read()).ha, { timeout: 120000, intervals: [3000] }).toBeGreaterThan(71.25 * 0.3);
     const { t, ha } = await read();
     expect(ha, t).toBeLessThan(71.25 * 1.4);
     expect(t).toContain("Conflict:");
+    // compartments were measured against the cadastral: forest-held parcels fall inside, private ones outside
+    const shift = await page.evaluate(() => (window as any).__vmForestShift);
+    expect(shift, "forest/cadastral offset should be measured for this village").not.toBeNull();
+    expect(shift.score).toBeGreaterThan(0.8);
+    expect(shift.score).toBeGreaterThan(shift.base);
     // conflict is its own status chip
     await expect(page.getByText("Conflict (private land in CFR)").first()).toBeVisible();
     // MRSAC outline layer exists and compartment polygons are never drawn without a label

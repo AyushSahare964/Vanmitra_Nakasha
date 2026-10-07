@@ -54,6 +54,7 @@ import {
   type NamePart,
   type ParsedOwner,
 } from "@/lib/marathi-search";
+import { bestShift, type AlignParcel } from "@/lib/forest-align";
 import { CATEGORIES, classifyParcel, familyKey, type Category } from "@/lib/land-categories";
 import { calibrateVillage, readCachedCalibration, type AutoCalibration } from "@/lib/cadastral-calibration";
 import { describeResource, detailsAsText, locationLinks, type ResourceDetails } from "@/lib/resource-details";
@@ -70,6 +71,7 @@ import {
   RES_LAYERS,
   fetchResource,
   fetchCompartmentsNear,
+  inRing as pointInRing,
   findVillage,
   isForestLandType,
   pointInGeometry,
@@ -1459,6 +1461,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const resTileLayersRef = useRef<Record<string, TileLayer<TileArcGISRest>>>({});
   const resVectorRef = useRef<VectorLayer<VectorSource> | null>(null);
   const cfrCompLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  /** Offset (m, EPSG:3857) at which this village's parcels line up with the MRSAC compartments; null until measured. */
+  const [forestShift, setForestShift] = useState<{ dx: number; dy: number; score: number; base: number } | null>(null);
   const parcelPointCache = useRef<Record<string, [number, number]>>({});
   const [ownerFetchProgress, setOwnerFetchProgress] = useState<{ done: number; total: number } | null>(null);
   const ownerFetchAbortRef = useRef<AbortController | null>(null);
@@ -1504,6 +1508,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // Geodetic offset state — auto-populated from calibration network via IDW pattern matching
   const [cadastralCalibX, setCadastralCalibX] = useState(0); // East(+) / West(-) in meters
   const [cadastralCalibY, setCadastralCalibY] = useState(0); // North(+) / South(-) in meters
+  /** Where MRSAC forest geometry is drawn: its own offset from the raw cadastral, plus the cadastral's calibration. */
+  const forestDelta: [number, number] = [cadastralCalibX - (forestShift?.dx ?? 0), cadastralCalibY - (forestShift?.dy ?? 0)];
 
   // Where the current calibration came from: the regional seed estimate, or a per-village fit to satellite imagery.
   const [calibSource, setCalibSource] = useState<"seed" | "pending" | "imagery">("seed");
@@ -3365,11 +3371,11 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         feat.set("layerKey", l.key);
         // Forest compartments are cut from the cadastral map (their village outline equals the portal's raw extent), so
         // they carry the same offset as the raw cadastral and get the same calibration shift. Water / wells are GPS-true.
-        if (l.group === "forest") feat.getGeometry()?.translate(cadastralCalibX, cadastralCalibY);
+        if (l.group === "forest") feat.getGeometry()?.translate(forestDelta[0], forestDelta[1]);
         src.addFeature(feat);
       }
     }
-  }, [resVillage, resVisible, resHiddenTypes, cfrMode, cadastralCalibX, cadastralCalibY]);
+  }, [resVillage, resVisible, resHiddenTypes, cfrMode, forestDelta[0], forestDelta[1]]);
 
   // Parcel outlines from getPlotInfo are placed by a coordinate conversion that is off from where the portal draws the
   // parcel by a roughly constant amount per village. Measure it from a few plots (outline centre vs the portal's own
@@ -3597,6 +3603,52 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
   // Which parcels sit inside an MRSAC forest compartment / water body? Uses each parcel's interior
   // point (calibrated to real-world position) against the village's MRSAC polygons.
+  // The compartments are cut from the cadastral map but sit a village-specific distance from the raw parcels (Udmal: ~75 m E,
+  // 75 m S). Measure it: the shift where forest-held parcels fall inside compartments and private ones fall outside.
+  useEffect(() => setForestShift(null), [bnGisCode]);
+  useEffect(() => {
+    if (resVillage.status !== "ready") return;
+    const forest = (resVillage.features["forest"] ?? []).filter((f) => isForestLandType(String(f.properties["COMP_TYPE"] ?? "")));
+    if (!forest.length) return;
+    const t = setTimeout(() => {
+      const villageLon = bnVillageExtent ? (bnVillageExtent[0] + bnVillageExtent[2]) / 2 : 75.7;
+      const parcels: AlignParcel[] = [];
+      for (const pl of bnPlots) {
+        if (!pl.theGeom) continue;
+        const category = classifyParcel(pl.plotno, pl.records, pl.owner);
+        const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, villageLon, bnGisCode);
+        if (!poly) continue;
+        const [x0, y0, x1, y1] = poly.getExtent() as [number, number, number, number];
+        const pts: [number, number][] = [];
+        for (let i = 0; i < 3; i++)
+          for (let j = 0; j < 3; j++) {
+            const x = x0 + ((i + 0.5) / 3) * (x1 - x0), y = y0 + ((j + 0.5) / 3) * (y1 - y0);
+            if (poly.intersectsCoordinate([x, y])) pts.push([x, y]);
+          }
+        if (pts.length) parcels.push({ pts, w: parseFloat(String(pl.area)) || haFromAreaText(pl.area) || 0.01, forestHeld: category === "forest" || category === "government" });
+      }
+      const held = parcels.filter((q) => q.forestHeld).length;
+      // too few forest-held parcels (or records still loading) to tell: keep the unshifted frame
+      if (held < 8 || held === parcels.length) return;
+      const polys = forest.map((f) => (f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates) as number[][][][]);
+      const boxes = polys.map((ps) => {
+        const c = ps.flat(2);
+        return [Math.min(...c.map((q) => q[0]!)), Math.min(...c.map((q) => q[1]!)), Math.max(...c.map((q) => q[0]!)), Math.max(...c.map((q) => q[1]!))] as const;
+      });
+      const inForest = (x: number, y: number) => {
+        const [lo, la] = toLonLat([x, y]);
+        return polys.some((ps, k) => lo! >= boxes[k]![0] && lo! <= boxes[k]![2] && la! >= boxes[k]![1] && la! <= boxes[k]![3] && ps.some((rings) => rings.filter((r) => pointInRing(lo!, la!, r)).length % 2 === 1));
+      };
+      const best = bestShift(parcels, inForest);
+      // adopt only a clear improvement; otherwise the frames already agree (or the data cannot say)
+      setForestShift(best.score - best.base >= 0.05 ? best : null);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [resVillage, bnPlots, bnVillageExtent, bnGisCode]);
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as any).__vmForestShift = forestShift;
+  }, [forestShift]);
+
   const mrsacParcels = React.useMemo(() => {
     // Plain object: `Map` is OpenLayers' map class in this module.
     const out: Record<string, MrsacParcel> = {};
@@ -3637,7 +3689,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       if (!samples.length) samples.push([pt[0], pt[1]]);
       const tally: Record<string, { n: number; type: string }> = {};
       for (const [x, y] of samples) {
-        const [sx, sy] = toLonLat([x, y]);
+        const [sx, sy] = toLonLat([x + (forestShift?.dx ?? 0), y + (forestShift?.dy ?? 0)]);
         const k = forest.findIndex((g, gi) => sx! >= fbox[gi]![0] && sx! <= fbox[gi]![2] && sy! >= fbox[gi]![1] && sy! <= fbox[gi]![3] && pointInGeometry(sx!, sy!, g.geometry));
         if (k < 0) continue;
         const comp = String(forest[k]!.properties["COMP_NO"] ?? "").trim();
@@ -3662,7 +3714,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
     }
     return out;
-  }, [resVillage, bnPlots, bnGisCode, bnVillageExtent, cadastralCalibX, cadastralCalibY]);
+  }, [resVillage, bnPlots, bnGisCode, bnVillageExtent, cadastralCalibX, cadastralCalibY, forestShift]);
 
   // Entries are cached per parcel object: mergeOwnerRecords keeps untouched parcels' identity, so a record
   // batch only re-parses the parcels it changed instead of the whole village (that was a ~1 s long task per batch).
@@ -3821,7 +3873,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const no = String(f.properties["COMP_NO"] ?? "").trim().match(/^\d+/)?.[0];
       if (!no || !want.has(no)) return;
       const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
-      feat.getGeometry()?.translate(cadastralCalibX, cadastralCalibY);
+      feat.getGeometry()?.translate(forestDelta[0], forestDelta[1]);
       feat.set("compNo", no);
       feat.set("ha", want.get(no)!.toFixed(2));
       feat.set("outside", outside);
@@ -3840,7 +3892,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     }
     for (const f of Object.values(biggest)) f.set("label", true);
     src.addFeatures(parts);
-  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound, cfrOutside, cadastralCalibX, cadastralCalibY]);
+  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound, cfrOutside, forestDelta[0], forestDelta[1]]);
 
   /**
    * Family and individual-owner aggregates. Families are keyed phonetically so spelling
