@@ -3582,64 +3582,6 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     [cfrVillageRows]
   );
 
-  // Nashik-style approvals name forest compartments, not survey numbers: draw each approved compartment's MRSAC
-  // polygon in CFR purple, always on (independent of the resource layer toggles).
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    if (!cfrCompLayerRef.current) {
-      cfrCompLayerRef.current = new VectorLayer({
-        source: new VectorSource(),
-        zIndex: 41,
-        properties: { name: "cfr-compartments" },
-        style: ((f: any) =>
-          new Style({
-            stroke: new Stroke({ color: "#7c3aed", width: 2.5, lineDash: [8, 5] }),
-            text: new Text({
-              text: f.get("label") ? `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha` : "",
-              font: "600 12px sans-serif",
-              fill: new Fill({ color: "#4c1d95" }),
-              stroke: new Stroke({ color: "#ffffff", width: 3 }),
-              overflow: true,
-            }),
-          })) as any,
-      });
-    }
-    const layer = cfrCompLayerRef.current;
-    if (!map.getLayers().getArray().includes(layer)) map.addLayer(layer);
-    const src = layer.getSource()!;
-    src.clear();
-    if (!cfrMode || resVillage.status !== "ready") return;
-    // "24/2" and "49.50" count as compartment 24 / 49; the sheet's area is per approval, shared by its compartments.
-    const want = new globalThis.Map<string, number>();
-    for (const r of cfrVillageRows)
-      for (const k of r.k ?? []) want.set(k.split(/[/.]/)[0]!, (want.get(k.split(/[/.]/)[0]!) ?? 0) + r.ha / r.k!.length);
-    if (!want.size) return;
-    const fmt = new GeoJSON();
-    const parts: Feature[] = [];
-    for (const key of ["forest", "wildlife"]) {
-      for (const f of resVillage.features[key] ?? []) {
-        const no = String(f.properties["COMP_NO"] ?? "").trim().match(/^\d+/)?.[0];
-        if (!no || !want.has(no)) continue;
-        const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
-        feat.set("compNo", no);
-        feat.set("ha", want.get(no)!.toFixed(2));
-        parts.push(feat);
-      }
-    }
-    // A compartment arrives as several polygons (slivers + the main body): label only the largest one.
-    const biggest: Record<string, Feature> = {};
-    for (const f of parts) {
-      const a = f.getGeometry()!.getExtent();
-      const size = (a[2]! - a[0]!) * (a[3]! - a[1]!);
-      const cur = biggest[f.get("compNo")];
-      if (!cur || size > (cur.get("size") as number)) biggest[f.get("compNo")] = (f.set("size", size), f);
-    }
-    for (const f of Object.values(biggest)) f.set("label", true);
-    src.addFeatures(parts);
-  }, [cfrMode, resVillage, cfrVillageRows]);
-
-
   // Which parcels sit inside an MRSAC forest compartment / water body? Uses each parcel's interior
   // point (calibrated to real-world position) against the village's MRSAC polygons.
   const mrsacParcels = React.useMemo(() => {
@@ -3747,6 +3689,67 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       };
     }
   }, [bnPlots, cfrLookup, cfrCompRows, mrsacParcels]);
+
+  const compParcelsFound = React.useMemo(() => cfrCompRows.size > 0 && plotSearchIndex.some((e) => e.cfr && !e.cfr.s.length), [cfrCompRows, plotSearchIndex]);
+
+  // Nashik-style approvals name forest compartments, not survey numbers: draw each approved compartment's MRSAC
+  // polygon in CFR purple, always on (independent of the resource layer toggles).
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!cfrCompLayerRef.current) {
+      cfrCompLayerRef.current = new VectorLayer({
+        source: new VectorSource(),
+        zIndex: 41,
+        properties: { name: "cfr-compartments" },
+        style: ((f: any) =>
+          new Style({
+            stroke: new Stroke({ color: "#7c3aed", width: 2.5, lineDash: [8, 5] }),
+            text: new Text({
+              text: f.get("label") ? `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha` : "",
+              font: "600 12px sans-serif",
+              fill: new Fill({ color: "#4c1d95" }),
+              stroke: new Stroke({ color: "#ffffff", width: 3 }),
+              overflow: true,
+            }),
+          })) as any,
+      });
+    }
+    const layer = cfrCompLayerRef.current;
+    if (!map.getLayers().getArray().includes(layer)) map.addLayer(layer);
+    const src = layer.getSource()!;
+    src.clear();
+    // Parcels matched inside the compartment are the marking; the raw MRSAC outline is only a fallback (it is not
+    // calibrated to the cadastral map, so beside the parcels it just looks misaligned).
+    if (!cfrMode || resVillage.status !== "ready" || compParcelsFound) return;
+    // "24/2" and "49.50" count as compartment 24 / 49; the sheet's area is per approval, shared by its compartments.
+    const want = new globalThis.Map<string, number>();
+    for (const r of cfrVillageRows)
+      for (const k of r.k ?? []) want.set(k.split(/[/.]/)[0]!, (want.get(k.split(/[/.]/)[0]!) ?? 0) + r.ha / r.k!.length);
+    if (!want.size) return;
+    const fmt = new GeoJSON();
+    const parts: Feature[] = [];
+    for (const key of ["forest", "wildlife"]) {
+      for (const f of resVillage.features[key] ?? []) {
+        const no = String(f.properties["COMP_NO"] ?? "").trim().match(/^\d+/)?.[0];
+        if (!no || !want.has(no)) continue;
+        const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
+        feat.set("compNo", no);
+        feat.set("ha", want.get(no)!.toFixed(2));
+        parts.push(feat);
+      }
+    }
+    // A compartment arrives as several polygons (slivers + the main body): label only the largest one.
+    const biggest: Record<string, Feature> = {};
+    for (const f of parts) {
+      const a = f.getGeometry()!.getExtent();
+      const size = (a[2]! - a[0]!) * (a[3]! - a[1]!);
+      const cur = biggest[f.get("compNo")];
+      if (!cur || size > (cur.get("size") as number)) biggest[f.get("compNo")] = (f.set("size", size), f);
+    }
+    for (const f of Object.values(biggest)) f.set("label", true);
+    src.addFeatures(parts);
+  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound]);
 
   /**
    * Family and individual-owner aggregates. Families are keyed phonetically so spelling
@@ -4091,13 +4094,16 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       cfrDrawnRef.current = "";
       return;
     }
-    if (!cfrMode || cfrVillageRows.length === 0 || cfrDrawnRef.current === bnGisCode) return;
+    if (!cfrMode || cfrVillageRows.length === 0) return;
     const recognized = plotSearchIndex.filter((e) => e.cfr).map((e) => e.plot);
     if (recognized.length === 0) return;
+    // Compartment approvals match parcels as the village loads, so redraw whenever the matched set grows.
+    const drawKey = `${bnGisCode}:${recognized.length}`;
+    if (cfrDrawnRef.current === drawKey) return;
 
     if (recognized.some((pl) => pl.ownerStatus === "pending")) {
-      if (cfrFetchedRef.current !== bnGisCode) {
-        cfrFetchedRef.current = bnGisCode;
+      if (cfrFetchedRef.current !== drawKey) {
+        cfrFetchedRef.current = drawKey;
         const gc = bnGisCode;
         void bulkFetchVillageRecords(gc, recognized.map((pl) => pl.plotno), { concurrency: 6, urgent: true }).then((batch) => {
           if (bnGisCodeRef.current === gc) setBnPlots((prev) => mergeOwnerRecords(prev, batch));
@@ -4105,7 +4111,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
       return;
     }
-    cfrDrawnRef.current = bnGisCode;
+    cfrDrawnRef.current = drawKey;
     void highlightPlotsGroup(recognized, "filter", "CFR recognized", "CFR", () => "cfr_recognized");
   }, [cfrMode, bnGisCode, cfrVillageRows, plotSearchIndex, highlightPlotsGroup]);
 
