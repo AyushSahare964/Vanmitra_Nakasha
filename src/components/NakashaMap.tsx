@@ -3598,7 +3598,31 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         cache[pl.theGeom] = pt;
       }
       const [lon, lat] = toLonLat([pt[0] + cadastralCalibX, pt[1] + cadastralCalibY]);
-      const hitF = forest.find((f) => pointInGeometry(lon!, lat!, f.geometry));
+      let hitF = forest.find((f) => pointInGeometry(lon!, lat!, f.geometry));
+      if (!hitF && forest.length) {
+        // Interior point missed: a parcel that only partly overlaps a compartment still counts when >=25% of it
+        // (grid-sampled) lies inside. ponytail: 10x10 grid, raise resolution if thin slivers get missed.
+        const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, villageLon, bnGisCode);
+        if (poly) {
+          const [x0, y0, x1, y1] = poly.getExtent() as [number, number, number, number];
+          const N = 10;
+          let inside = 0;
+          const tally = forest.map(() => 0);
+          for (let i = 0; i < N; i++) {
+            for (let j = 0; j < N; j++) {
+              const x = x0 + ((i + 0.5) / N) * (x1 - x0);
+              const y = y0 + ((j + 0.5) / N) * (y1 - y0);
+              if (!poly.intersectsCoordinate([x, y])) continue;
+              inside++;
+              const [sx, sy] = toLonLat([x + cadastralCalibX, y + cadastralCalibY]);
+              const k = forest.findIndex((g) => pointInGeometry(sx!, sy!, g.geometry));
+              if (k >= 0) tally[k]!++;
+            }
+          }
+          const hits = tally.reduce((s, n) => s + n, 0);
+          if (inside > 0 && hits / inside >= 0.25) hitF = forest[tally.indexOf(Math.max(...tally))];
+        }
+      }
       const hitW = water.some((f) => pointInGeometry(lon!, lat!, f.geometry));
       if (hitF || hitW) {
         out[pl.plotno] = {
