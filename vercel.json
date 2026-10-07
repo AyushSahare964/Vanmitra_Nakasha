@@ -1,5 +1,9 @@
 {
   "buildCommand": "npm run build",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "regions": ["bom1"],
+  "functions": {
+    "api/*.js": { "maxDuration": 60 }
+  }
 }

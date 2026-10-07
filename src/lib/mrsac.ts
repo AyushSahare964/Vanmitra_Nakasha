@@ -90,18 +90,59 @@ export interface GeoFeature {
   properties: Record<string, any>;
 }
 
+/** The ArcGIS servers answer "Error performing query operation" and hang under load; both are transient. */
+export const MRSAC_UNAVAILABLE = "MRSAC (the water / forest data service) is not responding right now. Please try again.";
+const MAX_CALLS = 4; // MRSAC rejects bursts: 8 layer queries at once used to trigger the transient errors
+let active = 0;
+const queue: (() => void)[] = [];
+const slot = () => new Promise<void>((go) => (active < MAX_CALLS ? (active++, go()) : queue.push(() => go())));
+const release = () => {
+  const n = queue.shift();
+  if (n) n();
+  else active--;
+};
+
+async function arcgisOnce(url: string, params: Record<string, string>, signal?: AbortSignal): Promise<any> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 30000);
+  const onAbort = () => ctl.abort();
+  signal?.addEventListener("abort", onAbort);
+  try {
+    // POST keeps large polygon filters out of the URL; form-encoded avoids a CORS preflight.
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(params).toString(),
+      signal: ctl.signal,
+    });
+    if (!res.ok) throw new Error(`MRSAC returned HTTP ${res.status}`);
+    const data = await res.json();
+    if (data?.error) throw new Error(data.error.message || "MRSAC query failed");
+    return data;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
 async function arcgis(url: string, params: Record<string, string>, signal?: AbortSignal): Promise<any> {
-  // POST keeps large polygon filters out of the URL; form-encoded avoids a CORS preflight.
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(params).toString(),
-    ...(signal ? { signal } : {}),
-  });
-  if (!res.ok) throw new Error(`MRSAC returned HTTP ${res.status}`);
-  const data = await res.json();
-  if (data?.error) throw new Error(data.error.message || "MRSAC query failed");
-  return data;
+  await slot();
+  try {
+    let last: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      try {
+        return await arcgisOnce(url, params, signal);
+      } catch (e) {
+        if (signal?.aborted) throw e;
+        last = e;
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
+    }
+    throw new Error(`${MRSAC_UNAVAILABLE}${last instanceof Error && /HTTP|timeout|abort/i.test(last.message) ? "" : ""}`);
+  } finally {
+    release();
+  }
 }
 
 const bboxOf = (rings: Ring[]): [number, number, number, number] => {
@@ -129,22 +170,24 @@ const overlap = (p: [number, number, number, number], q: [number, number, number
  * polygons partition the state, so the best bbox overlap is the village itself.
  */
 export async function findVillage(extent: [number, number, number, number], signal?: AbortSignal): Promise<MrsacVillage | null> {
-  const data = await arcgis(
-    `${VILLAGE_LAYER}/query`,
-    {
-      f: "json", where: "1=1", geometry: extent.join(","), geometryType: "esriGeometryEnvelope", inSR: "4326", outSR: "4326",
-      spatialRel: "esriSpatialRelIntersects", outFields: "VIL_NAME,VINCODE", returnGeometry: "true", maxAllowableOffset: "0.00005",
-    },
-    signal
-  );
-  let best: { v: MrsacVillage; score: number } | null = null;
-  for (const f of data.features ?? []) {
-    const rings = (f.geometry?.rings ?? []) as Ring[];
-    if (!rings.length) continue;
-    const score = overlap(bboxOf(rings), extent);
-    if (!best || score > best.score) best = { v: { name: String(f.attributes.VIL_NAME ?? ""), code: String(f.attributes.VINCODE ?? ""), rings }, score };
-  }
-  return best && best.score > 0.3 ? best.v : null;
+  const base = { f: "json", where: "1=1", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects", outFields: "VIL_NAME,VINCODE", returnGeometry: "true", maxAllowableOffset: "0.00005" };
+  const pick = (data: any) => {
+    let best: { v: MrsacVillage; score: number } | null = null;
+    for (const f of data.features ?? []) {
+      const rings = (f.geometry?.rings ?? []) as Ring[];
+      if (!rings.length) continue;
+      const score = overlap(bboxOf(rings), extent);
+      if (!best || score > best.score) best = { v: { name: String(f.attributes.VIL_NAME ?? ""), code: String(f.attributes.VINCODE ?? ""), rings }, score };
+    }
+    return best && best.score > 0.3 ? best.v : null;
+  };
+  // Village polygons partition the state, so the polygon under the extent's centre is normally the village:
+  // one feature instead of every village overlapping the extent (that query took 16 s on a cold server).
+  const cx = (extent[0] + extent[2]) / 2;
+  const cy = (extent[1] + extent[3]) / 2;
+  const hit = pick(await arcgis(`${VILLAGE_LAYER}/query`, { ...base, geometry: `${cx},${cy}`, geometryType: "esriGeometryPoint" }, signal));
+  if (hit) return hit;
+  return pick(await arcgis(`${VILLAGE_LAYER}/query`, { ...base, geometry: extent.join(","), geometryType: "esriGeometryEnvelope" }, signal));
 }
 
 /** All features of one layer that touch the village polygon, as GeoJSON (degrees). */

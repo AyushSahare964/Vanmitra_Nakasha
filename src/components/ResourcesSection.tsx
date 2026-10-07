@@ -15,6 +15,7 @@ interface Props {
   villageSelected: boolean;
   status: "idle" | "loading" | "ready" | "error";
   error: string | null;
+  onRetry?: () => void;
   villageName: string | null;
   counts: Record<string, ResCount>;
   visible: Set<string>;
@@ -42,7 +43,16 @@ export function ResourcesSection(p: Props) {
           <div className="rounded border border-sky-200 bg-sky-50/60 p-2">
             <div className="font-semibold text-sky-900">In this village{p.villageName ? ` — ${p.villageName}` : ""}</div>
             {p.status === "loading" && <div className="mt-1 text-slate-500">Loading resources…</div>}
-            {p.status === "error" && <div className="mt-1 text-red-700">{p.error}</div>}
+            {p.status === "error" && (
+              <div className="mt-1 flex items-start justify-between gap-2 text-red-700">
+                <span>{p.error}</span>
+                {p.onRetry && (
+                  <button type="button" onClick={p.onRetry} className="shrink-0 font-semibold underline">
+                    Retry
+                  </button>
+                )}
+              </div>
+            )}
             {p.status === "ready" && (
               <>
                 {p.insight.length > 0 && (

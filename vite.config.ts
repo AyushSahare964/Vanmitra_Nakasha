@@ -77,7 +77,7 @@ function handleBhuNaksha(req: IncomingMessage, res: ServerResponse) {
       }
     } catch (_) {}
 
-    const makeReq = (path: string, currentCookie: string, redirects = 0) => {
+    const makeReq = (path: string, currentCookie: string, redirects = 0, tries = 0) => {
       if (redirects > 3) {
         if (!res.headersSent) {
           res.writeHead(502, { "Content-Type": "application/json" });
@@ -116,10 +116,19 @@ function handleBhuNaksha(req: IncomingMessage, res: ServerResponse) {
           makeReq(loc, cachedCookie || currentCookie, redirects + 1);
           return;
         }
-        res.writeHead(pres.statusCode || 200, pres.headers);
+        const h = { ...pres.headers };
+        if (pres.statusCode === 200 && path.startsWith("/WMS") && /image\//.test(String(h["content-type"]))) { h["cache-control"] = "public, max-age=3600"; delete h["pragma"]; delete h["expires"]; }
+        // A duplicate retry (error fired twice) can answer after another attempt already did.
+        if (res.headersSent) return void pres.resume();
+        res.writeHead(pres.statusCode || 200, h);
         pres.pipe(res);
       });
+      let errored = false;
       pr.on("error", (e) => {
+        if (errored) return;
+        errored = true;
+        // The portal randomly resets ~1 in 4 calls; a resend almost always succeeds.
+        if (!res.headersSent && tries < 2) return void setTimeout(() => makeReq(path, cachedCookie || currentCookie, redirects, tries + 1), 400);
         if (!res.headersSent) {
           res.writeHead(502, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "BhuNaksha gateway error", message: e.message }));

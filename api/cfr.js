@@ -39,7 +39,7 @@ export default function handler(req, res) {
         pres.on("end", () => {
           try {
             const f = JSON.parse(raw).features?.[0];
-            send(res, 200, { properties: f?.properties ?? null }, true);
+            send(res, 200, { properties: f?.properties ?? null, ...(u.searchParams.get("geom") ? { geometry: f?.geometry ?? null } : {}) }, true);
           } catch {
             send(res, 502, { error: "bad upstream response" });
           }

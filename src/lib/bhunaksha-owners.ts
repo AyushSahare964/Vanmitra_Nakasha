@@ -192,9 +192,12 @@ function evictCache(): void {
   (expired.length ? expired : entries.slice(0, Math.ceil(entries.length / 2))).forEach((e) => localStorage.removeItem(e.key));
 }
 
+let storageFullUntil = 0; // after a failed eviction, stop scanning localStorage on every write for a while
+
 function writeCache(gisCode: string, plotNo: string, value: PlotRecordResult): void {
   const key = cacheKey(gisCode, plotNo);
   memoryCache.set(key, value);
+  if (Date.now() < storageFullUntil) return;
   const payload = JSON.stringify({ t: Date.now(), v: value });
   try {
     localStorage.setItem(key, payload);
@@ -204,41 +207,99 @@ function writeCache(gisCode: string, plotNo: string, value: PlotRecordResult): v
       localStorage.setItem(key, payload);
     } catch {
       // Still full — non-fatal, the memory cache carries the session.
+      storageFullUntil = Date.now() + 60_000;
     }
   }
 }
 
+/**
+ * Every record fetch in the app shares these slots, so the village-wide load and the CFR
+ * recognized-first load together never put more than MAX_PORTAL_CALLS on the portal
+ * (it resets connections under load). `urgent` callers are served first.
+ */
+const MAX_PORTAL_CALLS = 8;
+let activeCalls = 0;
+const waiting: { urgent: boolean; go: () => void }[] = [];
+function acquireSlot(urgent: boolean): Promise<void> {
+  if (activeCalls < MAX_PORTAL_CALLS) {
+    activeCalls++;
+    return Promise.resolve();
+  }
+  return new Promise((go) => {
+    const w = { urgent, go: () => go() };
+    if (urgent) waiting.unshift(w);
+    else waiting.push(w);
+  });
+}
+function releaseSlot(): void {
+  const next = waiting.shift();
+  if (next) next.go(); // slot handed over, count unchanged
+  else activeCalls--;
+}
+
+// Two callers (the village-wide load and the CFR recognized-first load) often want the same parcel at once.
+const recordInflight = new Map<string, Promise<PlotRecordResult>>();
+
 /** Fetches the authentic 7/12 record for a single parcel. */
-export async function fetchPlotRecord(
+export function fetchPlotRecord(gisCode: string, plotNo: string, signal?: AbortSignal, urgent = false): Promise<PlotRecordResult> {
+  const cached = readCache(gisCode, plotNo);
+  if (cached) return Promise.resolve(cached);
+  const key = `${gisCode}|${plotNo}`;
+  let p = recordInflight.get(key);
+  if (!p) {
+    p = fetchPlotRecordUncached(gisCode, plotNo, signal, urgent);
+    recordInflight.set(key, p);
+    void p.then(
+      () => recordInflight.delete(key),
+      () => recordInflight.delete(key)
+    );
+  }
+  return p;
+}
+
+async function fetchPlotRecordUncached(
   gisCode: string,
   plotNo: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  urgent = false
 ): Promise<PlotRecordResult> {
-  const cached = readCache(gisCode, plotNo);
-  if (cached) return cached;
-
-  let pInfo: PortalPayload | null = null;
-  // Bounded: a hung portal must not pin a worker forever. Caller cancellation still propagates.
-  const timeout = new AbortController();
-  const timer = setTimeout(() => timeout.abort(), 15000);
-  const onAbort = () => timeout.abort();
-  signal?.addEventListener("abort", onAbort);
+  await acquireSlot(urgent);
   try {
-    const res = await fetch(BHUNAKSHA_REST_BASE + "/MapInfo/getPlotInfo", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `state=${BHUNAKSHA_STATE}&giscode=${gisCode}&plotno=${encodeURIComponent(plotNo)}&srs=4326`,
-      signal: timeout.signal,
-    });
-    if (res.ok) pInfo = await res.json();
-  } catch (err) {
-    if (signal?.aborted) throw err;
-    // Network/gateway failure — reported as not found, and not cached so it can retry.
-    return { plotno: plotNo, plotid: plotNo, owner: "", area: "", records: [], found: false };
+    return await fetchPlotRecordSlot(gisCode, plotNo, signal);
   } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener("abort", onAbort);
+    releaseSlot();
   }
+}
+
+async function fetchPlotRecordSlot(gisCode: string, plotNo: string, signal?: AbortSignal): Promise<PlotRecordResult> {
+  // Queued behind other parcels and the user has moved on: skip the portal call entirely.
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  let pInfo: PortalPayload | null = null;
+  // The portal often needs 10-16 s per call, so a short timeout wrongly marked parcels "unavailable"
+  // (and misclassified them in the CFR status filter). One retry covers a dropped connection.
+  for (let attempt = 0; attempt < 2 && !pInfo; attempt++) {
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), 30000);
+    const onAbort = () => timeout.abort();
+    signal?.addEventListener("abort", onAbort);
+    try {
+      const res = await fetch(BHUNAKSHA_REST_BASE + "/MapInfo/getPlotInfo", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `state=${BHUNAKSHA_STATE}&giscode=${gisCode}&plotno=${encodeURIComponent(plotNo)}&srs=4326`,
+        signal: timeout.signal,
+      });
+      if (res.ok) pInfo = await res.json();
+      else if (res.status < 500) break; // a definite answer (e.g. unknown plot): retrying will not change it
+    } catch (err) {
+      if (signal?.aborted) throw err;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    }
+  }
+  // Both attempts failed: reported as not found, and not cached so a later visit retries.
+  if (!pInfo) return { plotno: plotNo, plotid: plotNo, owner: "", area: "", records: [], found: false };
 
   const records = recordsFromPlotInfo(plotNo, pInfo);
   const first = records[0];
@@ -282,6 +343,8 @@ export interface BulkFetchOptions {
   /** Results per onBatch call. */
   batchSize?: number;
   signal?: AbortSignal;
+  /** Served before the village-wide queue (e.g. CFR recognized parcels). */
+  urgent?: boolean;
 }
 
 /**
@@ -291,7 +354,7 @@ export interface BulkFetchOptions {
 export async function bulkFetchVillageRecords(
   gisCode: string,
   plotNos: string[],
-  { concurrency = 6, onBatch, batchSize = 25, signal }: BulkFetchOptions = {}
+  { concurrency = 6, onBatch, batchSize = 25, signal, urgent = false }: BulkFetchOptions = {}
 ): Promise<PlotRecordResult[]> {
   const total = plotNos.length;
   const all: PlotRecordResult[] = [];
@@ -315,7 +378,7 @@ export async function bulkFetchVillageRecords(
       const plotNo = plotNos[cursor++];
       if (!plotNo) continue;
       try {
-        const rec = await fetchPlotRecord(gisCode, plotNo, signal);
+        const rec = await fetchPlotRecord(gisCode, plotNo, signal, urgent);
         all.push(rec);
         pending.push(rec);
       } catch (err) {

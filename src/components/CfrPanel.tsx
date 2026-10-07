@@ -40,6 +40,7 @@ interface Props {
   matchedSurveys: number;
   unmatched: string[];
   explorer: ReactNode;
+  report: ReactNode;
   purposes: Set<PurposeGroup>;
   onPurpose: (g: PurposeGroup) => void;
   cadastral: { enabled: boolean; opacity: number };
@@ -251,6 +252,12 @@ export function CfrPanel(p: Props) {
                 </span>
               </label>
             )}
+            {p.villageSelected && p.atree.villageOnly && p.atreeVillage && !p.atreeLoading && (p.atree.potential || p.atree.recognized) && (
+              <p className="text-[10px] text-slate-600">
+                {p.atree.potential && (p.atreeVillage.potential ? "▭ Green dashed = CFR potential. " : "This village is not in ATREE's CFR-potential list. ")}
+                {p.atree.recognized && (p.atreeVillage.recognized ? "▬ Purple = CFR recognized." : "No CFR title recognized here yet.")}
+              </p>
+            )}
             <label className="flex items-center gap-2 text-slate-600">
               Opacity
               <input type="range" min={20} max={100} value={p.atree.opacity} onChange={(e) => p.onAtree({ opacity: Number(e.target.value) })} className="flex-1" />
@@ -340,6 +347,7 @@ export function CfrPanel(p: Props) {
                 <Chips items={PURPOSE_GROUPS.map((g) => ({ key: g.key, label: g.label }))} on={p.purposes} toggle={p.onPurpose} />
               </div>
             )}
+            {p.report}
             {p.explorer}
           </>
         ) : haveDistrict ? (

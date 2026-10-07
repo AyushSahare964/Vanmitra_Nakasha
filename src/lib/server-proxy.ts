@@ -84,7 +84,7 @@ async function handleCfr(url: URL): Promise<Response> {
             const data = JSON.parse(raw);
             const f = data.features?.[0];
             resolve(
-              new Response(JSON.stringify({ properties: f?.properties ?? null }), {
+              new Response(JSON.stringify({ properties: f?.properties ?? null, ...(url.searchParams.get("geom") ? { geometry: f?.geometry ?? null } : {}) }), {
                 status: 200,
                 headers: {
                   "Content-Type": "application/json",
@@ -215,8 +215,12 @@ async function handleBhuNaksha(request: Request, url: URL): Promise<Response> {
 
   const bodyBuffer = request.body ? Buffer.from(await request.arrayBuffer()) : Buffer.alloc(0);
 
+  const contentType = request.headers.get("content-type");
+  const accept = request.headers.get("accept");
+  let sessionCookie = cookie;
+
   return new Promise((resolve) => {
-    const doRequest = (pathStr: string, redirects = 0) => {
+    const doRequest = (pathStr: string, redirects = 0, tries = 0) => {
       if (redirects > 3) {
         resolve(
           new Response(JSON.stringify({ error: "Too many redirects from BhuNaksha" }), {
@@ -235,7 +239,10 @@ async function handleBhuNaksha(request: Request, url: URL): Promise<Response> {
         "user-agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       };
-      if (cookie) headers["cookie"] = cookie;
+      // The portal's REST endpoints 404 a form POST that arrives without its Content-Type.
+      if (contentType) headers["content-type"] = contentType;
+      if (accept) headers["accept"] = accept;
+      if (sessionCookie) headers["cookie"] = sessionCookie;
       if (bodyBuffer.length > 0) headers["content-length"] = String(bodyBuffer.length);
 
       const opts = {
@@ -252,6 +259,7 @@ async function handleBhuNaksha(request: Request, url: URL): Promise<Response> {
           const nc = pres.headers["set-cookie"].map((c) => c.split(";")[0]).join("; ");
           if (nc) {
             cachedCookie = nc;
+            sessionCookie = nc;
             lastCookieTime = Date.now();
           }
         }
@@ -297,6 +305,11 @@ async function handleBhuNaksha(request: Request, url: URL): Promise<Response> {
       });
 
       pr.on("error", (e) => {
+        // The portal randomly resets ~1 in 4 calls; a resend almost always succeeds.
+        if (tries < 2) {
+          setTimeout(() => doRequest(pathStr, redirects, tries + 1), 400);
+          return;
+        }
         resolve(
           new Response(JSON.stringify({ error: "BhuNaksha gateway error", message: e.message }), {
             status: 502,

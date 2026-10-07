@@ -1,10 +1,8 @@
 /**
  * mh-village-data.ts
- * Parses mh_cfr_potential_villages.xlsx (17,256 MH villages) using SheetJS.
+ * Loads mh_cfr_potential_villages.json (17,256 MH villages; built from the xlsx by scripts/build-village-list.mjs).
  * Provides district → taluka → village cascading lookups for the Search Village panel.
  */
-
-import * as XLSX from "xlsx";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +31,7 @@ let _loading: Promise<MHVillage[]> | null = null;
 // ── Main loader ───────────────────────────────────────────────────────────────
 
 /**
- * Lazily fetches and parses the xlsx file from /data/mh_cfr_potential_villages.xlsx.
+ * Lazily fetches /data/mh_cfr_potential_villages.json.
  * Results are cached in memory after the first call.
  */
 export async function loadVillageData(): Promise<MHVillage[]> {
@@ -41,31 +39,10 @@ export async function loadVillageData(): Promise<MHVillage[]> {
   if (_loading) return _loading;
 
   _loading = (async () => {
-    const resp = await fetch("/data/mh_cfr_potential_villages.xlsx");
-    if (!resp.ok) throw new Error(`Failed to fetch village xlsx: ${resp.status}`);
-    const arrayBuffer = await resp.arrayBuffer();
-    const wb = XLSX.read(arrayBuffer, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0] ?? ""];
-    if (!ws) throw new Error("Could not read xlsx sheet");
-    // header:1 gives us arrays; default gives objects keyed by header row
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
-
-    const villages: MHVillage[] = rows.map((r) => ({
-      district:             String(r["District"] ?? ""),
-      subdistrict:          String(r["Subdistrict"] ?? ""),
-      gramPanchayat:        String(r["Gram Panchayat"] ?? ""),
-      village:              String(r["Village"] ?? ""),
-      villageCode:          String(r["Village Code 2011"] ?? ""),
-      totalAreaHa:          Number(r["Total Geographical Area (ha)"] ?? 0),
-      gisAreaHa:            Number(r["Calculated GIS Area (ha)"] ?? 0),
-      households:           Number(r["Total Households"] ?? 0),
-      population:           Number(r["Total Population"] ?? 0),
-      villageType:          String(r["Village Type"] ?? ""),
-      cfrType:              String(r["CFR Type"] ?? ""),
-      forestInsideHa:       Number(r["Forest inside revenue boundary (ha)"] ?? 0),
-      potentialCfrHa:       Number(r["Potential CFR area in 2 Km buffer (ha)"] ?? 0),
-      totalCfrPotentialHa:  Number(r["Total CFR potential (ha) (Forest inside revenue boundary + Forest in 2 km buffer)"] ?? 0),
-    }));
+    // Prebuilt by scripts/build-village-list.mjs: no workbook parsing in the browser.
+    const resp = await fetch("/data/mh_cfr_potential_villages.json");
+    if (!resp.ok) throw new Error(`Failed to fetch village list: ${resp.status}`);
+    const villages = (await resp.json()) as MHVillage[];
 
     _cache = villages;
     return villages;

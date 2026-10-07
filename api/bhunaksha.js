@@ -1,6 +1,9 @@
 // Vercel Serverless Function: MahaBhuNakasha WMS & GeoData Proxy
 import https from "node:https";
 
+// Reused TLS connections: the portal is far from the function, so a fresh handshake per tile is costly.
+const agent = new https.Agent({ keepAlive: true, maxSockets: 16, keepAliveMsecs: 10000 });
+
 let cachedCookie = "";
 let lastCookieTime = 0;
 
@@ -96,7 +99,7 @@ export default async function handler(req, res) {
     }
   } catch (_) {}
 
-  const makeReq = (p, currentCookie, redirects = 0) => {
+  const makeReq = (p, currentCookie, redirects = 0, tries = 0) => {
     if (redirects > 3) {
       res.status(502).json({ error: "Too many redirects from BhuNaksha" });
       return;
@@ -120,6 +123,7 @@ export default async function handler(req, res) {
       method: req.method,
       headers,
       rejectUnauthorized: false,
+      agent,
     };
 
     const pr = https.request(opts, (pres) => {
@@ -141,6 +145,7 @@ export default async function handler(req, res) {
       delete respHeaders["content-security-policy"];
       delete respHeaders["x-frame-options"];
       delete respHeaders["transfer-encoding"];
+      if (pres.statusCode === 200 && /WMS/.test(p) && /image\//.test(String(pres.headers["content-type"]))) { respHeaders["cache-control"] = "public, max-age=3600, s-maxage=86400"; delete respHeaders["pragma"]; delete respHeaders["expires"]; }
       respHeaders["access-control-allow-origin"] = "*";
       respHeaders["access-control-allow-methods"] = "GET, POST, OPTIONS";
       respHeaders["access-control-allow-headers"] = "*";
@@ -149,12 +154,18 @@ export default async function handler(req, res) {
     });
 
     pr.on("error", (e) => {
+      if (res.destroyed || res.writableEnded) return; // client already left: no retry
+      // The portal randomly resets ~1 in 4 calls; a resend almost always succeeds.
+      if (!res.headersSent && tries < 2) return void setTimeout(() => makeReq(p, cachedCookie || currentCookie, redirects, tries + 1), 400);
       if (!res.headersSent) {
         res.status(502).json({ error: "BhuNaksha gateway error", message: e.message });
       }
     });
 
     // Fail fast instead of holding the connection while the portal hangs.
+    // Browser gave up (navigated / panned / aborted): stop the portal call instead of letting it run to 90 s.
+    // res (not req) 'close': req 'close' also fires on a normal finished request body.
+    res.on("close", () => { if (!res.writableEnded) pr.destroy(); });
     pr.setTimeout(90000, () => pr.destroy(new Error("BhuNaksha did not answer within 90s")));
     if (body.length) pr.write(body);
     pr.end();

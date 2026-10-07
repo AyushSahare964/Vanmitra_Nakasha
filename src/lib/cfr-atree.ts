@@ -15,22 +15,28 @@ export interface AtreeVillage {
   tehsil: string;
   /** Agreement of the sample points, 0–1. Low means the extent straddles villages. */
   confidence: number;
+  /** The village polygon (GeoJSON, EPSG:4326) so the map can draw it as a crisp vector instead of tiles. */
+  geometry?: GeoJSONGeometry;
   potential?: Record<string, unknown>;
   recognized?: Record<string, unknown>;
 }
 
 type Props = Record<string, unknown> | null;
+type GeoJSONGeometry = { type: string; coordinates: unknown };
 
-async function lookup(layer: string, lon: number, lat: number, signal?: AbortSignal): Promise<Props> {
+async function lookupFull(layer: string, lon: number, lat: number, geom: boolean, signal?: AbortSignal): Promise<{ properties: Props; geometry?: GeoJSONGeometry | null } | null> {
   try {
-    const res = await fetch(`/api/cfr?layer=${layer}&lon=${lon}&lat=${lat}`, signal ? { signal } : {});
+    const res = await fetch(`/api/cfr?layer=${layer}&lon=${lon}&lat=${lat}${geom ? "&geom=1" : ""}`, signal ? { signal } : {});
     if (!res.ok) return null;
-    return ((await res.json()) as { properties: Props }).properties;
+    return (await res.json()) as { properties: Props; geometry?: GeoJSONGeometry | null };
   } catch (err) {
     if ((err as Error)?.name === "AbortError") throw err;
     return null;
   }
 }
+
+const lookup = async (layer: string, lon: number, lat: number, signal?: AbortSignal): Promise<Props> =>
+  (await lookupFull(layer, lon, lat, false, signal))?.properties ?? null;
 
 /** `extent` is [minLon, minLat, maxLon, maxLat] in real (already Vidarbha-corrected) degrees. */
 export async function identifyAtreeVillage(
@@ -41,19 +47,20 @@ export async function identifyAtreeVillage(
   const pts: [number, number][] = [];
   for (const fx of [0.25, 0.5, 0.75]) for (const fy of [0.25, 0.5, 0.75]) pts.push([x0 + (x1 - x0) * fx, y0 + (y1 - y0) * fy]);
 
-  const hits = await Promise.all(pts.map(([lon, lat]) => lookup("mh_villages_en", lon, lat, signal)));
-  const votes = new Map<string, { n: number; props: Record<string, unknown>; at: [number, number] }>();
-  hits.forEach((p, i) => {
+  const hits = await Promise.all(pts.map(([lon, lat]) => lookupFull("mh_villages_en", lon, lat, true, signal)));
+  const votes = new Map<string, { n: number; props: Record<string, unknown>; at: [number, number]; geometry: GeoJSONGeometry | null }>();
+  hits.forEach((h, i) => {
+    const p = h?.properties;
     const code = p && String(p["Village Code"] ?? "");
     if (!p || !code) return;
-    const v = votes.get(code) ?? { n: 0, props: p, at: pts[i]! };
+    const v = votes.get(code) ?? { n: 0, props: p, at: pts[i]!, geometry: h?.geometry ?? null };
     v.n += 1;
     votes.set(code, v);
   });
   const top = [...votes.entries()].sort((a, b) => b[1].n - a[1].n)[0];
   if (!top || top[1].n < 2) return null;
 
-  const [code, { n, props, at }] = top;
+  const [code, { n, props, at, geometry }] = top;
   const [potential, recognized] = await Promise.all([
     lookup("mh_cfr_potential_villages", at[0], at[1], signal),
     lookup("mh_cfr_recognized_villages", at[0], at[1], signal),
@@ -63,6 +70,7 @@ export async function identifyAtreeVillage(
     name: String(props["Village"] ?? ""),
     tehsil: String(props["Tehsil"] ?? ""),
     confidence: n / pts.length,
+    ...(geometry ? { geometry } : {}),
     ...(potential ? { potential } : {}),
     ...(recognized ? { recognized } : {}),
   };

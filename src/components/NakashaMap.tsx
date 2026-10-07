@@ -33,7 +33,7 @@ import Stroke from "ol/style/Stroke.js";
 import Fill from "ol/style/Fill.js";
 import Text from "ol/style/Text.js";
 
-import { extend, createEmpty, isEmpty } from "ol/extent.js";
+import { extend, createEmpty, isEmpty, getCenter } from "ol/extent.js";
 
 import "ol/ol.css";
 
@@ -55,10 +55,17 @@ import {
   type ParsedOwner,
 } from "@/lib/marathi-search";
 import { CATEGORIES, classifyParcel, familyKey, type Category } from "@/lib/land-categories";
+import { calibrateVillage, readCachedCalibration, type AutoCalibration } from "@/lib/cadastral-calibration";
+import { describeResource, detailsAsText, locationLinks, type ResourceDetails } from "@/lib/resource-details";
+import { getArea } from "ol/sphere.js";
 import { LandExplorer, type ExplorerRow, type SortKey } from "@/components/LandExplorer";
 import { CfrPanel, type CfrAtreeState } from "@/components/CfrPanel";
 import { identifyAtreeVillage, type AtreeVillage } from "@/lib/cfr-atree";
 import { ResourcesSection, type ResCount } from "@/components/ResourcesSection";
+import { ReportButton } from "@/components/ReportButton";
+import { buildReport, type ReportPlot } from "@/lib/village-report";
+import { surveyResourceMap } from "@/lib/survey-resources";
+import { buildExcel } from "@/lib/survey-excel";
 import {
   RES_LAYERS,
   fetchResource,
@@ -120,8 +127,8 @@ interface NakashaMapProps {
 type BasemapKey = "google-hybrid" | "google-satellite" | "esri" | "osm";
 
 const BASEMAPS: Record<BasemapKey, { label: string; url: string; maxZoom: number }> = {
-  "google-hybrid": { label: "Google Satellite (Hybrid)", url: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", maxZoom: 21 },
-  "google-satellite": { label: "Google Satellite", url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", maxZoom: 21 },
+  "google-hybrid": { label: "Google Satellite (Hybrid)", url: "https://mt{0-3}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", maxZoom: 21 },
+  "google-satellite": { label: "Google Satellite", url: "https://mt{0-3}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", maxZoom: 21 },
   esri: { label: "ESRI World Imagery", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxZoom: 19 },
   osm: { label: "OpenStreetMap", url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png", maxZoom: 19 },
 };
@@ -130,6 +137,27 @@ const BASEMAPS: Record<BasemapKey, { label: string; url: string; maxZoom: number
 const BHUNAKSHA_STATE = "27"; // Maharashtra
 const BHUNAKSHA_WMS_URL = "/bhunaksha/WMS";
 const BHUNAKSHA_REST_BASE = "/bhunaksha/rest";
+
+// Load priority: basemap first, then cadastral, then every other overlay. Lower tiers hold their tile requests
+// until the tiers above are idle (or 6s pass), so the slow portal/overlay servers never starve the basemap.
+const tilePending = { base: 0, cad: 0 };
+function trackTiles(src: any, tier: "base" | "cad") {
+  src.on("tileloadstart", () => { tilePending[tier]++; });
+  src.on(["tileloadend", "tileloaderror"], () => { tilePending[tier] = Math.max(0, tilePending[tier] - 1); });
+}
+function waitIdle(tiers: ("base" | "cad")[]) {
+  return new Promise<void>((resolve) => {
+    const t0 = Date.now();
+    let quiet = 0;
+    const tick = () => {
+      quiet = tiers.every((t) => tilePending[t] === 0) ? quiet + 1 : 0;
+      if (quiet >= 2 || Date.now() - t0 > 6000) return resolve();
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
+}
+const gatedTileLoad = (tiers: ("base" | "cad")[]) => (tile: any, src: string) => { waitIdle(tiers).then(() => { tile.getImage().src = src; }); };
 
 const NORMALIZE_DISTRICT: Record<string, string> = {
   "Bid": "Beed", "Garhchiroli": "Gadchiroli", "Gondiya": "Gondia",
@@ -928,7 +956,7 @@ export const DEFAULT_DISTRICTS: BNLevel[] = [
 const DEFAULT_LABELS = ["Category", "District", "Taluka", "Village", "Map Type", "Survey No."];
 
 // High-performance style caches to avoid allocating thousands of Style objects during pan/zoom
-const districtStyleCache = new Map<string, Style>();
+const districtStyleCache = new globalThis.Map<string, Style>();
 function createDistrictStyle(feature: any) {
   const name = feature.get("NAME_2") || feature.get("NAME_1") || "";
   let s = districtStyleCache.get(name);
@@ -954,7 +982,7 @@ const talukaBaseStyle = new Style({
   stroke: new Stroke({ color: "#2563eb", width: 1.2 }),
   fill: new Fill({ color: "rgba(37, 99, 235, 0.03)" }),
 });
-const talukaStyleCache = new Map<string, Style>();
+const talukaStyleCache = new globalThis.Map<string, Style>();
 function createTalukaStyle(feature: any, resolution: number) {
   if (resolution >= 300) return talukaBaseStyle;
   const name = feature.get("NAME_3") || "";
@@ -981,7 +1009,7 @@ const villageBaseStyle = new Style({
   stroke: new Stroke({ color: "#16a34a", width: 1.2 }),
   fill: new Fill({ color: "rgba(22, 163, 74, 0.05)" }),
 });
-const villageStyleCache = new Map<string, Style>();
+const villageStyleCache = new globalThis.Map<string, Style>();
 function createVillageStyle(feature: any, resolution: number) {
   if (resolution >= 120) return villageBaseStyle;
   const name = feature.get("NAME") || "";
@@ -1017,6 +1045,40 @@ const LEVEL_TTL_MS = 7 * 24 * 3600 * 1000;
 // `Map` is OpenLayers' class in this module, so the built-in one is reached through globalThis.
 const levelMem = new globalThis.Map<string, any>();
 const levelInflight = new globalThis.Map<string, Promise<{ rows: any[]; error: string | null }>>();
+
+/**
+ * The portal's village / survey-number lists have ~2,000 options. Rebuilding them on every unrelated render
+ * (each owner-record batch re-renders this whole component) cost hundreds of ms, so they re-render only when
+ * the list, or whatever the optional `mark` depends on (`deps`), actually changes.
+ */
+const LevelOptions = React.memo(
+  function LevelOptions({ options, mark }: { options: BNLevel[]; mark?: (value: string) => string; deps?: unknown[] }) {
+    return (
+      <>
+        {options.map((lvl, i) => (
+          <option key={`${lvl.code}:${i}`} value={lvl.code}>
+            {lvl.value}
+            {mark ? mark(lvl.value) : ""}
+          </option>
+        ))}
+      </>
+    );
+  },
+  (a, b) => a.options === b.options && (a.deps?.length ?? 0) === (b.deps?.length ?? 0) && (a.deps ?? []).every((d, i) => d === b.deps![i])
+);
+
+// One collator each: String.localeCompare(..., locale) builds a new collator on every call, which made sorting 2,000 parcels take ~0.7 s.
+const MR_COLLATOR = new Intl.Collator("mr");
+const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true });
+const surveyNumCache = new globalThis.Map<string, number>();
+function surveyNum(plotno: string): number {
+  let n = surveyNumCache.get(plotno);
+  if (n === undefined) {
+    n = parseInt(String(plotno).replace(/[^0-9]/g, ""), 10);
+    surveyNumCache.set(plotno, n);
+  }
+  return n;
+}
 
 function readLevelCache(key: string): any[] | null {
   const m = levelMem.get(key);
@@ -1078,6 +1140,35 @@ export const resetPortalBreaker = () => {
   portalDownUntil = 0;
 };
 const PORTAL_DOWN_MSG = "MahaBhuNakasha (the government portal) is not responding right now. Cached data still works; try Retry in a minute.";
+
+/**
+ * District/taluka/village lists are snapshotted into /data/bn/*.json (scripts/build-bn-lists.mjs).
+ * They almost never change, while the live portal needs 8-15 s per call and drops connections, so
+ * the app reads these static files first and only asks the portal when a file is missing.
+ */
+const snapFiles = new globalThis.Map<string, Promise<any | null>>();
+function snapFile(name: string): Promise<any | null> {
+  let p = snapFiles.get(name);
+  if (!p) {
+    p = fetch(`/data/bn/${name}.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null); // dev SPA fallback returns HTML for a missing file -> JSON parse throws -> null
+    snapFiles.set(name, p);
+    void p.then((d: any) => !d && snapFiles.delete(name)); // do not remember failures
+  }
+  return p;
+}
+async function snapshotRows(level: number, codes: string): Promise<any[] | null> {
+  const [cat, dist, tal] = codes.split(",");
+  if (!cat) return null;
+  const asRow = (x: { code: string; value: string; hasData: boolean }) => ({ code: x.code, value: x.value, extraParms: { hasData: x.hasData } });
+  if (level === 1) return ((await snapFile(cat)) as any[] | null)?.map(asRow) ?? null;
+  if (!dist) return null;
+  const talukas = (await snapFile(`${cat}-${dist}`)) as { code: string; value: string; hasData: boolean; villages: any[] }[] | null;
+  if (!Array.isArray(talukas)) return null;
+  if (level === 2) return talukas.map(asRow);
+  return talukas.find((t) => t.code === tal)?.villages?.map(asRow) ?? null;
+}
 
 async function portalJson<T = any>(path: string, body: string, cacheKey?: string): Promise<T> {
   if (cacheKey) {
@@ -1237,6 +1328,12 @@ type HighlightType = "surname" | "owner" | "forest" | "waterbody" | "filter";
 
 export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, onLogout }: NakashaMapProps) {
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  useEffect(() => {
+    if (!aboutModalOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAboutModalOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [aboutModalOpen]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<Map | null>(null);
   const baseTileRef = useRef<TileLayer<XYZ> | null>(null);
@@ -1331,6 +1428,18 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // MRSAC water / forest resources: state-wide tiles, and the selected village's own features.
   const [resTile, setResTile] = useState<Record<string, boolean>>({});
   const [resOpacity, setResOpacity] = useState(85);
+  // Details card for a clicked MRSAC feature (well, structure, water body, forest compartment ...).
+  const [resInfo, setResInfo] = useState<{ details: ResourceDetails; surveys: { plotno: string; relation: string }[]; copied: boolean } | null>(null);
+  const resClickRef = useRef<((feat: any, coord: number[]) => void) | null>(null);
+  const resSelectedRef = useRef<any>(null);
+  const resLookupRef = useRef(0);
+  // PDF report: progress while the map shots are taken, and the abort handle for its Cancel button.
+  const [reportBusy, setReportBusy] = useState<{ done: number; total: number; label: string } | null>(null);
+  const reportAbortRef = useRef<AbortController | null>(null);
+  const [parcelInfo, setParcelInfo] = useState<{ plotno: string; lon: number; lat: number; copied: boolean } | null>(null);
+  const parcelClickRef = useRef<((coord: number[]) => void) | null>(null);
+  const parcelLookupRef = useRef(0);
+  const [resRetry, setResRetry] = useState(0); // bumped by the Retry button to re-run the MRSAC village queries
   const [resVillage, setResVillage] = useState<{
     status: "idle" | "loading" | "ready" | "error";
     village: MrsacVillage | null;
@@ -1387,12 +1496,24 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const [cadastralCalibX, setCadastralCalibX] = useState(0); // East(+) / West(-) in meters
   const [cadastralCalibY, setCadastralCalibY] = useState(0); // North(+) / South(-) in meters
 
+  // Where the current calibration came from: the regional seed estimate, or a per-village fit to satellite imagery.
+  const [calibSource, setCalibSource] = useState<"seed" | "pending" | "imagery">("seed");
+  const [calibDetail, setCalibDetail] = useState<AutoCalibration | null>(null);
+  const autoCalibRef = useRef<Record<string, AutoCalibration>>({});
+  const prevCalibRef = useRef({ x: 0, y: 0 });
   // Always use the verified calibration seeds (localStorage overrides if user previously saved custom ones)
   const calibrations = DEFAULT_MAHARASHTRA_CALIBRATION_SEEDS;
 
   // Auto-apply verified geodetic calibration pattern when a village/cadastral layer is selected
   useEffect(() => {
     if (!bnGisCode && !activeVillageDetails) return;
+
+    const fitted = bnGisCode ? autoCalibRef.current[bnGisCode] : undefined;
+    if (fitted) {
+      setCadastralCalibX(fitted.east);
+      setCadastralCalibY(fitted.north);
+      return;
+    }
 
     const vName = activeVillageDetails?.village || bnSelected[3] || "";
     const directMatch = calibrations.find(
@@ -1425,19 +1546,58 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // Synchronize calibration offset with TileWMS sources without DOM manipulation
   useEffect(() => {
     cadastralCalibRef.current = { x: cadastralCalibX, y: cadastralCalibY };
+    // Plot highlights were drawn with the previous calibration baked into their geometry: move them by the change.
+    const dx = cadastralCalibX - prevCalibRef.current.x;
+    const dy = cadastralCalibY - prevCalibRef.current.y;
+    prevCalibRef.current = { x: cadastralCalibX, y: cadastralCalibY };
+    if (dx || dy) plotMarkerLayerRef.current?.getSource()?.getFeatures().forEach((f) => f.getGeometry()?.translate(dx, dy));
     cadastralVillageSourceRef.current?.refresh();
     cadastralPlotSourceRef.current?.refresh();
     Object.values(atreeLayersRef.current).forEach((l) => l?.getSource()?.refresh());
     Object.values(resTileLayersRef.current).forEach((l) => l.getSource()?.refresh());
   }, [cadastralCalibX, cadastralCalibY]);
 
+  // Measure this village's real offset against the satellite imagery (worker, ~3 s) and replace the regional guess.
+  useEffect(() => {
+    if (!bnGisCode) return;
+    if (!/^RVM/.test(bnGisCode)) return setCalibSource("seed"); // urban maps: the regional estimate only
+    if (!bnVillageExtent) return setCalibSource("pending"); // the village extent has not arrived yet
+    const gis = bnGisCode;
+    const known = autoCalibRef.current[gis] ?? readCachedCalibration(gis);
+    if (known) {
+      autoCalibRef.current[gis] = known;
+      setCalibDetail(known);
+      setCalibSource("imagery");
+      setCadastralCalibX(known.east);
+      setCadastralCalibY(known.north);
+      return;
+    }
+    const ctl = new AbortController();
+    setCalibSource("pending");
+    setCalibDetail(null);
+    void calibrateVillage(gis, bnVillageExtent, { ...cadastralCalibRef.current }, ctl.signal)
+      .then((fit) => {
+        if (ctl.signal.aborted) return;
+        if (!fit) return setCalibSource("seed");
+        autoCalibRef.current[gis] = fit;
+        setCalibDetail(fit);
+        setCalibSource("imagery");
+        setCadastralCalibX(fit.east);
+        setCadastralCalibY(fit.north);
+      })
+      .catch(() => !ctl.signal.aborted && setCalibSource("seed"));
+    return () => ctl.abort();
+  }, [bnGisCode, bnVillageExtent]);
+
   // Map init
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
+    const baseSource = new XYZ({ url: BASEMAPS[basemap].url, maxZoom: 20, cacheSize: 4096, transition: 0 });
+    trackTiles(baseSource, "base");
     const baseTile = new TileLayer({
-      source: new XYZ({ url: BASEMAPS[basemap].url, maxZoom: 21, cacheSize: 4096, transition: 0 }),
+      source: baseSource,
       zIndex: 0,
-      preload: 2,
+      preload: 1,
     });
     baseTileRef.current = baseTile;
     const districtLayer = new VectorImageLayer({
@@ -1482,13 +1642,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         FORMAT: "image/png",
       },
       serverType: "geoserver",
+      hidpi: true,
       projection: "EPSG:3857",
-      tileGrid: createXYZ({ maxZoom: 21, tileSize: 512 }),
-      transition: 150,
+      tileGrid: createXYZ({ maxZoom: 20, tileSize: 512 }),
+      transition: 0,
       cacheSize: 2048,
       crossOrigin: "anonymous",
     });
 
+    trackTiles(cadastralVillageSource, "cad");
     const origVillageTileUrlFn = cadastralVillageSource.getTileUrlFunction();
     cadastralVillageSource.setTileUrlFunction((tileCoord, pixelRatio, projection) => {
       const url = origVillageTileUrlFn(tileCoord, pixelRatio, projection);
@@ -1516,7 +1678,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       visible: false,
       zIndex: 30,
       opacity: 0.9,
-      preload: 2,
+      preload: 0,
       properties: { name: "cadastral-village" },
     });
     cadastralVillageLayerRef.current = cadastralVillageLayer;
@@ -1537,13 +1699,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         FORMAT: "image/png",
       },
       serverType: "geoserver",
+      hidpi: true,
       projection: "EPSG:3857",
-      tileGrid: createXYZ({ maxZoom: 21, tileSize: 512 }),
-      transition: 150,
+      tileGrid: createXYZ({ maxZoom: 20, tileSize: 512 }),
+      transition: 0,
       cacheSize: 1024,
       crossOrigin: "anonymous",
     });
 
+    trackTiles(cadastralPlotSource, "cad");
     const origPlotTileUrlFn = cadastralPlotSource.getTileUrlFunction();
     cadastralPlotSource.setTileUrlFunction((tileCoord, pixelRatio, projection) => {
       const url = origPlotTileUrlFn(tileCoord, pixelRatio, projection);
@@ -1571,7 +1735,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       visible: false,
       zIndex: 35,
       opacity: 0.26,
-      preload: 2,
+      preload: 0,
       properties: { name: "cadastral-plot" },
     });
     cadastralPlotLayerRef.current = cadastralPlotLayer;
@@ -1592,7 +1756,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         center: MH_CENTER,
         zoom: MH_ZOOM,
         minZoom: 6,
-        maxZoom: 21,
+        maxZoom: 20,
         enableRotation: false,
         smoothResolutionConstraint: true,  // smooth fractional zoom — prevents WMS blank flash at snap points
         smoothExtentConstraint: true,
@@ -1600,6 +1764,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       controls: defaultControls({ zoom: false, rotate: false, attribution: false }),
     });
     mapInstanceRef.current = map;
+    if (import.meta.env.DEV) (window as any).__vmMap = map; // test hook for tests/perf (dev server only)
     setTimeout(() => map.updateSize(), 150);
 
     // Direct DOM text update: 0 React re-renders on every mouse move
@@ -1619,7 +1784,14 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       // Only execute land parcel identify, marking & sidebar auto-fill when identifyMode is explicitly activated by user
       if (identifyModeRef.current && handleIdentifyClickRef.current) {
         handleIdentifyClickRef.current(evt);
+        return;
       }
+      // Clicking a well / structure / water body / forest compartment opens its details card.
+      const hit = resVectorRef.current
+        ? map.forEachFeatureAtPixel(evt.pixel, (f) => f, { layerFilter: (l) => l === resVectorRef.current, hitTolerance: 8 })
+        : undefined;
+      if (hit) resClickRef.current?.(hit, evt.coordinate);
+      else parcelClickRef.current?.(evt.coordinate);
     });
     const handleResize = () => map.updateSize();
     window.addEventListener("resize", handleResize);
@@ -1627,7 +1799,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   }, []);
 
   useEffect(() => { const t = setTimeout(() => mapInstanceRef.current?.updateSize(), 200); return () => clearTimeout(t); }, [panelOpen]);
-  useEffect(() => { if (!baseTileRef.current) return; const cfg = BASEMAPS[basemap]; baseTileRef.current.setSource(new XYZ({ url: cfg.url, maxZoom: cfg.maxZoom, cacheSize: 4096, transition: 0 })); }, [basemap]);
+  useEffect(() => { if (!baseTileRef.current) return; const cfg = BASEMAPS[basemap]; const src = new XYZ({ url: cfg.url, maxZoom: Math.min(cfg.maxZoom, 20), cacheSize: 4096, transition: 0 }); trackTiles(src, "base"); baseTileRef.current.setSource(src); }, [basemap]);
   useEffect(() => { districtLayerRef.current?.setVisible(layerVisible.district); talukaLayerRef.current?.setVisible(layerVisible.taluka); villageLayerRef.current?.setVisible(layerVisible.village); }, [layerVisible]);
   useEffect(() => { districtLayerRef.current?.setOpacity(opacity.district / 100); talukaLayerRef.current?.setOpacity(opacity.taluka / 100); villageLayerRef.current?.setOpacity(opacity.village / 100); }, [opacity]);
   useEffect(() => { cadastralVillageLayerRef.current?.setVisible(bnCadastralEnabled); }, [bnCadastralEnabled]);
@@ -1670,22 +1842,38 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     ownerFetchAbortRef.current = controller;
     setOwnerFetchProgress({ done: 0, total: plotNos.length });
 
-    const applyBatch = (batch: PlotRecordResult[]) => {
-      if (controller.signal.aborted) return;
-      setBnPlots((prev) => mergeOwnerRecords(prev, batch));
+    // Batches are buffered and applied at most every 1.5 s as a low-priority update, so typing, sorting and map
+    // panning stay responsive while hundreds of records stream in (each apply re-indexes and re-renders the list).
+    let buffered: PlotRecordResult[] = [];
+    let progress: { done: number; total: number } | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (controller.signal.aborted || buffered.length === 0) return;
+      const batch = buffered;
+      buffered = [];
+      const pg = progress;
+      React.startTransition(() => {
+        setBnPlots((prev) => mergeOwnerRecords(prev, batch));
+        if (pg) setOwnerFetchProgress(pg);
+      });
     };
 
     void bulkFetchVillageRecords(gisCode, plotNos, {
       concurrency: 6,
-      batchSize: 25,
+      batchSize: 50,
       signal: controller.signal,
       onBatch: (batch, done, total) => {
-        applyBatch(batch);
-        if (!controller.signal.aborted) setOwnerFetchProgress({ done, total });
+        if (controller.signal.aborted) return;
+        buffered.push(...batch);
+        progress = { done, total };
+        if (!timer) timer = setTimeout(flush, 1500);
       },
     })
       .then(() => {
         if (controller.signal.aborted) return;
+        flush();
         setOwnerFetchProgress(null);
         // Anything still pending never came back — mark it rather than leaving a spinner.
         setBnPlots((prev) => prev.map((p) => (p.ownerStatus === "pending" ? { ...p, ownerStatus: "unavailable" } : p)));
@@ -1771,6 +1959,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const key = `bn:lvl:${level}:${codes}`;
       const hit = readLevelCache(key);
       if (hit) return { rows: hit, error: null };
+      const snap = await snapshotRows(level, codes);
+      if (snap && snap.length > 0) return { rows: snap, error: null };
       if (signal) return fetchLevelListRaw(level, codes, signal);
       let pending = levelInflight.get(key);
       if (!pending) {
@@ -2177,6 +2367,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     setBnVillageError(null);
     plotMarkerLayerRef.current?.getSource()?.clear();
     setBnGisCode(gisCode);
+    setBnVillageExtent(null); // the previous village's extent must not be used for this one
     setBnCadastralEnabled(true);
     cadastralVillageLayerRef.current?.getSource()?.updateParams({ gis_code: gisCode });
     cadastralVillageLayerRef.current?.setVisible(true);
@@ -2201,7 +2392,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             "EPSG:4326",
             "EPSG:3857"
           );
-          map.getView().fit(ext3857, { duration: 1200, padding: [80, 80, 80, panelOpen ? 400 : 80], maxZoom: 16.5 });
+          map.getView().fit(ext3857, { duration: 1200, padding: [80, 80, 80, panelOpen ? 400 : 80], maxZoom: 17.5 });
         }
       } else {
         // When extent is not georeferenced or null, navigate to the selected district/taluka center in Maharashtra
@@ -2691,6 +2882,19 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const timeoutCtrl = new AbortController();
     const timer = setTimeout(() => timeoutCtrl.abort(), 20000);
     try {
+      // Static snapshot first: instant, and unaffected by the portal being slow or down.
+      const snap = await snapshotRows(1, "R,");
+      if (snap && snap.length > 0) {
+        setBnLevels((prev) => {
+          const u = [...prev];
+          if (!u[0] || u[0].length === 0) u[0] = DEFAULT_CATEGORIES;
+          u[1] = snap.map((d: any) => ({ code: String(d.code), value: BN_DISTRICT_NAME_FIX[String(d.value)] || String(d.value) }));
+          return u;
+        });
+        setBnDistrictSource("live");
+        setBnLevelError((prev) => ({ ...prev, 1: "" }));
+        return;
+      }
       const res = await fetch(BHUNAKSHA_REST_BASE + "/VillageMapService/ListsAfterLevelGeoref", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -2831,7 +3035,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const vlgSrc = villageLayerRef.current?.getSource();
         if (vlgSrc) {
           const features = vlgSrc.getFeatures().filter((f) => { const p = f.getProperties(); return p.NAME?.toLowerCase() === village.village.toLowerCase() || p.CEN_2001?.includes(village.villageCode); });
-          if (features.length > 0) { let ext = createEmpty(); features.forEach((f) => extend(ext, f.getGeometry()!.getExtent())); if (!isEmpty(ext)) { mapInstanceRef.current?.getView().fit(ext, { duration: 1000, padding: [80, 80, 80, panelOpen ? 400 : 80], maxZoom: 15.5 }); const hl = highlightLayerRef.current?.getSource(); if (hl) { hl.clear(); hl.addFeatures(features); } return; } }
+          if (features.length > 0) { let ext = createEmpty(); features.forEach((f) => extend(ext, f.getGeometry()!.getExtent())); if (!isEmpty(ext)) { mapInstanceRef.current?.getView().fit(ext, { duration: 1000, padding: [80, 80, 80, panelOpen ? 400 : 80], maxZoom: 17 }); const hl = highlightLayerRef.current?.getSource(); if (hl) { hl.clear(); hl.addFeatures(features); } return; } }
         }
         flyToTaluka(village.district, village.subdistrict);
       }, 300);
@@ -3062,15 +3266,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       if (resTile[l.key] && !layer) {
         const source = new TileArcGISRest({
           url: l.service,
+          tileLoadFunction: gatedTileLoad(["base", "cad"]),
           params: { LAYERS: `show:${l.id}`, FORMAT: "png32", TRANSPARENT: true },
           // No crossOrigin: images are only displayed, and not every MRSAC host sends CORS headers.
         });
-        const plain = source.getTileUrlFunction();
-        source.setTileUrlFunction((tc, pr, proj) => {
-          const url = plain(tc, pr, proj);
-          return url ? shiftBboxParam(url, cadastralCalibRef.current.x, cadastralCalibRef.current.y) : url;
-        });
-        layer = new TileLayer({ zIndex: 5, source });
+        // No cadastral calibration here: MRSAC is already georeferenced, so it must be drawn exactly where the
+        // MRSAC geoportal draws it. (The calibration moves BhuNaksha parcels onto the imagery, not MRSAC.)
+        layer = new TileLayer({ zIndex: 5, source, properties: { name: `mrsac-tile-${l.key}` } });
         map.addLayer(layer);
         resTileLayersRef.current[l.key] = layer;
       }
@@ -3108,7 +3310,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
     })();
     return () => ctl.abort();
-  }, [bnVillageExtent, cfrMode]);
+  }, [bnVillageExtent, cfrMode, resRetry]);
 
   // Draw the village's features. Rebuilt when the calibration or a filter changes; cheap at village scale.
   useEffect(() => {
@@ -3118,8 +3320,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const styles: Record<string, Style> = {};
       const styleFor = (f: any) => {
         const key = f.get("layerKey") as string;
-        if (styles[key]) return styles[key];
         const l = resLayerByKey(key)!;
+        if (f.get("selected")) {
+          return l.kind === "point"
+            ? new Style({ image: new CircleStyle({ radius: 9, fill: new Fill({ color: l.color }), stroke: new Stroke({ color: "#f59e0b", width: 3 }) }), zIndex: 10 })
+            : new Style({ stroke: new Stroke({ color: "#f59e0b", width: 4 }), fill: new Fill({ color: l.color + "55" }), zIndex: 10 });
+        }
+        if (styles[key]) return styles[key];
         return (styles[key] =
           l.kind === "point"
             ? new Style({ image: new CircleStyle({ radius: 4.5, fill: new Fill({ color: l.color }), stroke: new Stroke({ color: "#ffffff", width: 1.2 }) }) })
@@ -3127,27 +3334,135 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               ? new Style({ stroke: new Stroke({ color: l.color, width: 1.6 }) })
               : new Style({ stroke: new Stroke({ color: l.color, width: 1.8 }), fill: new Fill({ color: l.color + "33" }) }));
       };
-      resVectorRef.current = new VectorLayer({ source: new VectorSource(), style: styleFor as any, zIndex: 6 });
+      // zIndex 40: above the cadastral WMS (30), whose fill otherwise hides wells and structures at the default 85% opacity; below plot highlights (50)
+      resVectorRef.current = new VectorLayer({ source: new VectorSource(), style: styleFor as any, zIndex: 40, properties: { name: "mrsac-vector" } });
       map.addLayer(resVectorRef.current);
     }
     const layer = resVectorRef.current;
+    // StrictMode (dev) mounts twice: a layer made for the first map instance must be re-attached to the live one.
+    if (!map.getLayers().getArray().includes(layer)) map.addLayer(layer);
     const src = layer.getSource()!;
     src.clear();
     layer.setVisible(cfrMode);
     if (resVillage.status !== "ready") return;
     const fmt = new GeoJSON();
-    const { x: offX, y: offY } = { x: cadastralCalibX, y: cadastralCalibY };
     for (const l of RES_LAYERS) {
       if (!resVisible.has(l.key)) continue;
       for (const f of resVillage.features[l.key] ?? []) {
         if (l.typeField && resHiddenTypes.has(`${l.key}|${typeLabel(l, f.properties)}`)) continue;
         const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
-        feat.getGeometry()?.translate(offX, offY);
-        feat.set("layerKey", l.key);
+        feat.set("layerKey", l.key); // real-world position: no calibration shift
         src.addFeature(feat);
       }
     }
-  }, [resVillage, resVisible, resHiddenTypes, cadastralCalibX, cadastralCalibY, cfrMode]);
+  }, [resVillage, resVisible, resHiddenTypes, cfrMode]);
+
+  // Parcel outlines from getPlotInfo are placed by a coordinate conversion that is off from where the portal draws the
+  // parcel by a roughly constant amount per village. Measure it from a few plots (outline centre vs the portal's own
+  // extent centre) and remember it, so point-in-parcel tests land on the parcel actually drawn there.
+  const frameShiftRef = useRef<Record<string, [number, number]>>({});
+  const parcelFrameShift = async (gis: string, plots: BNPlot[]): Promise<[number, number]> => {
+    const known = frameShiftRef.current[gis];
+    if (known) return known;
+    const withGeom = plots.filter((p) => p.theGeom);
+    const picks = withGeom.length <= 5 ? withGeom : [0, 0.25, 0.5, 0.75, 1].map((f) => withGeom[Math.round(f * (withGeom.length - 1))]!);
+    const dxs: number[] = [];
+    const dys: number[] = [];
+    await Promise.all(
+      picks.map(async (pl) => {
+        const ext = await fetchPlotExtent(gis, pl.plotid || pl.plotno).catch(() => null);
+        if (!ext) return;
+        const shift = vidarbhaLonShift(gis, ext[0]);
+        const e: [number, number, number, number] = shift ? [ext[0] + shift, ext[1], ext[2] + shift, ext[3]] : ext;
+        const poly = parsePlotGeometry(pl.theGeom!, pl.localBounds || null, null, e[0], gis);
+        if (!poly) return;
+        const c = getCenter(poly.getExtent());
+        const t = fromLonLat([(e[0] + e[2]) / 2, (e[1] + e[3]) / 2]);
+        dxs.push(t[0]! - c[0]!);
+        dys.push(t[1]! - c[1]!);
+      })
+    );
+    const med = (a: number[]) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)] ?? 0;
+    const out: [number, number] = [med(dxs), med(dys)];
+    if (dxs.length >= 2) frameShiftRef.current[gis] = out;
+    return out;
+  };
+
+  /** The loaded parcel drawn at a map coordinate (the portal's WMS cannot be asked: it always answers with an image). */
+  const findParcelAt = async (pt: number[]): Promise<BNPlot | null> => {
+    const gis = bnGisCode;
+    if (!gis) return null;
+    const refLon = bnVillageExtent ? (bnVillageExtent[0] + bnVillageExtent[2]) / 2 : 75.7;
+    const [fx, fy] = await parcelFrameShift(gis, bnPlots);
+    const { x: ox, y: oy } = cadastralCalibRef.current;
+    for (const pl of bnPlots) {
+      if (!pl.theGeom) continue;
+      const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, refLon, gis);
+      if (!poly) continue;
+      poly.translate(fx + ox, fy + oy);
+      const e = poly.getExtent();
+      if (pt[0]! < e[0] || pt[0]! > e[2] || pt[1]! < e[1] || pt[1]! > e[3]) continue;
+      if (poly.intersectsCoordinate(pt)) return pl;
+    }
+    return null;
+  };
+
+  // Clicking a survey number on the map (outside Identify mode, not on an MRSAC feature) opens its details card.
+  useEffect(() => {
+    parcelClickRef.current = (coord) => {
+      if (!bnGisCode || !bnCadastralEnabled) return;
+      const token = ++parcelLookupRef.current;
+      void findParcelAt(coord).then((pl) => {
+        if (!pl || token !== parcelLookupRef.current) return;
+        const [lon, lat] = toLonLat(coord) as [number, number];
+        resSelectedRef.current?.set("selected", false);
+        resSelectedRef.current = null;
+        setResInfo(null);
+        setParcelInfo({ plotno: pl.plotno, lon, lat, copied: false });
+      });
+    };
+  });
+
+  // What a click on an MRSAC feature shows: its attributes, the survey number(s) it falls in, and links.
+  useEffect(() => {
+    resClickRef.current = (feat, coord) => {
+      const layerKey = String(feat.get("layerKey") ?? "");
+      const props = { ...feat.getProperties() } as Record<string, unknown>;
+      delete props["geometry"];
+      delete props["layerKey"];
+      delete props["selected"];
+      const g = feat.getGeometry();
+      const isPoint = g?.getType() === "Point";
+      const at = toLonLat(isPoint ? g.getCoordinates() : coord) as [number, number];
+      const areaHa = g && !isPoint && /Polygon/.test(g.getType()) ? getArea(g, { projection: "EPSG:3857" }) / 10000 : undefined;
+      const details = describeResource(layerKey, props, at, areaHa);
+      if (!details) return;
+
+      // survey numbers: a forest compartment is matched through the parcel cross-reference; a point (or a water body's
+      // clicked spot) is looked up with the portal's own GetFeatureInfo, so it names exactly the parcel drawn there.
+      const surveys: { plotno: string; relation: string }[] = [];
+      if (layerKey === "forest") {
+        const comp = String(props["COMP_NO"] ?? "").trim();
+        for (const [plotno, m] of Object.entries(mrsacParcels)) {
+          if (m.forest && comp && m.forest.comp === comp) surveys.push({ plotno, relation: "in this compartment" });
+          if (surveys.length >= 12) break;
+        }
+      } else if (bnGisCode) {
+        const token = ++resLookupRef.current;
+        const pt = isPoint ? g.getCoordinates() : coord;
+        void findParcelAt(pt).then((pl) => {
+          if (!pl || token !== resLookupRef.current) return;
+          const relation = isPoint ? "located in survey no." : "clicked spot is in survey no.";
+          setResInfo((prev) => (prev ? { ...prev, surveys: [{ plotno: pl.plotno, relation }] } : prev));
+        });
+      }
+      resSelectedRef.current?.set("selected", false);
+      feat.set("selected", true);
+      resSelectedRef.current = feat;
+      setParcelInfo(null);
+      setResInfo({ details, surveys, copied: false });
+    };
+  });
 
   // Warm the taluka list for districts that have CFR data (one cached request each). Village lists
   // load on demand: pre-loading all of them was a burst the portal did not need.
@@ -3181,19 +3496,26 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     return () => ctl.abort();
   }, [bnVillageExtent, cfrMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Village picked + matched: draw that one ATREE polygon as a crisp vector in our own colours (no statewide
+  // tiles to download). Otherwise the statewide tiles are used; while the match is still running they are
+  // held back so a slow lookup never flashes all of Maharashtra.
+  const atreeVectorRef = useRef<VectorLayer<VectorSource> | null>(null);
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
-    // With a village picked, both ATREE layers show that village only; otherwise all of Maharashtra.
-    const only = cfrAtree.villageOnly && atreeVillage ? `vlgcd2011='${atreeVillage.code}'` : undefined;
+    const pickedVillage = cfrAtree.villageOnly && !!bnVillageExtent;
+    const useVector = pickedVillage && !!atreeVillage?.geometry;
+    const holdTiles = pickedVillage && (atreeLoading || useVector);
     (["potential", "recognized"] as const).forEach((k) => {
       let layer = atreeLayersRef.current[k];
-      if (cfrAtree[k] && !layer) {
+      if (cfrAtree[k] && !holdTiles && !layer) {
         const source = new TileWMS({
-            url: "https://cfr.atree.org/geoserver/cfr/wms",
-            params: { LAYERS: k === "potential" ? "cfr:mh_cfr_potential_villages" : "cfr:mh_cfr_recognized_villages", TILED: true, VERSION: "1.1.1" },
-            serverType: "geoserver",
-            // No crossOrigin: ATREE sends no CORS header, so "anonymous" makes the browser reject every tile.
+          url: "https://cfr.atree.org/geoserver/cfr/wms",
+          // ATREE's own outline-only style for potential villages keeps the map readable; recognized has no such style.
+          params: { LAYERS: k === "potential" ? "cfr:mh_cfr_potential_villages" : "cfr:mh_cfr_recognized_villages", STYLES: k === "potential" ? "hollow_polygon_villages1" : "", TILED: true, VERSION: "1.1.1" },
+          serverType: "geoserver",
+          tileLoadFunction: gatedTileLoad(["base", "cad"]),
+          // No crossOrigin: ATREE sends no CORS header, so "anonymous" makes the browser reject every tile.
         });
         // Same calibration as the cadastral layer, so village outlines sit on the calibrated parcels.
         const plainUrl = source.getTileUrlFunction();
@@ -3201,16 +3523,43 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           const url = plainUrl(tc, pr, proj);
           return url ? shiftBboxParam(url, cadastralCalibRef.current.x, cadastralCalibRef.current.y) : url;
         });
-        layer = new TileLayer({ zIndex: 4, source });
+        layer = new TileLayer({ zIndex: 4, source, properties: { name: `atree-${k}` } });
         map.addLayer(layer);
         atreeLayersRef.current[k] = layer;
       }
-      layer?.setVisible(cfrAtree[k]);
+      layer?.setVisible(cfrAtree[k] && !holdTiles);
       layer?.setOpacity(cfrAtree.opacity / 100);
-      const src = layer?.getSource();
-      if (src && src.getParams()["CQL_FILTER"] !== only) src.updateParams({ CQL_FILTER: only });
     });
-  }, [cfrAtree, atreeVillage]);
+
+    if (!atreeVectorRef.current) {
+      atreeVectorRef.current = new VectorLayer({
+        source: new VectorSource(),
+        zIndex: 4,
+        style: ((f: any) => {
+          const c = f.get("kind") === "recognized" ? "124,58,237" : "22,163,74";
+          return new Style({
+            stroke: new Stroke({ color: `rgb(${c})`, width: f.get("kind") === "recognized" ? 4 : 2.5, lineDash: f.get("kind") === "recognized" ? undefined : [10, 6] }),
+            fill: new Fill({ color: `rgba(${c},0.14)` }),
+          });
+        }) as any,
+      });
+      map.addLayer(atreeVectorRef.current);
+    }
+    const vec = atreeVectorRef.current;
+    if (!map.getLayers().getArray().includes(vec)) map.addLayer(vec);
+    const vsrc = vec.getSource()!;
+    vsrc.clear();
+    vec.setOpacity(Math.max(cfrAtree.opacity, 40) / 100);
+    if (!useVector || !atreeVillage?.geometry) return;
+    const fmt = new GeoJSON();
+    for (const k of ["potential", "recognized"] as const) {
+      if (!cfrAtree[k] || !atreeVillage[k]) continue;
+      const feat = fmt.readFeature({ type: "Feature", properties: {}, geometry: atreeVillage.geometry }, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
+      feat.getGeometry()?.translate(cadastralCalibX, cadastralCalibY);
+      feat.set("kind", k);
+      vsrc.addFeature(feat);
+    }
+  }, [cfrAtree, atreeVillage, atreeLoading, bnVillageExtent, cadastralCalibX, cadastralCalibY]);
 
   const nameOf = (level: number) => bnLevels[level]?.find((o) => o.code === bnSelected[level])?.value ?? "";
   const cfrDistrict = nameOf(1);
@@ -3236,11 +3585,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const water = resVillage.features["waterbody"] ?? [];
     if (!forest.length && !water.length) return out;
     const cache = parcelPointCache.current;
+    // The UTM zone of the outlines depends on the village's longitude: a fixed 78.6 put every village west of 78 E ~6 deg off.
+    const villageLon = bnVillageExtent ? (bnVillageExtent[0] + bnVillageExtent[2]) / 2 : 75.7;
     for (const pl of bnPlots) {
       if (!pl.theGeom) continue;
       let pt = cache[pl.theGeom];
       if (!pt) {
-        const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, 78.6, bnGisCode);
+        const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, villageLon, bnGisCode);
         const c = poly?.getInteriorPoint().getCoordinates();
         if (!c) continue;
         pt = [c[0]!, c[1]!];
@@ -3257,10 +3608,21 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }
     }
     return out;
-  }, [resVillage, bnPlots, bnGisCode, cadastralCalibX, cadastralCalibY]);
+  }, [resVillage, bnPlots, bnGisCode, bnVillageExtent, cadastralCalibX, cadastralCalibY]);
 
+  // Entries are cached per parcel object: mergeOwnerRecords keeps untouched parcels' identity, so a record
+  // batch only re-parses the parcels it changed instead of the whole village (that was a ~1 s long task per batch).
+  const entryCacheRef = useRef(new WeakMap<BNPlot, { cfr: unknown; mrsac: unknown; entry: PlotIndexEntry }>());
   const plotSearchIndex = React.useMemo<PlotIndexEntry[]>(() => {
+    const cache = entryCacheRef.current;
     return bnPlots.map((p) => {
+      const hit = cache.get(p);
+      if (hit && hit.cfr === cfrLookup && hit.mrsac === mrsacParcels[p.plotno]) return hit.entry;
+      const entry = buildEntry(p);
+      cache.set(p, { cfr: cfrLookup, mrsac: mrsacParcels[p.plotno], entry });
+      return entry;
+    });
+    function buildEntry(p: BNPlot): PlotIndexEntry {
       const records = p.records || [];
       const owners = records.flatMap((r) => parseOwnerName(r.ownerName));
       if (owners.length === 0 && p.owner) owners.push(...parseOwnerName(p.owner));
@@ -3291,7 +3653,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         mrsac: mrsacParcels[p.plotno],
         cfrStatus: cfrStatusOf(!!cfr, category, !!mrsacParcels[p.plotno]?.forest),
       };
-    });
+    }
   }, [bnPlots, cfrLookup, mrsacParcels]);
 
   /**
@@ -3301,7 +3663,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const villageOwnerStats = React.useMemo(() => {
     const familyMap: Record<
       string,
-      { key: string; spellings: Record<string, number>; englishSurname: string; plots: BNPlot[]; totalHa: number }
+      { key: string; spellings: Record<string, number>; englishSurname: string; plots: BNPlot[]; totalHa: number; seen: Set<BNPlot> }
     > = {};
     const ownerMap: Record<string, { plots: BNPlot[]; totalHa: number; englishFullName: string }> = {};
 
@@ -3312,9 +3674,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       entry.owners.forEach((o) => {
         if (!o.surname || o.isGovernment) return;
         const k = familyKey(o.surname);
-        const f = (familyMap[k] ||= { key: k, spellings: {}, englishSurname: o.englishSurname, plots: [], totalHa: 0 });
+        const f = (familyMap[k] ||= { key: k, spellings: {}, englishSurname: o.englishSurname, plots: [], totalHa: 0, seen: new Set() });
         f.spellings[o.surname] = (f.spellings[o.surname] || 0) + 1;
-        if (!f.plots.includes(entry.plot)) {
+        if (!f.seen.has(entry.plot)) {
+          f.seen.add(entry.plot);
           f.plots.push(entry.plot);
           f.totalHa += entry.areaHa;
         }
@@ -3384,10 +3747,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     }
 
     const bySurvey = (a: BNPlot, b: BNPlot) => {
-      const na = parseInt(String(a.plotno).replace(/[^0-9]/g, ""), 10);
-      const nb = parseInt(String(b.plotno).replace(/[^0-9]/g, ""), 10);
+      const na = surveyNum(a.plotno);
+      const nb = surveyNum(b.plotno);
       if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
-      return String(a.plotno).localeCompare(String(b.plotno), undefined, { numeric: true });
+      return NUMERIC_COLLATOR.compare(String(a.plotno), String(b.plotno));
     };
     const dir = sortDesc ? -1 : 1;
 
@@ -3404,7 +3767,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       if (sortKey === "name") {
         const oa = a.owners[0]?.fullName || a.plot.owner || "￿";
         const ob = b.owners[0]?.fullName || b.plot.owner || "￿";
-        return (oa.localeCompare(ob, "mr") || bySurvey(a.plot, b.plot)) * dir;
+        return (MR_COLLATOR.compare(oa, ob) || bySurvey(a.plot, b.plot)) * dir;
       }
       if (sortKey === "area") return (a.areaHa - b.areaHa || bySurvey(a.plot, b.plot)) * dir;
       return bySurvey(a.plot, b.plot) * dir;
@@ -3412,6 +3775,22 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
     return scored.map((s) => s.entry);
   }, [plotSearchIndex, deferredPlotSearch, namePartMode, sortKey, sortDesc, categoryFilter, selectedSurnameFilter, selectedOwnerFilter, cfrMode, cfrStatusFilter, cfrPurpose]);
+
+  // Demand-driven loading: the parcels on screen (first page of the current filtered list) jump the record queue,
+  // so a search or sort shows real owner names within seconds even while the village-wide fill is still crawling.
+  // The background fill reads the same cache/in-flight calls, so nothing is fetched twice.
+  const visiblePendingKey = filteredPlots
+    .slice(0, 12)
+    .filter((e) => e.plot.ownerStatus === "pending")
+    .map((e) => e.plotno)
+    .join("|");
+  useEffect(() => {
+    if (!bnGisCode || !visiblePendingKey) return;
+    const gc = bnGisCode;
+    void bulkFetchVillageRecords(gc, visiblePendingKey.split("|"), { concurrency: 4, batchSize: 3, urgent: true }).then((batch) => {
+      if (bnGisCodeRef.current === gc && batch.length) React.startTransition(() => setBnPlots((prev) => mergeOwnerRecords(prev, batch)));
+    });
+  }, [bnGisCode, visiblePendingKey]);
 
   // Tile counts are village-wide (parcels with a loaded record).
   const categoryCounts = React.useMemo(() => {
@@ -3463,6 +3842,48 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       }),
     [filteredPlots, villageOwnerStats, cfrMode]
   );
+
+  // "Detailed info" for the selected survey number: CFR approval, MRSAC forest / water cross-reference, and links.
+  const plotExtras = (() => {
+    if (!bnSelectedPlot) return null;
+    const entry = entryByPlotno[bnSelectedPlot.plotno];
+    const feat = plotMarkerLayerRef.current?.getSource()?.getFeatures().find((f) => String(f.get("plotNo") ?? f.get("plotno")) === String(bnSelectedPlot.plotno));
+    const geom = feat?.getGeometry();
+    const centre = geom ? (toLonLat(getCenter(geom.getExtent())) as [number, number]) : null;
+    const cfr = entry?.cfr;
+    // Only the Google Maps link is kept here (the official report stays one click away under "Map Report").
+    const links = centre ? locationLinks(centre[0], centre[1]).slice(0, 1) : [];
+    return (
+      <div data-testid="plot-extras" className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-white/70 p-2 font-sans text-[11px] text-slate-700">
+        <div className="font-bold text-slate-800">Detailed info</div>
+        {cfr && (
+          <div data-testid="plot-extras-cfr" className="rounded border border-violet-200 bg-violet-50 p-1.5">
+            <div className="font-semibold text-violet-800">CFR recognized (मान्य सामूहिक वन हक्क)</div>
+            <div>Purpose: {cfr.p}</div>
+            <div>Approved area: {cfr.ha.toFixed(2)} ha ({cfr.ac} acre)</div>
+            {cfr.dt && <div>Approved on: {cfr.dt}</div>}
+          </div>
+        )}
+        {entry?.mrsac?.forest && (
+          <div data-testid="plot-extras-forest">
+            Inside forest compartment <b>{entry.mrsac.forest.comp || "—"}</b> ({entry.mrsac.forest.type || "forest"}) — MRSAC
+          </div>
+        )}
+        {entry?.mrsac?.water && <div data-testid="plot-extras-water">Lies in a mapped water body — MRSAC</div>}
+        {entry && !cfr && !entry.mrsac && <div className="text-slate-500">No CFR approval or MRSAC forest / water overlap recorded for this survey number.</div>}
+        <ReportButton testid="report-survey" label="Download survey report (PDF)" busy={!!reportBusy} onClick={() => void downloadReport(bnSelectedPlot.plotno)} onExcel={() => void downloadReport(bnSelectedPlot.plotno, "xlsx")} hint="Village map with this survey highlighted + land photos" />
+        <ul className="space-y-0.5">
+          {links.map((l) => (
+            <li key={l.href}>
+              <a href={l.href} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#1d6fb8] hover:underline">
+                {l.label} ↗
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  })();
 
   const loadedParcels = React.useMemo(
     () => bnPlots.reduce((n, p) => n + (p.ownerStatus === "pending" ? 0 : 1), 0),
@@ -3586,7 +4007,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       if (cfrFetchedRef.current !== bnGisCode) {
         cfrFetchedRef.current = bnGisCode;
         const gc = bnGisCode;
-        void bulkFetchVillageRecords(gc, recognized.map((pl) => pl.plotno), { concurrency: 6 }).then((batch) => {
+        void bulkFetchVillageRecords(gc, recognized.map((pl) => pl.plotno), { concurrency: 6, urgent: true }).then((batch) => {
           if (bnGisCodeRef.current === gc) setBnPlots((prev) => mergeOwnerRecords(prev, batch));
         });
       }
@@ -3632,6 +4053,116 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     [cfrVillageRows, bnPlots]
   );
 
+
+  /** Downloads a PDF report: the whole village, or one survey number when `survey` is given. */
+  const downloadReport = async (survey?: string, kind: "pdf" | "xlsx" = "pdf") => {
+    const map = mapInstanceRef.current;
+    const gis = bnGisCode;
+    if (!map || !gis || !bnVillageExtent || reportBusy) return;
+    const ctl = new AbortController();
+    reportAbortRef.current = ctl;
+    setReportBusy({ done: 0, total: 1, label: "Collecting land records…" });
+    try {
+      // Records carry the holder / khata / geometry the report prints: make sure the parcels it details have them.
+      let plots = bnPlots;
+      const need = plots.filter((pl) => pl.ownerStatus === "pending" && (!survey || pl.plotno === survey));
+      if (need.length) {
+        // Time-boxed: a big village keeps loading in the background, the report uses what has arrived by then.
+        const batch = await bulkFetchVillageRecords(gis, need.map((pl) => pl.plotno), {
+          concurrency: 6,
+          urgent: true,
+          signal: AbortSignal.any([ctl.signal, AbortSignal.timeout(90_000)]),
+          onBatch: (_b, done, total) => setReportBusy({ done: 0, total: 1, label: `Collecting land records ${done}/${total}…` }),
+        });
+        if (ctl.signal.aborted) throw new DOMException("aborted", "AbortError");
+        plots = mergeOwnerRecords(plots, batch);
+        setBnPlots(plots);
+      }
+      // Water / forest layers load only in CFR mode; fetch them here when the report is asked for elsewhere.
+      let resources: Record<string, GeoFeature[]> | null = resVillage.status === "ready" ? resVillage.features : null;
+      if (!resources) {
+        setReportBusy({ done: 0, total: 1, label: "Loading water & forest data…" });
+        try {
+          const v = await findVillage(bnVillageExtent, ctl.signal);
+          if (v) {
+            const rs = await Promise.allSettled(RES_LAYERS.map((l) => fetchResource(l, v, ctl.signal)));
+            resources = {};
+            rs.forEach((r, i) => r.status === "fulfilled" && (resources![RES_LAYERS[i]!.key] = r.value));
+          }
+        } catch { /* the report notes that resources were unavailable */ }
+      }
+      const refLon = (bnVillageExtent[0] + bnVillageExtent[2]) / 2;
+      const [fx, fy] = await parcelFrameShift(gis, plots);
+      const { x: ox, y: oy } = cadastralCalibRef.current;
+      const rPlots: ReportPlot[] = plots.map((pl) => {
+        const e = entryByPlotno[pl.plotno];
+        const poly = pl.theGeom ? parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, refLon, gis) : null;
+        poly?.translate(fx + ox, fy + oy);
+        const [lon, lat] = poly ? (toLonLat(poly.getInteriorPoint().getCoordinates()) as [number, number]) : [0, 0];
+        const recs = pl.records ?? [];
+        const category = classifyParcel(pl.plotno, pl.records, pl.owner);
+        const uniq = (a: string[]) => [...new Set(a.filter((x) => x && x !== "-"))].join("; ");
+        const f = e?.mrsac?.forest;
+        return {
+          plotno: pl.plotno,
+          geom: poly,
+          category,
+          status: cfrStatusOf(!!e?.cfr, category, !!f),
+          ha: recs.reduce((t, r) => t + (parseFloat(r.totalArea) || 0), 0) || haFromAreaText(pl.area) || 0,
+          owners: uniq(recs.map((r) => r.ownerName)) || pl.owner || "",
+          khata: uniq(recs.map((r) => r.khataNo)),
+          potKharaba: uniq(recs.map((r) => r.potKharaba)),
+          ...(e?.cfr ? { cfr: { purpose: e.cfr.p, ha: e.cfr.ha, ac: e.cfr.ac, date: e.cfr.dt } } : {}),
+          ...(f ? { forest: `${f.comp || "—"} (${f.type || "forest"})` } : {}),
+          ...(e?.mrsac?.water ? { water: true } : {}),
+          lat,
+          lon,
+        };
+      });
+      const loaded = plots.filter((pl) => pl.ownerStatus === "live").length;
+      const totalHa = rPlots.reduce((t, p) => t + p.ha, 0);
+      const count = (k: string) => rPlots.filter((p) => p.category === k).length;
+      const surveyRes = resources ? surveyResourceMap(rPlots, resources, survey) : undefined;
+      const approvals = cfrVillageRows.map((r) => ({ purpose: r.p, ha: r.ha, ac: r.ac, date: r.dt, surveys: r.s.join(", ") }));
+      const villageInfo = { name: nameOf(3) || "Village", taluka: cfrTaluka, district: cfrDistrict, gisCode: gis };
+      if (kind === "xlsx") {
+        if (!surveyRes) throw new Error("Water & forest (MRSAC) data could not be loaded. Please try again.");
+        buildExcel({ village: villageInfo, ...(survey ? { survey } : {}), plots: rPlots, resources: surveyRes, approvals });
+        return;
+      }
+      await buildReport({
+        map,
+        signal: ctl.signal,
+        onProgress: (done, total, label) => setReportBusy({ done, total, label }),
+        ...(survey ? { survey } : {}),
+        village: villageInfo,
+        extent: transformExtent(bnVillageExtent, "EPSG:4326", "EPSG:3857") as [number, number, number, number],
+        plots: rPlots,
+        stats: [
+          ["Survey numbers (parcels)", String(plots.length)],
+          ["Parcels with 7/12 record loaded", `${loaded} of ${plots.length}`],
+          ["Total recorded land", `${totalHa.toFixed(2)} ha (${(totalHa * 2.47105).toFixed(2)} acre)`],
+          ["CFR approvals", String(cfrVillageRows.length)],
+          ["CFR recognized survey nos.", String(rPlots.filter((p) => p.cfr).length)],
+          ["CFR approved area", `${cfrVillageRows.reduce((t, r) => t + r.ha, 0).toFixed(2)} ha`],
+          ...CATEGORIES.map((c) => [`Category: ${c.en}`, String(count(c.key))] as [string, string]),
+          ...(atreeVillage?.potential ? ([["ATREE CFR potential", `${(Number(atreeVillage.potential["totcfr_ha"]) || 0).toFixed(1)} ha`]] as [string, string][]) : []),
+          ...(atreeVillage?.recognized ? ([["ATREE recognized area", `${(Number(atreeVillage.recognized["cr_cfrarea"]) || 0).toFixed(1)} ha`]] as [string, string][]) : []),
+        ],
+        insights: resources
+          ? RES_LAYERS.filter((l) => resources![l.key]?.length).map((l) => `${l.label}: ${resources![l.key]!.length}`)
+          : ["Water & forest (MRSAC) data could not be loaded."],
+        approvals,
+        resources,
+        ...(surveyRes ? { surveyRes } : {}),
+      });
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") window.alert(`Report failed: ${(e as Error).message}`);
+    } finally {
+      setReportBusy(null);
+    }
+  };
+
   /** In the CFR panel, flag districts / talukas / villages that have recognized survey data. */
   const cfrMark = (idx: number, value: string) => {
     if (!cfrMode || !cfrIndex) return "";
@@ -3662,11 +4193,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                   className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 focus:border-slate-700 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   <option value="">Select {label}</option>
-                  {options.map((lvl) => (
-                    <option key={lvl.code} value={lvl.code}>
-                      {lvl.value}{cfrMark(idx, lvl.value)}
-                    </option>
-                  ))}
+                  <LevelOptions options={options} mark={(v) => cfrMark(idx, v)} deps={[idx, cfrMode, cfrIndex, cfrDistrict, cfrTaluka, cfrDup]} />
                 </select>
               </label>
             );
@@ -3895,7 +4422,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               <div className="flex flex-col h-full overflow-y-auto">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-900"><span>🗂</span><span>Boundary and Map Layers</span></div>
-                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
                 </div>
                 <AccordionSection title="BASE MAPS" open={basemapOpen} onToggle={() => setBasemapOpen((v) => !v)} accentColor="#334155">
                   <div className="space-y-2 px-3 py-1">
@@ -3944,7 +4471,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               <div className="flex flex-col h-full overflow-y-auto">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-900"><span>🔍</span><span>Locate Village / Taluka</span></div>
-                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
                 </div>
                 <div className="p-3.5 space-y-4">
                   <div>
@@ -4017,6 +4544,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                 <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
                   {regionSelectors}
 
+                  {bnGisCode && bnPlots.length > 0 && bnVillageExtent && <ReportButton testid="report-village" label="Download village report (PDF)" busy={!!reportBusy} onClick={() => void downloadReport()} onExcel={() => void downloadReport(undefined, "xlsx")} hint="Satellite maps, every CFR recognized survey no. highlighted, filters, resources and land photos" />}
                   {bnGisCode && bnPlots.length > 0 ? (
                     <LandExplorer {...explorerProps} />
                   ) : bnPlotsLoading ? (
@@ -4045,6 +4573,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                 matchedSurveys={plotSearchIndex.filter((e) => e.cfr).length}
                 unmatched={cfrUnmatched}
                 explorer={<LandExplorer {...cfrExplorerProps} />}
+                report={<ReportButton testid="report-village" label="Download village report (PDF)" busy={!!reportBusy} onClick={() => void downloadReport()} onExcel={() => void downloadReport(undefined, "xlsx")} hint="Satellite maps, every CFR recognized survey no. highlighted, filters, resources and land photos" />}
                 purposes={cfrPurpose}
                 onPurpose={(g) =>
                   setCfrPurpose((prev) => {
@@ -4067,6 +4596,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                     villageSelected={!!bnVillageExtent}
                     status={resVillage.status}
                     error={resVillage.error}
+                    onRetry={() => setResRetry((n) => n + 1)}
                     villageName={resVillage.village?.name ?? null}
                     counts={resCounts}
                     visible={resVisible}
@@ -4106,7 +4636,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               <div className="flex flex-col h-full overflow-y-auto">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-emerald-50">
                   <div className="flex items-center gap-2 font-bold text-sm text-emerald-900"><span>🏛</span><span>BhuNaksha Cadastral</span></div>
-                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
                 </div>
                 <div className="p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
@@ -4233,11 +4763,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                               className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <option value="">- Select {label} -</option>
-                              {options.map((lvl) => (
-                                <option key={lvl.code} value={lvl.code}>
-                                  {lvl.value}
-                                </option>
-                              ))}
+                              <LevelOptions options={options} />
                               {envEntries.length > 0 && (
                                 <>
                                   <option disabled>── Highlight ──</option>
@@ -4278,6 +4804,11 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                         <span className="font-mono text-emerald-800 font-bold bg-white border border-emerald-300 px-2 py-0.5 rounded text-[11px]">
                           {bnGisCode}
                         </span>
+                      </div>
+                      <div data-testid="calib-status" className="text-[11px] text-slate-600">
+                        {calibSource === "pending" && "Aligning parcels to satellite imagery…"}
+                        {calibSource === "imagery" && calibDetail && `Aligned to satellite imagery: E ${calibDetail.east >= 0 ? "+" : ""}${calibDetail.east.toFixed(0)} m, N ${calibDetail.north >= 0 ? "+" : ""}${calibDetail.north.toFixed(0)} m (${calibDetail.agreeing} of ${calibDetail.windows} windows agree)`}
+                        {calibSource === "seed" && `Alignment estimated from regional anchors: E ${cadastralCalibX >= 0 ? "+" : ""}${cadastralCalibX} m, N ${cadastralCalibY >= 0 ? "+" : ""}${cadastralCalibY} m`}
                       </div>
                       <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60">
                         <div className="flex items-center gap-2">
@@ -4336,6 +4867,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
 
 
+                  {bnGisCode && bnVillageExtent && bnPlots.length > 0 && <ReportButton testid="report-village" label="Download village report (PDF)" busy={!!reportBusy} onClick={() => void downloadReport()} onExcel={() => void downloadReport(undefined, "xlsx")} hint="Satellite maps, every CFR recognized survey no. highlighted, filters, resources and land photos" />}
                   {bnGisCode && (
                     <div className="border border-slate-200 rounded-lg overflow-hidden shadow-xs">
                       <div className="bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-2 flex items-center justify-between">
@@ -4429,6 +4961,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                         })}
                       </div>
 
+                      {plotExtras}
+
                       {/* Map Report & Window Controls */}
                       <div className="pt-2 border-t border-[#c2e2c2]/70 flex items-center justify-between">
                         <button
@@ -4509,7 +5043,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
                   <span className="font-bold text-sm text-slate-900">Upload KML / KMZ Boundary</span>
-                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
                 </div>
                 <div className="p-4 text-xs text-slate-600 space-y-3">
                   <p>Overlay surveyor GPS track files or cadastral parcel KML boundaries directly onto the satellite layer.</p>
@@ -4524,7 +5058,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
                   <span className="font-bold text-sm text-slate-900">Map Legend and Layers</span>
-                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+                  <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
                 </div>
                 <div className="p-4 text-xs space-y-3">
                   <div>
@@ -4566,7 +5100,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           <div className="absolute z-20 rounded-xl shadow-2xl bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 text-xs" style={{ bottom: 48, left: panelOpen ? 396 : 80, minWidth: 240, maxWidth: 320 }}>
             <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-200">
               <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[10px]">Territorial Feature</span>
-              <button onClick={() => setInfoVisible(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <button onClick={() => setInfoVisible(false)} className="text-slate-400 hover:text-slate-600 font-bold" aria-label="Close">✕</button>
             </div>
             {Object.entries(infoContent).map(([k, v]) => (
               <div key={k} className="flex gap-2 py-0.5">
@@ -4578,6 +5112,198 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         )}
 
         {/* MAHABHUNAKASHA PLOT INFO SPECIAL WINDOW */}
+        {reportBusy && (
+          <div data-testid="report-progress" className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-[1px]">
+            <div className="w-80 rounded-lg bg-white p-4 text-sm shadow-2xl">
+              <div className="font-bold text-slate-900">Generating PDF report</div>
+              <div className="mt-1 truncate text-xs text-slate-600">{reportBusy.label}</div>
+              <div className="mt-2 h-2 overflow-hidden rounded bg-slate-200">
+                <div className="h-full bg-emerald-700 transition-all" style={{ width: `${Math.min(100, (reportBusy.done / Math.max(1, reportBusy.total)) * 100)}%` }} />
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500">The map moves while satellite shots are taken — please wait.</div>
+              <button type="button" onClick={() => reportAbortRef.current?.abort()} className="mt-3 rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {parcelInfo && (() => {
+          const pl = bnPlots.find((p) => p.plotno === parcelInfo.plotno);
+          const entry = entryByPlotno[parcelInfo.plotno];
+          const cat = entry ? CATEGORIES.find((c) => c.key === entry.category) : undefined;
+          const owners = entry?.owners.map((o) => o.fullName).filter(Boolean) ?? [];
+          const loading = pl?.ownerStatus === "pending";
+          const rows: { label: string; value: string }[] = [];
+          rows.push({ label: "Owner", value: loading ? "loading record…" : owners.length ? owners.slice(0, 3).join(", ") + (owners.length > 3 ? ` +${owners.length - 3}` : "") : "no record" });
+          if (entry && entry.areaHa > 0) rows.push({ label: "Area", value: `${entry.areaHa.toFixed(2)} ha (${(entry.areaHa * 2.47105).toFixed(2)} ac)` });
+          if (pl?.records?.[0]?.khataNo && pl.records[0].khataNo !== "-") rows.push({ label: "Khata no.", value: pl.records[0].khataNo });
+          if (cat && !loading) rows.push({ label: "Land type", value: `${cat.en} (inferred)` });
+          if (entry?.cfr) rows.push({ label: "CFR", value: `Recognized · ${entry.cfr.ha.toFixed(2)} ha approved` });
+          if (entry?.mrsac?.forest) rows.push({ label: "Forest", value: `Compartment ${entry.mrsac.forest.comp || "—"} (${entry.mrsac.forest.type || "forest"})` });
+          if (entry?.mrsac?.water) rows.push({ label: "Water", value: "Lies in a mapped water body" });
+          rows.push({ label: "Location", value: `${parcelInfo.lat.toFixed(5)}° N, ${parcelInfo.lon.toFixed(5)}° E` });
+          const gmaps = locationLinks(parcelInfo.lon, parcelInfo.lat)[0]!;
+          return (
+            <div
+              data-testid="parcel-card"
+              role="dialog"
+              aria-label={`Survey No. ${parcelInfo.plotno}`}
+              className="absolute z-30 w-[300px] max-w-[calc(100vw-120px)] rounded-xl border-2 border-emerald-600 bg-white text-xs shadow-2xl"
+              style={{ bottom: 64, right: 58 }}
+            >
+              <div className="flex items-center justify-between gap-2 rounded-t-[10px] bg-emerald-50 px-3 py-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold text-slate-900">Survey No. {parcelInfo.plotno}</div>
+                  <div className="truncate text-[11px] text-slate-600">भू-नकाशा · MahaBhuNakasha</div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                    onClick={() => {
+                      const text = [`Survey No. ${parcelInfo.plotno}`, ...rows.map((r) => `${r.label}: ${r.value}`), `${gmaps.label}: ${gmaps.href}`].join("\n");
+                      void navigator.clipboard?.writeText(text).then(() => setParcelInfo((p) => (p ? { ...p, copied: true } : p)));
+                    }}
+                  >
+                    {parcelInfo.copied ? "✓ Copied" : "Copy"}
+                  </button>
+                  <button type="button" aria-label="Close" className="size-6 rounded text-slate-500 hover:bg-slate-200" onClick={() => setParcelInfo(null)}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div className="max-h-[50vh] space-y-2 overflow-y-auto p-3">
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                  {rows.map((r) => (
+                    <React.Fragment key={r.label}>
+                      <dt className="text-slate-500">{r.label}</dt>
+                      <dd className="font-medium text-slate-900">{r.value}</dd>
+                    </React.Fragment>
+                  ))}
+                </dl>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2">
+                  <a href={gmaps.href} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#1d6fb8] hover:underline">
+                    {gmaps.label} ↗
+                  </a>
+                  {pl && (
+                    <button
+                      type="button"
+                      data-testid="report-parcel-card"
+                      disabled={!!reportBusy}
+                      className="rounded border border-emerald-700 px-2 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                      onClick={() => void downloadReport(pl.plotno)}
+                    >
+                      Report (PDF)
+                    </button>
+                  )}
+                  {pl && (
+                    <button
+                      type="button"
+                      data-testid="report-parcel-card-xlsx"
+                      disabled={!!reportBusy}
+                      className="rounded border border-emerald-700 px-2 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                      onClick={() => void downloadReport(pl.plotno, "xlsx")}
+                    >
+                      Resources (Excel)
+                    </button>
+                  )}
+                  {pl && (
+                    <button
+                      type="button"
+                      className="rounded bg-emerald-700 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-600"
+                      onClick={() => {
+                        selectBnPlot(pl);
+                        setParcelInfo(null);
+                      }}
+                    >
+                      Full plot info
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {resInfo && (
+          <div
+            data-testid="resource-card"
+            role="dialog"
+            aria-label={resInfo.details.title}
+            className="absolute z-30 w-[300px] max-w-[calc(100vw-120px)] rounded-xl border-2 bg-white text-xs shadow-2xl"
+            style={{ bottom: 64, right: 58, borderColor: resInfo.details.color }}
+          >
+            <div className="flex items-center justify-between gap-2 rounded-t-[10px] px-3 py-2" style={{ background: resInfo.details.color + "22" }}>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-bold text-slate-900">{resInfo.details.title}</div>
+                <div className="truncate text-[11px] text-slate-600">{resInfo.details.subtitle} · MRSAC</div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(detailsAsText(resInfo.details)).then(() => setResInfo((p) => (p ? { ...p, copied: true } : p)));
+                  }}
+                >
+                  {resInfo.copied ? "✓ Copied" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  className="size-6 rounded text-slate-500 hover:bg-slate-200"
+                  onClick={() => {
+                    resSelectedRef.current?.set("selected", false);
+                    resSelectedRef.current = null;
+                    setResInfo(null);
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto p-3">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                {resInfo.details.rows.map((r) => (
+                  <React.Fragment key={r.label}>
+                    <dt className="text-slate-500">{r.label}</dt>
+                    <dd className="font-medium text-slate-900">{r.value}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+              {resInfo.surveys.length > 0 && (
+                <div data-testid="resource-surveys">
+                  <div className="mb-1 text-slate-500">{resInfo.surveys[0]!.relation}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {resInfo.surveys.map((sv) => (
+                      <button
+                        key={sv.plotno}
+                        type="button"
+                        className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 font-semibold text-slate-800 hover:bg-slate-100"
+                        onClick={() => {
+                          const pl = bnPlots.find((p) => p.plotno === sv.plotno);
+                          if (pl) selectBnPlot(pl);
+                        }}
+                      >
+                        {sv.plotno}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <ul className="space-y-0.5 border-t border-slate-200 pt-2">
+                {resInfo.details.links.map((l) => (
+                  <li key={l.href}>
+                    <a href={l.href} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#1d6fb8] hover:underline">
+                      {l.label} ↗
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {bnSelectedPlot && plotInfoWindowOpen && (
           <div
             className="absolute z-30 rounded-xl shadow-2xl border-2 border-[#b0deb0] bg-[#fafdfa] text-xs font-sans overflow-hidden transition-all animate-in fade-in zoom-in-95 duration-150"
@@ -4616,7 +5342,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                   onClick={() => setPlotInfoWindowOpen(false)}
                   className="size-5 rounded flex items-center justify-center font-bold text-[#1d6227] hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
                   title="Close Window"
-                >
+                 aria-label="Close">
                   ✕
                 </button>
               </div>
@@ -4677,6 +5403,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                   );
                 })}
 
+                {plotExtras}
+
                 {/* Map Report Action Link */}
                 <div className="pt-2 border-t border-[#c2e2c2]/70 flex items-center justify-between font-sans">
                   <button
@@ -4729,10 +5457,11 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
       {/* WHAT IS THIS MAP FOR? / ABOUT MODAL */}
       {aboutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" aria-label="About VANMITRA Nakasha WebGIS" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full p-6 relative space-y-4">
             <button
               onClick={() => setAboutModalOpen(false)}
+              aria-label="Close"
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 size-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors"
             >
               ✕
@@ -4802,7 +5531,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               onClick={() => setMapReportModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 size-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors print:hidden"
               title="Close Report"
-            >
+             aria-label="Close">
               ✕
             </button>
 
@@ -4969,6 +5698,7 @@ function RedMapControl({ onClick, title, children, active }: { onClick: () => vo
     <button
       onClick={onClick}
       title={title}
+      aria-label={title}
       className={
         "size-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm border transition-all cursor-pointer " +
         (active ? "bg-slate-900 text-white border-slate-900 ring-2 ring-blue-500" : "bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 border-slate-200")
@@ -4995,7 +5725,7 @@ function LayerRow({ label, checked, opacity, opacityOpen, onToggle, onOpacityTog
     <div className="border-b border-slate-100 last:border-0 px-3 py-2">
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800"><input type="checkbox" checked={checked} onChange={onToggle} className="rounded accent-red-600 size-3.5" /><span>{label}</span></label>
-        <button onClick={onOpacityToggle} className="text-slate-400 hover:text-slate-700 text-xs px-1" title="Adjust Opacity">⚙</button>
+        <button onClick={onOpacityToggle} className="text-slate-400 hover:text-slate-700 text-xs px-1" title="Adjust Opacity" aria-label="Adjust Opacity">⚙</button>
       </div>
       {note && <div className="text-[10px] text-slate-400 pl-5 mt-0.5">{note}</div>}
       {opacityOpen && (

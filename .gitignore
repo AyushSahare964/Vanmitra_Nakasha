@@ -39,3 +39,5 @@ implementation_plan_nakasha
 *.sln
 *.sw?
 .vercel
+perf-results/
+test-results/
