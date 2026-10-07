@@ -52,6 +52,16 @@ interface Props {
   atreeVillage: AtreeVillage | null;
   atreeLoading: boolean;
   onAtree: (patch: Partial<CfrAtreeState>) => void;
+  /** Compartment approvals (Nashik): mapped vs approved area, conflicts with villager land, compartments outside the village. */
+  compSummary?: {
+    approvedHa: number;
+    parcelHa: number;
+    parcels: number;
+    conflictHa: number;
+    conflicts: number;
+    outside: string[];
+    missing: string[];
+  } | null;
   onClose: () => void;
 }
 
@@ -319,6 +329,21 @@ export function CfrPanel(p: Props) {
                   {p.villageRows.length} approval{p.villageRows.length > 1 ? "s" : ""} · {card.surveys ? `${card.surveys} survey nos.` : `forest compartment${card.comps.length > 1 ? "s" : ""} ${card.comps.join(", ") || "—"}`} · {fmt(card.ha)} ha ({fmt(card.ac)} ac)
                 </div>
                 <div className="text-slate-600">{card.groups.map((g) => PURPOSE_GROUPS.find((x) => x.key === g)!.label).join(", ")}</div>
+                {p.compSummary && (
+                  <div className="mt-1 space-y-0.5 text-slate-700" data-testid="cfr-comp-summary">
+                    <div>
+                      Mapped on parcels: <b>{fmt(p.compSummary.parcelHa)} ha</b> in {p.compSummary.parcels} survey nos. of {fmt(p.compSummary.approvedHa)} ha approved
+                      {p.compSummary.parcelHa < p.compSummary.approvedHa * 0.75 && <span className="text-amber-700"> — rest is unsurveyed forest land or outside the village</span>}
+                    </div>
+                    {p.compSummary.conflicts > 0 && (
+                      <div className="font-semibold text-red-700">
+                        Conflict: {p.compSummary.conflicts} private parcel{p.compSummary.conflicts > 1 ? "s" : ""} ({fmt(p.compSummary.conflictHa)} ha) inside the compartment — filter "Conflict"
+                      </div>
+                    )}
+                    {p.compSummary.outside.length > 0 && <div>Compartment {p.compSummary.outside.join(", ")} lies outside the village (dashed outline, from MRSAC).</div>}
+                    {p.compSummary.missing.length > 0 && <div className="text-amber-700">Compartment {p.compSummary.missing.join(", ")} could not be located in MRSAC — not shown.</div>}
+                  </div>
+                )}
                 {card.dates.length > 0 && <div className="text-slate-500">Approved {card.dates.join(", ")}</div>}
                 <div className="mt-1 text-slate-600">
                   {p.matchedSurveys} of {p.totalParcels} parcels are recognized CFR land.

@@ -204,6 +204,28 @@ export async function fetchResource(layer: ResLayer, village: MrsacVillage, sign
   return (data.features ?? []) as GeoFeature[];
 }
 
+/**
+ * Forest / wildlife compartments with the given numbers within `km` of the village (numbers repeat across the
+ * state, so the caller keeps only the nearest). Used for approvals whose compartment lies outside the village.
+ */
+export async function fetchCompartmentsNear(village: MrsacVillage, nums: string[], km: number, signal?: AbortSignal): Promise<GeoFeature[]> {
+  const pts = village.rings.flat();
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const dy = km / 110.574, dx = km / (111.32 * Math.cos((((Math.min(...ys) + Math.max(...ys)) / 2) * Math.PI) / 180));
+  const env = [Math.min(...xs) - dx, Math.min(...ys) - dy, Math.max(...xs) + dx, Math.max(...ys) + dy].join(",");
+  const where = `COMP_NO IN (${nums.filter((n) => /^\d+$/.test(n)).map((n) => `'${n}'`).join(",")})`;
+  const out: GeoFeature[] = [];
+  for (const id of [5, 12]) {
+    const data = await arcgis(
+      `${FOREST}/${id}/query`,
+      { f: "geojson", where, geometry: env, geometryType: "esriGeometryEnvelope", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects", outFields: "COMP_NO,COMP_TYPE,RANGE,BEAT,ShpAreaHa", returnGeometry: "true", maxAllowableOffset: "0.00002" },
+      signal
+    );
+    out.push(...((data.features ?? []) as GeoFeature[]));
+  }
+  return out;
+}
+
 /* ---------------- point-in-polygon (parcel ↔ forest / water cross-reference) ---------------- */
 
 function inRing(x: number, y: number, ring: number[][]): boolean {

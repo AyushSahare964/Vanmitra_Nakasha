@@ -46,3 +46,16 @@ No change. The existing govt candidate logic stays; it only needs a regression c
 1. Overlap thresholds (60% / 10%): confirm, or give the forest dept's rule.
 2. Should conflict parcels count toward CFR recognized area, or only be reported?
 3. Buffer for outside-village search: 5 km start; is the neighbouring-village rule enough, or can claims cross talukas?
+
+## Implementation status (2026-10-08)
+Decisions used for the open questions: thresholds 60% / 10%; conflict area reported separately (not counted as recognized); outside-village search 5 km, any taluka.
+
+| Phase | Status |
+|---|---|
+| 1 Mapping | Done in the browser, not precomputed: every parcel is sampled on a 10x10 grid and gets a % overlap per compartment (`>= 10%` counts, `>= 60%` = inside). The build-time `public/data/cfr-comp/` file was dropped: it would need BhuNaksha parcel geometry for ~830 villages, and that portal is slow and fails about a quarter of calls. The panel shows mapped ha against approved ha instead of a build-time flag. |
+| 2 Conflict | Done. New `conflict` status (red) when a private-holder parcel overlaps an approved compartment. Own chip, colour, plot-card text, panel line, and it flows into the PDF/Excel status map. Area is listed separately. |
+| 3 Govt | Unchanged. Forest / government holders inside a compartment stay "recognized". |
+| 4 Outside village | Done. Missing compartment numbers are searched in MRSAC within 5 km (nearest, plus slivers within 1.5 km of it), drawn dashed with "(outside village)". Numbers MRSAC cannot answer show as "could not be located". |
+| 5 Verification | `tests/e2e/17-nashik-compartments.spec.ts` (Udmal: parcel count, area band vs 71.25 ha, conflict chip, no page errors). |
+
+Known limits: Amlon (Peth) approves compartment 18, which MRSAC does not return within the village or 5 km (its nearby compartments are type FDCM); it is shown as not located, not guessed. The conflict class is a candidate list: MRSAC compartment edges are coarse, so a settlement inside a reserved-forest polygon (Udmal: 68 parcels, 44.8 ha) needs field review.

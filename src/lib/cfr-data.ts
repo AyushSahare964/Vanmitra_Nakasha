@@ -41,18 +41,30 @@ function purposeGroups(p: string): PurposeGroup[] {
   return g.length ? g : ["other"];
 }
 
-export type CfrStatus = "recognized" | "forest" | "govt" | "other";
+export type CfrStatus = "recognized" | "conflict" | "forest" | "govt" | "other";
 
 export const CFR_STATUSES: { key: CfrStatus; en: string; mr: string; color: string }[] = [
   { key: "recognized", en: "Recognized", mr: "मान्य", color: "#7c3aed" },
+  { key: "conflict", en: "Conflict (private land in CFR)", mr: "वाद", color: "#dc2626" },
   { key: "forest", en: "Forest candidate", mr: "वन", color: "#15803d" },
   { key: "govt", en: "Govt candidate", mr: "शासकीय", color: "#ca8a04" },
   { key: "other", en: "Other", mr: "इतर", color: "#a8a29e" },
 ];
 
+/** Share of a parcel (%) inside an approved compartment: >= FULL is "inside", >= MIN is "partial", less is ignored. */
+export const OVERLAP_FULL = 60;
+export const OVERLAP_MIN = 10;
+export const compBase = (k: string) => k.split(/[/.]/)[0]!;
+
+/**
+ * Compartment approvals (Nashik) cover villager land when a parcel with a private 7/12 holder lies in the compartment:
+ * that parcel is a conflict, not CFR land. Forest-department / government parcels are the recognized CFR land.
+ */
+export const isConflictCategory = (c: Category) => c !== "forest" && c !== "government" && c !== "water";
+
 /** Candidates come from the 7/12 category; only non-recognized parcels can be candidates. */
-export function cfrStatusOf(recognized: boolean, category: Category, inForestCompartment = false): CfrStatus {
-  if (recognized) return "recognized";
+export function cfrStatusOf(recognized: boolean, category: Category, inForestCompartment = false, conflict = false): CfrStatus {
+  if (recognized) return conflict ? "conflict" : "recognized";
   if (category === "forest" || inForestCompartment) return "forest";
   if (category === "government") return "govt";
   return "other";
