@@ -3352,11 +3352,14 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       for (const f of resVillage.features[l.key] ?? []) {
         if (l.typeField && resHiddenTypes.has(`${l.key}|${typeLabel(l, f.properties)}`)) continue;
         const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
-        feat.set("layerKey", l.key); // real-world position: no calibration shift
+        feat.set("layerKey", l.key);
+        // Forest compartments are cut from the cadastral map (their village outline equals the portal's raw extent), so
+        // they carry the same offset as the raw cadastral and get the same calibration shift. Water / wells are GPS-true.
+        if (l.group === "forest") feat.getGeometry()?.translate(cadastralCalibX, cadastralCalibY);
         src.addFeature(feat);
       }
     }
-  }, [resVillage, resVisible, resHiddenTypes, cfrMode]);
+  }, [resVillage, resVisible, resHiddenTypes, cfrMode, cadastralCalibX, cadastralCalibY]);
 
   // Parcel outlines from getPlotInfo are placed by a coordinate conversion that is off from where the portal draws the
   // parcel by a roughly constant amount per village. Measure it from a few plots (outline centre vs the portal's own
@@ -3605,7 +3608,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         cache[pl.theGeom] = pt;
       }
       const [lon, lat] = toLonLat([pt[0] + cadastralCalibX, pt[1] + cadastralCalibY]);
-      let hitF = forest.find((f) => pointInGeometry(lon!, lat!, f.geometry));
+      // Forest compartments share the raw cadastral frame, so the parcel is tested uncalibrated; water is GPS-true (calibrated).
+      const [rlon, rlat] = toLonLat([pt[0], pt[1]]);
+      let hitF = forest.find((f) => pointInGeometry(rlon!, rlat!, f.geometry));
       if (!hitF && forest.length) {
         // Interior point missed: a parcel that only partly overlaps a compartment still counts when >=25% of it
         // (grid-sampled) lies inside. ponytail: 10x10 grid, raise resolution if thin slivers get missed.
@@ -3621,7 +3626,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               const y = y0 + ((j + 0.5) / N) * (y1 - y0);
               if (!poly.intersectsCoordinate([x, y])) continue;
               inside++;
-              const [sx, sy] = toLonLat([x + cadastralCalibX, y + cadastralCalibY]);
+              const [sx, sy] = toLonLat([x, y]);
               const k = forest.findIndex((g) => pointInGeometry(sx!, sy!, g.geometry));
               if (k >= 0) tally[k]!++;
             }
@@ -3734,6 +3739,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const no = String(f.properties["COMP_NO"] ?? "").trim().match(/^\d+/)?.[0];
         if (!no || !want.has(no)) continue;
         const feat = fmt.readFeature(f, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
+        feat.getGeometry()?.translate(cadastralCalibX, cadastralCalibY);
         feat.set("compNo", no);
         feat.set("ha", want.get(no)!.toFixed(2));
         parts.push(feat);
@@ -3749,7 +3755,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     }
     for (const f of Object.values(biggest)) f.set("label", true);
     src.addFeatures(parts);
-  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound]);
+  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound, cadastralCalibX, cadastralCalibY]);
 
   /**
    * Family and individual-owner aggregates. Families are keyed phonetically so spelling
