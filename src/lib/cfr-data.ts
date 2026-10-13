@@ -16,6 +16,18 @@ export interface CfrRow {
   s: string[]; // clean survey numbers
   k?: string[]; // forest compartment nos. (Nashik sheet: no survey nos., s is empty)
   c?: string; // compartment prefix ("289 स.नं. 17,2…")
+  /** Nashik sheet extras: gram sabha as written ("ग्रामस्थ X"), case no., CFRMC formed, office-bearers, part-of-compartment, number may be a gat no. */
+  gs?: string;
+  cn?: string;
+  cm?: string;
+  ob?: string;
+  pt?: 1;
+  am?: 1;
+  /** Portal village this approval is filed under when the sheet's village is not in the portal list (scripts/build-village-alias.ts), and why. */
+  pv?: string;
+  pvh?: string;
+  /** Village as written in the sheet, kept when `v` was replaced by `pv`. */
+  sv?: string;
   o?: string[]; // tokens that could not be parsed
   ac: number;
   ha: number;
@@ -149,7 +161,7 @@ let loading: Promise<CfrIndex> | null = null;
 export function loadCfrData(): Promise<CfrIndex> {
   loading ||= import("@/data/cfr-approved.json").then((m) => {
     const rows = (m.default as unknown as Omit<CfrRow, "g" | "y">[]).map(
-      (r) => ({ ...r, g: purposeGroups(r.p), y: r.dt.slice(-4) }) as CfrRow
+      (r) => ({ ...r, ...(r.pv ? { v: r.pv, sv: r.v } : {}), g: purposeGroups(r.p), y: r.dt.slice(-4) }) as CfrRow
     );
     const byTaluka: CfrIndex["byTaluka"] = new Map();
     const talukaNames: CfrIndex["talukaNames"] = new Map();

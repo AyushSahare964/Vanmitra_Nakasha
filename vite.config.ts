@@ -5,6 +5,8 @@ import https from "node:https";
 import type { IncomingMessage, ServerResponse } from "node:http";
 // @ts-ignore — plain JS module shared with the Vercel function
 import cfrHandler from "./api/cfr.js";
+// @ts-ignore — plain JS module shared with the Vercel function
+import mrsacHandler from "./api/mrsac.js";
 
 // Session cookie cache for MahaBhuNakasha portal
 let cachedCookie = "";
@@ -214,6 +216,8 @@ export default defineConfig({
               handleBhuNaksha(req, res);
             } else if (req.url && req.url.startsWith("/api/cfr")) {
               cfrHandler(req, res);
+            } else if (req.url && req.url.startsWith("/api/mrsac")) {
+              mrsacHandler(req, res);
             } else if (req.url && req.url.startsWith("/api/reverse-geocode")) {
               handleReverseGeocode(req, res);
             } else {

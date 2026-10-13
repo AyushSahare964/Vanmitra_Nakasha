@@ -170,9 +170,9 @@ function Index() {
       <header className="sticky top-0 z-30 flex h-[70px] items-center border-b border-slate-200 bg-white px-4 text-slate-800 shadow-sm md:px-7">
         <div className={`flex shrink-0 items-center gap-3 ${collapsed ? "w-[58px]" : "w-[246px]"}`}>
           <img
-            src="/team_vanmitra_logo.jpg"
+            src="/vanmitra_icon.png"
             alt="TEAM VANMITRA"
-            className="h-10 w-auto object-contain rounded border border-slate-200 p-0.5 bg-white shadow-xs"
+            className="h-11 w-11 object-contain rounded-full shadow-xs cursor-pointer hover:scale-105 transition-all"
           />
           {!collapsed && (
             <div>

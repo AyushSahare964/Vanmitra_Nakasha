@@ -1,0 +1,943 @@
+नाशिक / ग्रामस्त ओझरखेड / comp 221 (24 ha): inside [fuzzy village name]
+नाशिक / ग्रामस्त वाडगांव / comp 196 (7 ha): only-fdcm [fuzzy village name]
+नाशिक / ग्रामस्त धोंडेगांव / comp 202 (18 ha): notfound
+नाशिक / ग्रामस्त गणेशगांव / comp 215 (118 ha): taluka-unique [village not matched]
+नाशिक / ग्रामस्त गंगाम्हाळुंगी / comp 219 (150 ha): ambiguous [village not matched] candidates=2 (Nashik|Gangamahalungi; Nashik|Shivangaon)
+नाशिक / ग्रामस्त गंगाम्हाळुंगी / comp 202 (150 ha): taluka-unique [village not matched]
+नाशिक / ग्रामस्त पिंपळद ना. / comp 230 (50 ha): taluka-unique [village not matched]
+नाशिक / ग्रामस्त गणेशगांव / comp 218 (2 ha): only-fdcm [village not matched]
+नाशिक / ग्रामस्त नाईकवाडी / comp 197 (50 ha): only-fdcm
+नाशिक / ग्रामस्त तळेगांव / comp 231 (45 ha): taluka-unique [village not matched]
+नाशिक / ग्रामस्त शिवणगांव / comp 221 (15 ha): taluka-unique [village not matched]
+नाशिक / ग्रामस्त लाडची / comp 73 (94 ha): inside [fuzzy village name]
+नाशिक / ग्रामस्त हुडगांव / comp 231 (17 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्त करंजखेड / comp 570 (42.95 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ सावरपाडा / comp 59 (0.4 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ करंजाळी / comp 5 (28.57 ha): notfound [fuzzy village name]
+दिंडोरी / ग्रामस्थ करंजाळी / comp 78 (28.57 ha): outside [fuzzy village name]
+दिंडोरी / ग्रामस्थ करंजाळी / comp 579 (28.57 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ हातनोरे / comp 6 (58.71 ha): notfound
+दिंडोरी / ग्रामस्थ हातनोरे / comp 13 (58.71 ha): notfound
+दिंडोरी / ग्रामस्थ ठेपणपाडा / comp 610 (46.29 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ जारणपाडा / comp 609 (27.97 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ टेटमाळ / comp 57 (19.3 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ आंबाड / comp 53 (57 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ चिमणपाडा / comp 63 (194.38 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ अस्वलीपाडा / comp 582 (62.89 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ सावरपाडा / comp 57 (19 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ करंजवण / comp 587 (47 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ कसबेवणी / comp 590 (50 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ जोरण / comp 609 (81.82 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ आंबेगण / comp 69 (19.2 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ शृंगारपाडा / comp 65 (42 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ गवळीपाडा / comp 66 (44.5 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ घाटाळबारी / comp 56 (4 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ पळसविहिर / comp 48 (50 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ पळसविहिर / comp 51 (50 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ भनवड / comp 45 (19.5 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ भनवड / comp 47 (19.5 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ भनवड / comp 48 (19.5 ha): outside [fuzzy village name]
+दिंडोरी / ग्रामस्थ भनवड / comp 49 (19.5 ha): outside [fuzzy village name]
+दिंडोरी / ग्रामसभा धोंडाळपाडा / comp 60 (16.5 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ मावडी / comp 597 (118.93 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ उपीळपाडा / comp 59 (15.9 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ गांडोळे / comp 56 (14 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ कृष्णगांव / comp 5 (30 ha): notfound
+दिंडोरी / ग्रामस्थ कृष्णगांव / comp 91 (30 ha): notfound
+दिंडोरी / ग्रामस्थ फोफशी / comp 588 (53 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ घोडेवाडी / comp 5 (110 ha): notfound
+दिंडोरी / ग्रामस्थ घोडेवाडी / comp 95 (110 ha): notfound
+दिंडोरी / ग्रामस्थ कोचरगांव / comp 197 (255.25 ha): only-fdcm
+दिंडोरी / ग्रामस्थ सोनगांव / comp 630 (275 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ चाचडगांव / comp 30 (20.02 ha): notfound
+दिंडोरी / ग्रामस्थ चाचडगांव / comp 3 (20.02 ha): notfound
+दिंडोरी / ग्रामस्थ चाचडगांव / comp 5 (20.02 ha): notfound
+दिंडोरी / ग्रामस्थ धाऊर / comp 219 (37.92 ha): notfound
+दिंडोरी / ग्रामस्थ धाऊर / comp 221 (37.92 ha): notfound
+दिंडोरी / ग्रामस्थ धाऊर / comp 223 (37.92 ha): notfound
+दिंडोरी / ग्रामस्थ धाऊर / comp 197 (37.92 ha): only-fdcm
+दिंडोरी / ग्रामस्थ धाऊर / comp 43 (37.92 ha): notfound
+दिंडोरी / ग्रामस्थ खोटऱ्याचीवाडी / comp 624 (35.37 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ गयाचीवाडी / comp 624 (41.11 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ दह्याचीवाडी / comp 6 (15 ha): notfound [village not matched]
+दिंडोरी / ग्रामस्थ दह्याचीवाडी / comp 25 (15 ha): notfound [village not matched]
+दिंडोरी / ग्रामस्थ दह्याचीवाडी / comp 626 (15 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ पिंप्रज / comp 71 (52 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ झार्ली / comp 68 (19.05 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ बोरवणपाडा / comp 46 (17.91 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ उमराळे बु. / comp 617 (61.93 ha): taluka-unique [village ambiguous]
+दिंडोरी / ग्रामस्थ फोफळवाडे / comp 70 (42 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ चिल्हारपाडा / comp 62 (23.6 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ ब्रम्हणेचापाडा / comp 578 (45 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ वांजुळे / comp 568 (25 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ एकलहरे / comp 579 (20 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ बंधारपाडा / comp 580 (15 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ रामशेज/आशेवाडी / comp 313 (43 ha): notfound
+दिंडोरी / ग्रामस्थ अक्राळे / comp 620 (46 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ दहेरवाडी / comp 623 (25 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ रवळगांव / comp 626 (41 ha): inside [fuzzy village name]
+दिंडोरी / ग्रामस्थ इंदोरे / comp 227 (30 ha): notfound
+दिंडोरी / ग्रामस्थ ओैताळे / comp 594 (100 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ निळवंडी / comp 158 (30 ha): notfound [village ambiguous] [fuzzy village name]
+दिंडोरी / ग्रामस्थ आंबेवणी / comp 43 (150 ha): notfound
+दिंडोरी / ग्रामस्थ आंबेवणी / comp 44 (150 ha): notfound
+दिंडोरी / ग्रामस्थ आंबेवणी / comp 45 (150 ha): notfound
+दिंडोरी / ग्रामस्थ वरखेडा / comp 581 (27 ha): notfound [fuzzy village name]
+दिंडोरी / ग्रामस्थ खेडगांव / comp 74 (42 ha): notfound
+दिंडोरी / ग्रामस्थ देवठाण / comp 53 (3.95 ha): outside [fuzzy village name]
+दिंडोरी / ग्रामस्थ माळेगाव काझी / comp 583 (96 ha): taluka-unique [village not matched]
+दिंडोरी / ग्रामस्थ पिंप्री अंचला / comp 568 (110 ha): inside [fuzzy village name]
+पेठ / ग्रामस्त बेहेडपाडा / comp 74 (0.57 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्त झरी / comp 77 (5.9 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्त झरी / comp 123 (5.9 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्त झरी / comp 77 (0.6 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्त झरी / comp 123 (0.6 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्त बेहेडपाडा / comp 74 (2.87 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्त आसरबारी / comp 24 (6.06 ha): notfound [village not matched]
+पेठ / ग्रामस्त आसरबारी / comp 112 (6.06 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्त आसरबारी / comp 113 (6.06 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्त कोहोर / comp 349 (42 ha): notfound
+पेठ / ग्रामस्त कोहोर / comp 350 (42 ha): notfound
+पेठ / ग्रामस्त देवळाचापाडा / comp 78 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त हेदपाडा / comp 29 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त हेदपाडा / comp 76 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त हेदपाडा / comp 86 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त हेदपाडा / comp 93 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त पाटे / comp 138 (40 ha): notfound [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्त मोहदांड / comp 32 (37.3 ha): outside [fuzzy village name]
+पेठ / ग्रामस्त लिंगवणे / comp 118 (42 ha): inside [fuzzy village name]
+पेठ / ग्रामस्त मानकापुर / comp 59 (75 ha): notfound
+पेठ / ग्रामस्त फणसपाडा / comp 156 (5.73 ha): notfound [village ambiguous]
+पेठ / ग्रामस्त पळशी / comp 96 (50 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्त शेवखंडी / comp 15 (156.49 ha): notfound
+पेठ / ग्रामस्त शेवखंडी / comp 21 (156.49 ha): notfound
+पेठ / ग्रामस्त शेवखंडी / comp 53 (156.49 ha): notfound
+पेठ / ग्रामस्त निमपाडा / comp 156 (50 ha): notfound [village not matched]
+पेठ / ग्रामस्त वडपाडा / comp 23 (17.98 ha): notfound
+पेठ / ग्रामस्त वडपाडा / comp 41 (17.98 ha): notfound
+पेठ / ग्रामस्त वडपाडा / comp 43 (17.98 ha): notfound
+पेठ / ग्रामस्त वडपाडा / comp 46 (17.98 ha): notfound
+पेठ / ग्रामस्त घोटविहिरा / comp 25 (21.03 ha): notfound
+पेठ / ग्रामस्त हनुमंतपाडा / comp 156 (21 ha): notfound [village ambiguous]
+पेठ / ग्रामस्त वाजवड / comp 13 (15.39 ha): notfound [village not matched]
+पेठ / ग्रामस्त वाजवड / comp 19 (15.39 ha): notfound [village not matched]
+पेठ / ग्रामस्त वाजवड / comp 48 (15.39 ha): notfound [village not matched]
+पेठ / ग्रामस्त पायरपाडा / comp 156 (0.31 ha): notfound [village not matched]
+पेठ / ग्रामस्त उंबरमाळ / comp 126 (48.6 ha): only-fdcm
+पेठ / ग्रामस्त कोळुष्टी / comp 156 (18.44 ha): notfound [village not matched]
+पेठ / ग्रामस्त घनशेत / comp 270 (20.4 ha): notfound [village not matched]
+पेठ / ग्रामस्त कुळवंडी / comp 76 (19 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त खोकरीपाडा / comp 32 (10 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त खोकरीपाडा / comp 46 (10 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त एकदरे / comp 76 (34 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त एकदरे / comp 86 (34 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त एकदरे / comp 93 (34 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त एकदरे / comp 92 (34 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त शिवशेत / comp 31 (31.19 ha): notfound [village not matched]
+पेठ / ग्रामस्त गोंदे (देवळाचापाडा) / comp 35 (130 ha): notfound
+पेठ / ग्रामस्त गोंदे (देवळाचापाडा) / comp 36 (130 ha): notfound
+पेठ / ग्रामस्त गोंदे (देवळाचापाडा) / comp 45 (130 ha): notfound
+पेठ / ग्रामस्त करंजाळी / comp 10 (45.94 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजाळी / comp 91 (45.94 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजाळी / comp 17 (45.94 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजाळी / comp 12 (45.94 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजाळी / comp 1 (45.94 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजाळी / comp 21 (45.94 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजाळी / comp 124 (45.94 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्त हरणगांव व बारवपाडा / comp 1 (52 ha): notfound [village not matched]
+पेठ / ग्रामस्त हरणगांव व बारवपाडा / comp 27 (52 ha): notfound [village not matched]
+पेठ / ग्रामस्त हरणगांव व बारवपाडा / comp 129 (52 ha): notfound [village not matched]
+पेठ / ग्रामस्त निमोणीपाडा / comp 207 (16 ha): notfound [village not matched]
+पेठ / ग्रामस्त हट्टीपाडा / comp 223 (20 ha): notfound [village not matched]
+पेठ / ग्रामस्त कहांडोळपाडा / comp 78 (61.78 ha): notfound
+पेठ / ग्रामस्त जुनोठी / comp 87 (46.24 ha): only-fdcm
+पेठ / ग्रामस्त जुनोठी / comp 91 (46.24 ha): only-fdcm
+पेठ / ग्रामस्त जुनोठी / comp 2 (46.24 ha): notfound
+पेठ / ग्रामस्त गावंध / comp 12 (28 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त गावंध / comp 34 (28 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त करंजमाळ / comp 149 (10 ha): notfound [village not matched]
+पेठ / ग्रामस्त केळबारी / comp 49 (20 ha): outside [fuzzy village name]
+पेठ / ग्रामस्त केळबारी / comp 50 (20 ha): outside [fuzzy village name]
+पेठ / ग्रामस्त देविचामाळ / comp 156 (20.2 ha): notfound [village not matched]
+पेठ / ग्रामस्त मांगोणे / comp 43 (16 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त बोंडारमाळ / comp 156 (17 ha): notfound [village not matched]
+पेठ / ग्रामस्त अभेटी / comp 29 (132.62 ha): notfound
+पेठ / ग्रामस्त अभेटी / comp 52 (132.62 ha): notfound
+पेठ / ग्रामस्त अभेटी / comp 62 (132.62 ha): notfound
+पेठ / ग्रामस्त अभेटी / comp 65 (132.62 ha): notfound
+पेठ / ग्रामस्त अभेटी / comp 69 (132.62 ha): notfound
+पेठ / ग्रामस्त पिंपळवटी / comp 26 (20.03 ha): notfound
+पेठ / ग्रामस्त पिंपळवटी / comp 85 (20.03 ha): notfound
+पेठ / ग्रामस्त चिंचपाडा / comp 14 (12 ha): notfound [village not matched]
+पेठ / ग्रामस्त चिंचपाडा / comp 71 (12 ha): notfound [village not matched]
+पेठ / ग्रामस्त चिंचपाडा / comp 19 (12 ha): notfound [village not matched]
+पेठ / ग्रामस्त चिंचपाडा / comp 113 (12 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्त कळमबारी / comp 85 (11.2 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्त सावळघाट / comp 117 (22.69 ha): inside [fuzzy village name]
+पेठ / ग्रामस्त निरगुडे / comp 116 (50 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्त तिळभाट / comp 117 (12.1 ha): inside [fuzzy village name]
+पेठ / ग्रामस्त उभीधोंड / comp 1 (16.59 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त उभीधोंड / comp 27 (16.59 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त उभीधोंड / comp 129 (16.59 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त दोनवाडे / comp 154 (46 ha): inside [fuzzy village name]
+पेठ / ग्रामस्त उंबरदांड / comp 130 (2.63 ha): notfound [village not matched]
+पेठ / ग्रामस्त वांगणी / comp 27 (140 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त पळशी / comp 96 (10 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्त बाडगी / comp 97 (40 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्त चिकाडी / comp 156 (20 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ अंध्रुटे / comp 60 (30 ha): notfound [village not matched]
+पेठ / ग्रामस्थ चिखली / comp 82 (11 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ चिखली / comp 79 (11 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ चिखली / comp 233 (11 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ भोयेपाडा / comp 123 (20 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्थ भोयेपाडा / comp 138 (20 ha): notfound [village not matched]
+पेठ / ग्रामस्थ भोयेपाडा / comp 107 (20 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्थ सुरगाणे / comp 213 (10.25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सुरगाणे / comp 215 (10.25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ बोरदा / comp 115 (40 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ बोरदा / comp 128 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ बोरदा / comp 122 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ बोरदा / comp 123 (40 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ मोहोलीपाडा / comp 69 (7.54 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ मोहोलीपाडा / comp 210 (7.54 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ मोहोलीपाडा / comp 211 (7.54 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोल्हारमाळ / comp 45 (12.1 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोल्हारमाळ / comp 50 (12.1 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सावरीचापाडा / comp 135 (50 ha): notfound
+पेठ / ग्रामस्थ सावरीचापाडा / comp 82 (50 ha): only-fdcm
+पेठ / ग्रामस्थ खिरोणपाडा / comp 41 (6.72 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ काळुणे / comp 25 (33.52 ha): notfound
+पेठ / ग्रामस्थ काळुणे / comp 17 (33.52 ha): notfound
+पेठ / ग्रामस्थ माळेगांव / comp 1 (39.52 ha): notfound
+पेठ / ग्रामस्थ माळेगांव / comp 17 (39.52 ha): notfound
+पेठ / ग्रामस्थ माळेगांव / comp 21 (39.52 ha): notfound
+पेठ / ग्रामस्थ घोटपाडा / comp 62 (39 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ घोटपाडा / comp 41 (39 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ घोटपाडा / comp 18 (39 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ घोटपाडा / comp 23 (39 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ घोटपाडा / comp 35 (39 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ घोटपाडा / comp 36 (39 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ इचनपाडा / comp 97 (17.98 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ घुबडसाका / comp 147 (35 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्थ घुबडसाका / comp 168 (35 ha): notfound [village not matched]
+पेठ / ग्रामस्थ घुबडसाका / comp 166 (35 ha): notfound [village not matched]
+पेठ / ग्रामस्थ तुंगारपाडा / comp 35 (18.35 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ शिहरीपाडा / comp 45 (16 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ शिहरीपाडा / comp 67 (16 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ फणसपाडा / comp 128 (40 ha): notfound [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ बोरवठ / comp 115 (52.97 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ आड (बु) / comp 41 (150 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आड (बु) / comp 55 (150 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आड (बु) / comp 87 (150 ha): only-fdcm [village ambiguous]
+पेठ / ग्रामस्थ आड (बु) / comp 101 (150 ha): only-fdcm [village ambiguous]
+पेठ / ग्रामस्थ आड (बु) / comp 104 (150 ha): only-fdcm [village ambiguous]
+पेठ / ग्रामस्थ आड (बु) / comp 174 (150 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आड (बु) / comp 175 (150 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ निमोणीपाडा / comp 179 (50 ha): notfound [village not matched]
+पेठ / ग्रामस्थ निमोणीपाडा / comp 32 (50 ha): notfound [village not matched]
+पेठ / ग्रामस्थ खडकी (शि) / comp 37 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 39 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 41 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 7 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 25 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 26 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 27 (62.25 ha): notfound
+पेठ / ग्रामस्थ खडकी (शि) / comp 35 (62.25 ha): notfound
+पेठ / ग्रामस्थ गोळसपाडा / comp 2 (39 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ गोळसपाडा / comp 10 (39 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ भुवन / comp 15 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 21 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 56 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 61 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 62 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 63 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 65 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 66 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 80 (85 ha): notfound
+पेठ / ग्रामस्थ भुवन / comp 83 (85 ha): notfound
+पेठ / ग्रामस्थ सावर्ण / comp 15 (26.72 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ जळे / comp 166 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 70 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 71 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 13 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 18 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 21 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 64 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ जळे / comp 62 (56.31 ha): notfound [village not matched]
+पेठ / ग्रामस्थ मोहपाडा / comp 36 (22.52 ha): notfound
+पेठ / ग्रामस्थ मोहपाडा / comp 38 (22.52 ha): notfound
+पेठ / ग्रामस्थ मोहपाडा / comp 39 (22.52 ha): notfound
+पेठ / ग्रामस्थ मोहपाडा / comp 29 (22.52 ha): notfound
+पेठ / ग्रामस्थ कायरे / comp 75 (72 ha): inside [fuzzy village name]
+पेठ / ग्रामस्थ कायरे / comp 94 (72 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ कायरे / comp 77 (72 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ कायरे / comp 149 (72 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ म्हसगण / comp 88 (388.54 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ चौकडा / comp 75 (50 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ आमलोण / comp 18 (84.11 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 47 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 42 (66.67 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 35 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 33 (66.67 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 14 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 21 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 24 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 26 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 6 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोमखडक / comp 10 (66.67 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ करंजखेड / comp 84 (96 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ आडखुर्द / comp 30 (73.2 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 34 (73.2 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 35 (73.2 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 36 (73.2 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 52 (73.2 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 53 (73.2 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 96 (73.2 ha): only-fdcm [village ambiguous]
+पेठ / ग्रामस्थ आडखुर्द / comp 107 (73.2 ha): only-fdcm [village ambiguous]
+पेठ / ग्रामस्थ उंबरपाडा / comp 59 (6.43 ha): notfound [village not matched]
+पेठ / ग्रामस्थ उंबरपाडा / comp 60 (6.43 ha): notfound [village not matched]
+पेठ / ग्रामस्थ उंबरपाडा / comp 61 (6.43 ha): notfound [village not matched]
+पेठ / ग्रामस्थ उंबरपाडा / comp 75 (6.43 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्थ उंबरपाडा / comp 76 (6.43 ha): taluka-unique [village not matched]
+पेठ / ग्रामस्थ डोंगरशेत / comp 7 (72 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोंगरशेत / comp 12 (72 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोंगरशेत / comp 15 (72 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डोंगरशेत / comp 19 (72 ha): notfound [fuzzy village name]
+पेठ / ‌ग्रामस्थ कुंभारबरी / comp 32 (10 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ शिराळे / comp 4 (10.4 ha): notfound
+पेठ / ग्रामस्थ शिराळे / comp 8 (10.4 ha): notfound
+पेठ / ग्रामस्थ शिराळे / comp 9 (10.4 ha): notfound
+पेठ / ग्रामस्थ शिराळे / comp 25 (10.4 ha): notfound
+पेठ / ग्रामस्थ शिराळे / comp 17 (10.4 ha): notfound
+पेठ / ग्रामस्थ शिराळे / comp 28 (10.4 ha): notfound
+पेठ / ग्रामस्थ शिराळे / comp 20 (10.4 ha): notfound
+पेठ / ग्रामस्थ तोरणमाळ / comp 22 (98.19 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ तोरणमाळ / comp 23 (98.19 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ तोरणमाळ / comp 27 (98.19 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ तोरणमाळ / comp 39 (98.19 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ तोरणमाळ / comp 42 (98.19 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ वीरमाळ / comp 16 (90.24 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ पाहूचीबारी / comp 146 (72.58 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ बोरपाडा / comp 40 (80.33 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ डिक्सळ / comp 66 (42.16 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ धानपाडा / comp 25 (45.91 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ कोटंबी / comp 149 (72.77 ha): notfound
+पेठ / ग्रामस्थ कोटंबी / comp 52 (72.77 ha): notfound
+पेठ / ग्रामस्थ कोटंबी / comp 50 (72.77 ha): notfound
+पेठ / ग्रामस्थ कळमपाडा / comp 15 (69.96 ha): notfound
+पेठ / ग्रामस्थ फणसपाडा / comp 188 (50 ha): notfound
+पेठ / ग्रामस्थ फणसपाडा / comp 189 (50 ha): notfound
+पेठ / ग्रामस्थ फणसपाडा / comp 309 (50 ha): notfound
+पेठ / ग्रामस्थ फणसपाडा / comp 169 (50 ha): notfound
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 20 (20 ha): notfound [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 42 (20 ha): notfound [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 45 (20 ha): notfound [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 68 (20 ha): notfound [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 77 (20 ha): only-fdcm [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 85 (20 ha): only-fdcm [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ कोपुर्ली खु. / comp 93 (20 ha): taluka-unique [village ambiguous] [fuzzy village name]
+पेठ / ग्रामस्थ चफ्याच्यापाडा / comp 113 (96.29 ha): only-fdcm [village not matched]
+पेठ / ग्रामस्थ चफ्याच्यापाडा / comp 61 (96.29 ha): notfound [village not matched]
+पेठ / ग्रामस्थ म्हसणविहरा / comp 308 (50 ha): notfound
+पेठ / ग्रामस्थ म्हसणविहरा / comp 99 (50 ha): only-fdcm
+पेठ / ग्रामस्थ म्हसणविहरा / comp 77 (50 ha): notfound
+पेठ / ग्रामस्थ म्हसणविहरा / comp 82 (50 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 24 (102 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 82 (102 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 50 (102 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 25 (102 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 22 (102 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 61 (102 ha): notfound
+पेठ / ग्रामस्थ बेहेडमाळ / comp 245 (102 ha): notfound
+पेठ / ग्रामस्थ गडदुने / comp 77 (50 ha): notfound
+पेठ / ग्रामस्थ गडदुने / comp 308 (50 ha): notfound
+पेठ / ग्रामस्थ गडदुने / comp 99 (50 ha): only-fdcm
+पेठ / ग्रामस्थ निमोणीपाडा / comp 2 (56 ha): notfound
+पेठ / ग्रामस्थ निमोणीपाडा / comp 20 (56 ha): notfound
+पेठ / ग्रामस्थ निमोणीपाडा / comp 92 (56 ha): only-fdcm
+पेठ / ग्रामस्थ निमोणीपाडा / comp 10 (56 ha): notfound
+पेठ / ग्रामस्थ निमोणीपाडा / comp 31 (56 ha): notfound
+पेठ / ग्रामस्थ निमोणीपाडा / comp 0 (56 ha): notfound
+पेठ / ग्रामस्थ उस्थळे / comp 112 (139 ha): only-fdcm
+पेठ / ग्रामस्थ उस्थळे / comp 173 (139 ha): notfound
+पेठ / ग्रामस्थ हनुमाननगर / comp 54 (6.18 ha): notfound
+पेठ / ग्रामस्थ हनुमाननगर / comp 37 (6.18 ha): notfound
+पेठ / ग्रामस्थ हनुमाननगर / comp 32 (6.18 ha): notfound
+पेठ / ग्रामस्थ खोकरतळे / comp 98 (90.7 ha): only-fdcm
+पेठ / ग्रामस्थ खोकरतळे / comp 50 (90.7 ha): notfound
+पेठ / ग्रामस्थ दाभाडी / comp 15 (42 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ दाभाडी / comp 40 (42 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ दाभाडी / comp 43 (42 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ दाभाडी / comp 50 (42 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ दाभाडी / comp 59 (42 ha): outside [fuzzy village name]
+पेठ / ग्रामस्थ दाभाडी / comp 69 (42 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ दाभाडी / comp 71 (42 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 3 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 5 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 10 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 11 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 19 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 21 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 25 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 26 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ लव्हाळी / comp 28 (137.04 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 4 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 11 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 16 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 19 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 22 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 25 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 28 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 31 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ रानविहीर / comp 40 (25 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ केळविहीर / comp 2 (15 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ केळविहीर / comp 3 (15 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ केळविहीर / comp 4 (15 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ केळविहीर / comp 5 (15 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ केळविहीर / comp 7 (15 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ केळविहीर / comp 20 (15 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 6 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 8 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 12 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 13 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 16 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 18 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 20 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 21 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 26 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 29 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ सादडपाडा / comp 34 (20 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ गारमाळ / comp 101 (100 ha): only-fdcm
+पेठ / ग्रामस्थ चिरेपाडा / comp 90 (26.78 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ बिलकस / comp 103 (60 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ बिलकस / comp 104 (60 ha): only-fdcm [fuzzy village name]
+पेठ / ग्रामस्थ रायतळे / comp 24 (103.92 ha): notfound
+पेठ / ग्रामस्थ तांदळाचीबारी / comp 36 (45.87 ha): notfound
+पेठ / ग्रामस्थ तांदळाचीबारी / comp 42 (45.87 ha): notfound
+पेठ / ग्रामस्थ तांदळाचीबारी / comp 62 (45.87 ha): notfound
+पेठ / ग्रामस्थ खामशेत / comp 16 (49.12 ha): notfound [fuzzy village name]
+पेठ / ग्रामस्थ हनुमंतपाडा / comp 48 (90 ha): notfound [village ambiguous]
+पेठ / ग्रामस्थ हनुमंतपाडा / comp 106 (90 ha): only-fdcm [village ambiguous]
+पेठ / ग्रामस्थ हनुमंतपाडा / comp 111 (90 ha): only-fdcm [village ambiguous]
+ईगतपुरी / ग्रामस्थ आंबेवाडी / comp 305 (60 ha): only-fdcm
+ईगतपुरी / ग्रामस्थ मोडाळे / comp 360 (50 ha): only-fdcm [fuzzy village name]
+ईगतपुरी / ग्रामस्थ शिरसाटे / comp 359 (40 ha): only-fdcm [fuzzy village name]
+ईगतपुरी / ग्रामस्थ टाकेद / comp 295 (1 ha): outside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ तळोशी / comp 3 (20 ha): notfound [village not matched]
+ईगतपुरी / ग्रामस्थ तळोशी / comp 11 (20 ha): notfound [village not matched]
+ईगतपुरी / ग्रामस्थ तळोशी / comp 312 (20 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ धामणी गांगडवाडी / comp 297 (15 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ बोरटेंभे / comp 324 (10 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ बोरटेंभे / comp 66 (10 ha): notfound [fuzzy village name]
+ईगतपुरी / ग्रामस्थ जांमुंडे / comp 42 (1 ha): notfound
+ईगतपुरी / ग्रामस्थ गव्हांडे / comp 310 (20 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ खैरगांव / comp 299 (50 ha): only-fdcm
+ईगतपुरी / ग्रामस्थ बळवंतनगर मुळेगांव / comp 341 (33 ha): only-fdcm [village not matched]
+ईगतपुरी / ग्रामस्थ कोरपगांव / comp 340 (35 ha): only-fdcm
+ईगतपुरी / ग्रामस्थ कावनई / comp 340 (60 ha): only-fdcm [fuzzy village name]
+ईगतपुरी / ग्रामस्थ कावनई / comp 341 (60 ha): only-fdcm [fuzzy village name]
+ईगतपुरी / ग्रामस्थ मांजरगांव / comp 301 (5 ha): only-fdcm [village not matched]
+ईगतपुरी / ग्रामस्थ खंबाळे / comp 289 (150 ha): notfound
+ईगतपुरी / ग्रामथ भावली / comp 340 (5 ha): only-fdcm
+ईगतपुरी / ग्रामस्थ बिटुर्ली / comp 341 (33 ha): only-fdcm [fuzzy village name]
+ईगतपुरी / ग्रामस्थ देविचीवाडी / comp 327 (29.9 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ टाकेद खु. / comp 295 (10 ha): outside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ मायदरा / comp 291 (25 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ चिंचलखैरे / comp 320 (160 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ चिंचलखैरे / comp 321 (160 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ चिंचलखैरे / comp 322 (160 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ तळ्याचीवाडी / comp 323 (60 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ धारगांव / comp 337 (111 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ भगतवाडी / comp 312 (86 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ आडवण / comp 327 (33 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ पिंपळगांव धाडगा / comp 287 (23 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ कुशेगांव / comp 355 (100 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ इंदोरे / comp 302 (65 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ निशानवाडी / comp 327 (60 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ बारशिंगवे / comp 293 (80 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ वासाळी / comp 294 (75 ha): outside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ वासाळी / comp 302 (75 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ पत्र्याचीवाडी / comp 328 (60 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ पत्र्याचीवाडी / comp 329 (60 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ हिरेचीवाडी / comp 328 (60 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ अडसरे बु. / comp 290 (40 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ अडसरे बु. / comp 291 (40 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ भावली बु. / comp 310 (120 ha): notfound
+ईगतपुरी / ग्रामस्थ अधरवड / comp 295 (50 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ ठाकुरवाडी / comp 311 (74 ha): taluka-unique [village not matched]
+ईगतपुरी / ग्रामस्थ तळोघ / comp 311 (10 ha): inside [fuzzy village name]
+ईगतपुरी / ग्रामस्थ फांगुळगव्हाण / comp 318 (40 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ गडदवणे / comp 20 (8 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ गडदवणे / comp 48 (8 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ भुतमोखाडा / comp 41 (10 ha): notfound
+त्रिंबक / ग्रामपंचायत खैरायपाली / comp 135 (0.1 ha): only-fdcm
+त्रिंबक / ग्रामपंचायत खैरायपाली / comp 135 (0.1 ha): only-fdcm
+त्रिंबक / ग्रामस्थ मेटघरकिल्ला / comp 239 (610.8 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ गोलदरी / comp 130 (10 ha): only-fdcm
+त्रिंबक / ग्रामस्थ बोरीपाडा / comp 280 (40 ha): notfound
+त्रिंबक / ग्रामस्थ तोरंगण (त्रं) / comp 17 (16 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ तोरंगण (त्रं) / comp 61 (16 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ तोरंगण (त्रं) / comp 77 (16 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ तोरंगण (त्रं) / comp 178 (16 ha): only-fdcm [village not matched]
+त्रिंबक / ग्रामस्थ आंबेाली / comp 210 (25 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ देवडोंगरा / comp 199 (10 ha): notfound
+त्रिंबक / ग्रामस्थ ठाणापाडा / comp 69 (60 ha): notfound
+त्रिंबक / ग्रामस्थ हातलोंढी / comp 1 (10 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ हातलोंढी / comp 48 (10 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ हातलोंढी / comp 135 (10 ha): only-fdcm [fuzzy village name]
+त्रिंबक / ग्रामस्थ देवळा / comp 70 (29 ha): notfound
+त्रिंबक / ग्रामस्थ देवळा / comp 73 (29 ha): notfound
+त्रिंबक / ग्रामस्थ कोशींबपाडा / comp 191 (10 ha): taluka-unique [village not matched]
+त्रिंबक / गामस्थ तोरंगण (ह) / comp 181 (10 ha): taluka-unique [village not matched]
+त्रिंबक / गामस्थ निरगुडे (ह) / comp 47 (25.93 ha): notfound
+त्रिंबक / ग्रामस्थ लोणवाडी / comp 334 (20 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ राऊतमाळ / comp 53 (21 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ कोटंबी / comp 237 (10 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ सारस्ते / comp 23 (45 ha): notfound
+त्रिंबक / ग्रामस्थ सारस्ते / comp 37 (45 ha): notfound
+त्रिंबक / ग्रामस्थ शिरसगांव / comp 52 (10 ha): notfound [village ambiguous]
+त्रिंबक / ग्रामस्थ खडक ओहळ / comp 93 (10 ha): outside [fuzzy village name]
+त्रिंबक / ग्रामस्थ खडक ओहळ / comp 113 (10 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ पहिणे / comp 353 (157 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ खैरायपाली / comp 135 (10 ha): only-fdcm
+त्रिंबक / ग्रामस्थ खैरायपाली / comp 101 (10 ha): only-fdcm
+त्रिंबक / ग्रामस्थ नांदुरकिपाडा / comp 214 (10 ha): notfound
+त्रिंबक / ग्रामस्थ खरवळ / comp 173 (128 ha): outside [fuzzy village name]
+त्रिंबक / ग्रामस्थ अस्वलीहर्ष / comp 347 (20 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ करंजपाना / comp 186 (5 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ बेरवळ / comp 67 (10 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ हिरडी / comp 204 (41 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ गणेशगांव वा / comp 208 (50 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ रोहिले / comp 248 (25 ha): notfound
+त्रिंबक / ग्रामस्थ रोहिले / comp 249 (25 ha): notfound
+त्रिंबक / ग्रामस्थ तळवाडे / comp 212 (50 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ महादेवनगर / comp 26 (10 ha): notfound
+त्रिंबक / ग्रामस्थ बेझे व चाकोरे / comp 216 (5 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ बेझे व चाकोरे / comp 217 (5 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ जातेगांव खु / comp 59 (2 ha): notfound
+त्रिंबक / ग्रामस्थ वरसविहीर / comp 180 (25 ha): inside [fuzzy village name]
+त्रिंबक / गा्‌मस्थ भिलमाळ / comp 352 (30 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ कळमुस्ते / comp 189 (150 ha): notfound
+त्रिंबक / ग्रामस्थ धाडोशी / comp 350 (50 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ उंभ्राडे / comp 190 (100 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ कोजुली / comp 351 (30 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ बेहेडपाडा / comp 143 (110 ha): only-fdcm
+त्रिंबक / ग्रामस्थ हट्टीपाडा / comp 161 (200 ha): only-fdcm [village not matched]
+त्रिंबक / ग्रामस्थ हट्टीपाडा / comp 229 (200 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ विरनगर (खरवळ) / comp 159 (110 ha): only-fdcm
+त्रिंबक / ग्रामस्थ कडेगहाण / comp 137 (55 ha): only-fdcm [fuzzy village name]
+त्रिंबक / ग्रामस्थ कडेगहाण / comp 138 (55 ha): only-fdcm [fuzzy village name]
+त्रिंबक / ग्रामस्थ मेटचंद्राची / comp 19 (100 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ मेटचंद्राची / comp 48 (100 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ मेटचंद्राची / comp 343 (100 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ चिखलपाडा / comp 229 (120 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ खरशेत / comp 307 (50 ha): notfound
+त्रिंबक / ग्रामस्थ अंजनेरी / comp 233 (20 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ पेगलवाडी ना. / comp 235 (29 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ आव्हाटे / comp 347 (54 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ बाफणविहीर / comp 134 (25.83 ha): only-fdcm [fuzzy village name]
+त्रिंबक / ग्रामस्थ भागओहोळ / comp 163 (28.92 ha): only-fdcm [village not matched]
+त्रिंबक / ग्रामस्थ गोकुळनगर / comp 348 (19 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ डोळओहोळ / comp 143 (30 ha): only-fdcm
+त्रिंबक / ग्रामस्थ गाळवाडी (टोकदेवगांव) / comp 333 (40 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ वावीहर्ष / comp 342 (15 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ अंबई / comp 186 (225 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ आळवंड डूब्याचीवाडी, महादेवाचीवाडी / comp 348 (33 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ विजपाडा / comp 348 (19 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ ओझरखेड / comp 191 (20 ha): notfound
+त्रिंबक / ग्रामस्थ वडपाडा / comp 69 (20 ha): notfound
+त्रिंबक / ग्रामस्थ शिंदपाडा / comp 280 (30 ha): notfound
+त्रिंबक / ग्रामस्थ तुंगारपाडा / comp 127 (50 ha): only-fdcm
+त्रिंबक / ग्रामस्थ तुंगारपाडा / comp 65 (50 ha): notfound
+त्रिंबक / ग्रामस्थ तुंगारपाडा / comp 93 (50 ha): notfound
+त्रिंबक / ग्रामस्थ तुंगारपाडा / comp 133 (50 ha): only-fdcm
+त्रिंबक / ग्रामस्थ टाकेहर्ष / comp 345 (220 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ कळंबपाडा / comp 329 (25 ha): notfound
+त्रिंबक / ग्रामस्थ काचुर्ली / comp 40 (10 ha): notfound
+त्रिंबक / ग्रामस्थ चिंचओहोळ / comp 280 (100 ha): notfound
+त्रिंबक / ग्रामस्थ बरड्याचीवाडी / comp 333 (40 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ सरळवाडी / comp 333 (40 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ हरीचीवाडी / comp 334 (20 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ वेळुंजे / comp 18 (224.49 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ वेळुंजे / comp 11 (224.49 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ वेळुंजे / comp 82 (224.49 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ वेळुंजे / comp 183 (224.49 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ चिरापाली / comp 131 (8.02 ha): notfound
+त्रिंबक / ग्रामस्थ चाकोरे / comp 126 (80 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ खोरीपाडा / comp 140 (60 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ खोरीपाडा / comp 138 (60 ha): only-fdcm [village not matched]
+त्रिंबक / ग्रामस्थ मेट हुंब्याची / comp 348 (18 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ वाघेरपाडा / comp 115 (20 ha): notfound [village not matched]
+त्रिंबक / ग्रामस्थ धाराचीवाडी / comp 335 (20 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ नंदुरकीपाडा / comp 160 (157 ha): only-fdcm [fuzzy village name]
+त्रिंबक / ग्रामस्थ मेट येल्याची / comp 334 (16 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ गोरठाण / comp 209 (20 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ पूलाचीवाडी / comp 348 (19 ha): outside [fuzzy village name]
+त्रिंबक / ग्रामस्थ टाकेदेवगाव / comp 335 (40 ha): inside [fuzzy village name]
+त्रिंबक / ग्रामस्थ सुपलीची मेट / comp 240 (1.82 ha): ambiguous [village not matched] candidates=2 (Trimbak|Ambai; Trimbak|Trimbak)
+त्रिंबक / ग्रामस्थ पठारवाडी / comp 237 (0.73 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ दावलेश्वर / comp 70 (0.07 ha): notfound
+त्रिंबक / ग्रामस्थ गडदवणे / comp 5 (8.87 ha): notfound [fuzzy village name]
+त्रिंबक / ग्रामस्थ काथवडपाडा / comp 166 (105 ha): only-fdcm [fuzzy village name]
+त्रिंबक / ग्रामस्थ बोरमाळ / comp 136 (50 ha): only-fdcm
+त्रिंबक / ग्रामस्थ रानपाडा / comp 134 (24 ha): only-fdcm
+त्रिंबक / ग्रामस्थ सादडपाणा / comp 238 (72.51 ha): taluka-unique [village not matched]
+त्रिंबक / ग्रामस्थ सादडपाणा / comp 239 (72.51 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ मनखेड / comp 96 (12.04 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ शिंदे दि. / comp 225 (125 ha): notfound [village not matched]
+सुरगाणा / ग्रामस्थ खोबळा / comp 214 (67 ha): notfound [village not matched]
+सुरगाणा / ग्रामस्थ सुरगाणा / comp 104 (3.31 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ वरंभे / comp 102 (10 ha): notfound
+सुरगाणा / ग्रामस्थ रोंघाणे / comp 436 (124 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ रोंघाणे / comp 54 (124 ha): outside [fuzzy village name]
+सुरगाणा / ग्रामस्थ उंबरठाण / comp 35 (46.77 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ गोपाळपुर / comp 143 (215.72 ha): notfound
+सुरगाणा / ग्रामस्थ मांगधे / comp 39 (114.5 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ मांगधे / comp 40 (114.5 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगांव / comp 290 (614.25 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगांव / comp 275 (614.25 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगांव / comp 366 (614.25 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगांव / comp 288 (614.25 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ हतगड / comp 96 (40 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ चिकाडी / comp 239 (112.5 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ चिकाडी / comp 308 (112.5 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ माळेगांव / comp 169 (224.11 ha): notfound
+सुरगाणा / ग्रामस्थ भोरमाळ / comp 128 (328.95 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ बुबळी / comp 80 (40 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ कळमणे / comp 42 (202.55 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणापाडा / comp 109 (2.4 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ कुकुडणे / comp 18 (215 ha): outside [fuzzy village name]
+सुरगाणा / ग्रामस्थ वडमाळ बि. / comp 72 (40 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ वडमाळ बि. / comp 73 (40 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ भवानगड / comp 55 (60 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ मिळणपाडा / comp 49 (60 ha): ambiguous [village not matched] candidates=2 (Surgana|Ambatha; Surgana|Dolhara; Surgana|Subhashnagar)
+सुरगाणा / ग्रामस्थ बिवळ, मोठीघेाडी, लहानघोडी, धामणकुंड, / comp 72 (200 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बिवळ, मोठीघेाडी, लहानघोडी, धामणकुंड, / comp 73 (200 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ उंबराचापाडा / comp 53 (100 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ दातरीचापाडा / comp 56 (100 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ विहीरीचापाडा / comp 55 (100 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ कोठुळा / comp 54 (100 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ अंबाठा, हंबाचापाडा, वडाचापाडा, लोळणी, जामुनदरा / comp 54 (105 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ टापुपाडा / comp 40 (25 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ टापुपाडा / comp 41 (25 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ मस्तेमाण / comp 40 (20 ha): ambiguous [village not matched] candidates=2 (Surgana|Khuntvihir; Barhe|Jahule; Barhe|Mankhed)
+सुरगाणा / ग्रामस्थ तळपाडा / comp 90 (20 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ पातळी (प), कोटंबा, पायरपाडा / comp 1 (47.7 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगाव, / comp 15 (50 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगाव, / comp 16 (50 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ ठाणगाव, / comp 18 (50 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ बार्हे, गुरटेंभी, हट्टीपाडा, आळीवदांड, रताळीपाडा / comp 58 (81.92 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बार्हे, गुरटेंभी, हट्टीपाडा, आळीवदांड, रताळीपाडा / comp 73 (81.92 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बार्हे, गुरटेंभी, हट्टीपाडा, आळीवदांड, रताळीपाडा / comp 83 (81.92 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ देवळा प / comp 12 (100 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Pimpalsond; Barhe|Khadakmal)
+सुरगाणा / ग्रामस्थ उंबरदे प / comp 9 (48.9 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Umberpada; Barhe|Palsan; Barhe|Khadakmal)
+सुरगाणा / ग्रामस्थ आमदा प / comp 139 (70 ha): notfound [village not matched]
+सुरगाणा / ग्रामस्थ पळशेत / comp 8 (54.19 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ पळशेत / comp 9 (54.19 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ वांगणपाडा / comp 33 (30 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ राक्षसभवन / comp 17 (76.47 ha): outside [fuzzy village name]
+सुरगाणा / ग्रामस्थ मेरदांड / comp 11 (125 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ मेरदांड / comp 12 (125 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ उंटओहळ / comp 21 (150 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Pangarne; Barhe|Khadki)
+सुरगाणा / ग्रामस्थ खोबळा दिगर / comp 25 (40 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ खोबळा दिगर / comp 26 (40 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ खिरमाणी / comp 42 (30 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ मोधळपाडा / comp 31 (100 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ मोधळपाडा / comp 32 (100 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ सायळपाडा / comp 41 (35 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ बेंडवळ / comp 6 (72 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ दुधवळ / comp 7 (67 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ कहांडोळचोंड / comp 15 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Songir; Barhe|Gopalpur)
+सुरगाणा / ग्रामस्थ कहांडोळचोंड / comp 16 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Songir; Barhe|Thangaon)
+सुरगाणा / ग्रामस्थ कहांडोळचोंड / comp 18 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Karanjul Wangan; Barhe|Thangaon)
+सुरगाणा / ग्रामस्थ इळिंगपाडा / comp 15 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Songir; Barhe|Gopalpur)
+सुरगाणा / ग्रामस्थ इळिंगपाडा / comp 16 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Songir; Barhe|Thangaon)
+सुरगाणा / ग्रामस्थ इळिंगपाडा / comp 18 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Karanjul Wangan; Barhe|Thangaon)
+सुरगाणा / ग्रामस्थ वाळूटझिरा / comp 56 (140 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ पांगारणे / comp 70 (20 ha): notfound [fuzzy village name]
+सुरगाणा / ग्रामस्थ दांडीचीबारी / comp 70 (20 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ कुकुडमुंडा / comp 70 (20 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ आंबाडदहाड / comp 70 (20 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ वडपाडा / comp 70 (20 ha): taluka-unique [village ambiguous]
+सुरगाणा / ग्रामस्थ मोठीचागावठा / comp 92 (25 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ मोठीचागावठा / comp 94 (25 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ जामणेचामाळ / comp 92 (32 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ जामणेचामाळ / comp 94 (32 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बर्डा / comp 92 (20 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बर्डा / comp 94 (20 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बाळओझर / comp 92 (40 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ बाळओझर / comp 94 (40 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ मोठामाळ / comp 93 (50 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ भदर / comp 88 (10 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ करवंदे / comp 90 (20 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ भिंतघर / comp 81 (30 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ पालविहीर / comp 85 (5 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ हट्टी / comp 89 (25 ha): only-fdcm
+सुरगाणा / ग्रामस्थ हातरुंढी / comp 67 (100 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ कोडीपाडा / comp 15 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Songir; Barhe|Gopalpur)
+सुरगाणा / ग्रामस्थ कोडीपाडा / comp 16 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Songir; Barhe|Thangaon)
+सुरगाणा / ग्रामस्थ कोडीपाडा / comp 18 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Karanjul Wangan; Barhe|Thangaon)
+सुरगाणा / ग्रामस्थ तळपाडा / comp 90 (20 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ चिंचपाडा / comp 21 (57.04 ha): ambiguous [village ambiguous] candidates=2 (Umbarthan|Pangarne; Barhe|Khadki)
+सुरगाणा / ग्रामस्थ राशा / comp 32 (10 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Rasha; Barhe|Khokharvihir; Barhe|Modhalpada; Barhe|Kalmane; Barhe|Barhe)
+सुरगाणा / ग्रामस्थ गोन्दुणे / comp 5 (10 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Gondunia; Umbarthan|Bardipada; Barhe|Bhawada)
+सुरगाणा / ग्रामस्थ सुभाषनगर / comp 50 (168.26 ha): notfound
+सुरगाणा / ग्रामस्थ चापावाडी / comp 43 (10 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ हडकाइचोंड / comp 3 (20 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Hadkaichond; Barhe|Wangan)
+सुरगाणा / ग्रामस्थ रगतविहीर / comp 26 (10 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Ragatvihir; Barhe|Khirdi)
+सुरगाणा / ग्रामस्थ मांदा / comp 30 (10 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Manda; Barhe|Khokharvihir)
+सुरगाणा / ग्रामस्थ जांभूळपाडा (गू) / comp 27 (50 ha): notfound
+सुरगाणा / ग्रामस्थ जांभूळपाडा (गू) / comp 28 (50 ha): notfound
+सुरगाणा / ग्रामस्थ आमझर / comp 48 (95.55 ha): taluka-unique [village not matched]
+सुरगाणा / ग्रामस्थ उदमाळ / comp 13 (71.25 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ हनुमंतमाळ / comp 83 (20 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ डोल्हारे / comp 51 (189.86 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ चिंचला / comp 4 (20 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ काठीपाडा / comp 44 (10 ha): inside [fuzzy village name]
+सुरगाणा / ग्रामस्थ गृही जा. / comp 29 (50 ha): ambiguous [village not matched] candidates=2 (Umbarthan|Guhi; Barhe|Khokharvihir)
+सुरगाणा / ग्रामस्थ बाफळूण / comp 63 (15 ha): inside [fuzzy village name]
+चांदवड / ग्रामस्थ दह्याणे / comp 602 (36 ha): inside [fuzzy village name]
+चांदवड / ग्रामस्थ राहूड / comp 339 (16.5 ha): inside [fuzzy village name]
+चांदवड / ग्रामस्थ शेरीसलायबन / comp 562 (15 ha): taluka-unique [village not matched]
+चांदवड / ग्रामस्थ जैतापुर / comp 38 (8 ha): notfound
+चांदवड / ग्रामस्थ हट्टी / comp 563 (21 ha): taluka-unique [village not matched]
+चांदवड / ग्रामस्थ कानडगांव / comp 349 (14 ha): inside [fuzzy village name]
+चांदवड / ग्रामस्थ निंबाळे / comp 100 (22 ha): notfound
+चांदवड / ग्रामस्थ निंबाळे / comp 114 (22 ha): notfound
+चांदवड / ग्रामस्थ निंबाळे / comp 115 (22 ha): notfound
+चांदवड / ग्रामस्थ राजदरेवाडी / comp 325 (40 ha): inside [fuzzy village name]
+चांदवड / ग्रामस्थ हरणुल / comp 5 (8 ha): notfound
+चांदवड / ग्रामस्थ पिंपळगांव / comp 350 (32 ha): taluka-unique [village not matched]
+चांदवड / ग्रामस्थ इंद्रायवाडी / comp 22 (30.3 ha): notfound [village not matched]
+चांदवड / ग्रामस्थ कातरवाडी / comp 351 (52.5 ha): inside [fuzzy village name]
+चांदवड / ग्रामस्थ भोरटेक वस्ती / comp 607 (0.3 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त भैाताणे / comp 270 (20 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त दरेभणगी / comp 138 (339.65 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त दरेभणगी / comp 151 (339.65 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त दरेभणगी / comp 173 (339.65 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त दह्याणे ओ / comp 309 (345.01 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त दह्याणे ओ / comp 310 (345.01 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त दह्याणे ओ / comp 311 (345.01 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त प्रतापनगर (काठरे) / comp 84 (10 ha): notfound
+कळवण / ग्रामस्त ढेकाळे / comp 120 (45.06 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त चिंचपाडा पि / comp 264 (329.35 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त चिंचपाडा पि / comp 265 (329.35 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त कुंडाणे ओ / comp 307 (427.13 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त कुंडाणे ओ / comp 308 (427.13 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त गोळखाल / comp 259 (30 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त बिजोरे / comp 102 (664.38 ha): notfound
+कळवण / ग्रामस्त चिंचोरा / comp 284 (414.72 ha): taluka-unique [village ambiguous] [fuzzy village name]
+कळवण / ग्रामस्त शिवभांडणे / comp 106 (30 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त मुळाणे वणी / comp 295 (433.79 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त मुळाणे वणी / comp 300 (433.79 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त मुळाणे वणी / comp 301 (433.79 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त मोहबारी / comp 260 (75 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त मोहबारी / comp 263 (75 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त टाकबारी / comp 260 (100 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त साकोरा / comp 291 (100 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त ईन्शी / comp 38 (415.65 ha): notfound [village not matched]
+कळवण / ग्रामस्त बालापुर / comp 63 (40 ha): notfound
+कळवण / ग्रामस्त शिरसमणी / comp 159 (373.59 ha): notfound
+कळवण / ग्रामस्त कोसुर्डे / comp 99 (40 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त आठंबे / comp 291 (144 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त गोळाखाल / comp 259 (50 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त जामले हा. / comp 98 (50 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त भाकुर्डे / comp 98 (50 ha): outside [fuzzy village name]
+कळवण / ग्रामस्त भाकुर्डे / comp 99 (50 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त जामने पाळे / comp 256 (40 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त वडाळे (वणी) / comp 303 (25 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त चाचेर / comp 247 (359.31 ha): taluka-unique [village ambiguous] [fuzzy village name]
+कळवण / ग्रामस्त चाचेर / comp 102 (359.31 ha): taluka-unique [village ambiguous] [fuzzy village name]
+कळवण / ग्रामस्त रवळजी / comp 315 (490.07 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त सावकी पा. / comp 291 (50 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त लिंगामा / comp 275 (40 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त कोसवन / comp 116 (100 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त ककाणे / comp 250 (312 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त ककाणे / comp 251 (312 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त जामले वणी / comp 278 (50 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त मोकभणगी / comp 251 (35 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त आमदर / comp 273 (50 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त वरखेडा / comp 132 (36.42 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त कनाशी / comp 100 (100 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त दळवट / comp 201 (20 ha): notfound
+कळवण / ग्रामस्त लिंगामा गावठाणपाडा / comp 275 (40 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त मेहदर / comp 305 (84 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त जिरवाडे (हा) / comp 106 (33.93 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त पिंपळे खु. / comp 265 (65 ha): outside [fuzzy village name]
+कळवण / ग्रामस्त साकोरे पाडा / comp 292 (74 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त माचीधोडप / comp 3 (169.34 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त माचीधोडप / comp 5 (169.34 ha): notfound [fuzzy village name]
+कळवण / ग्रामस्त माचीधोडप / comp 306 (169.34 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त सादडविहीर / comp 294 (34 ha): inside [fuzzy village name]
+कळवण / ग्रामस्त देवळीकराड व निरगुडपाडा / comp 275 (69.9 ha): outside [fuzzy village name]
+कळवण / ग्रामस्त देवळीकराड व निरगुडपाडा / comp 277 (69.9 ha): outside [fuzzy village name]
+कळवण / ग्रामस्त बापखेडा / comp 106 (25 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त ति-हळ खु. व गांडोळमोख / comp 279 (29.57 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त जामुनपाडा (कोसवन) / comp 104 (350 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्त जामुनपाडा (कोसवन) / comp 105 (350 ha): notfound [village not matched]
+कळवण / बेलबारे / comp 258 (20 ha): inside [fuzzy village name]
+कळवण / खडकवन / comp 100 (30 ha): inside [fuzzy village name]
+कळवण / ति-हळ बु. / comp 279 (40 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्थ मळगाव खु / comp 268 (25 ha): taluka-unique [village ambiguous] [fuzzy village name]
+कळवण / ग्रामस्थ मळगाव बु / comp 266 (79 ha): taluka-unique [village ambiguous] [fuzzy village name]
+कळवण / ग्रामस्थ दहयाने पाळे / comp 289 (12 ha): inside [fuzzy village name]
+कळवण / ग्रामस्थ कुमसाडी / comp 113 (32 ha): inside [fuzzy village name]
+कळवण / ग्रामस्थ शृंगारवाडी / comp 48 (50 ha): notfound [village not matched]
+कळवण / ग्रामस्थ दरेगाव (वणी) / comp 286 (30 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्थ जामले हा. / comp 98 (2 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्थ बार्डे - दरेवस्ती / comp 258 (60 ha): inside [fuzzy village name]
+कळवण / ग्रामस्थ वेरूळे / comp 151 (165 ha): notfound
+कळवण / ग्रामस्थ पिंपळे बुद्रुक / comp 264 (20 ha): taluka-unique [village ambiguous]
+कळवण / ग्रामस्थ करंभेळ हा / comp 99 (10 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्थ कुंडाणे (क)_ / comp 287 (90 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्थ गनोरे / comp 234 (50 ha): inside [fuzzy village name]
+कळवण / ग्रामस्थ लखाणी / comp 263 (124 ha): inside [fuzzy village name]
+कळवण / ग्रामस्थ उंबरदे / comp 118 (25 ha): taluka-unique [village not matched]
+कळवण / ग्रामस्थ वडाळा हा. / comp 273 (10 ha): taluka-unique [village not matched]
+देवळा / ग्रामस्थ कुंभार्डे / comp 341 (141 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ कुंभार्डे / comp 342 (141 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ वरवंडी / comp 313 (37.6 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ पिंपळगांव वा / comp 332 (23.4 ha): taluka-unique [village not matched]
+देवळा / ग्रामस्थ निंबोळा / comp 335 (55.2 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ वऱ्हाळे / comp 346 (18.5 ha): taluka-unique [village not matched]
+देवळा / ग्रामस्थ खांबखेडा / comp 245 (48.3 ha): taluka-unique [village not matched]
+देवळा / ग्रामस्थ हनुमंतपाडा / comp 316 (71.7 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ वाखारी / comp 331 (61.3 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ कांचणे / comp 321 (51 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ महालपाटणे / comp 411 (20.2 ha): notfound
+देवळा / ग्रामस्थ वडाळी / comp 321 (40.7 ha): taluka-unique [village not matched]
+देवळा / ग्रामस्थ तिसगांव / comp 346 (65.5 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ भावडे / comp 322 (55.1 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ भावडे / comp 324 (55.1 ha): inside [fuzzy village name]
+देवळा / ग्रामस्थ सावकी / comp 244 (47.1 ha): taluka-unique [village not matched]
+देवळा / ग्रामस्थ हनुमंतपाडा / comp 82 (1 ha): notfound
+मालेगांव / ग्रामस्त टिघरी / comp 17 (60 ha): notfound [village not matched]
+मालेगांव / ग्रामस्थ मळगांव / comp 185 (60 ha): notfound [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ तळवाडे / comp 954 (60 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ कंक्राळे / comp 201 (60 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ खाकुर्डी / comp 45 (50 ha): notfound
+मालेगांव / ग्रामस्थ चिंचवे (गा) / comp 53 (60 ha): notfound
+मालेगांव / ग्रामस्थ वळवाडे / comp 37 (60 ha): notfound [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ डोंगराळे / comp 341 (100 ha): notfound
+मालेगांव / ग्रामस्थ डोंगराळे / comp 302 (100 ha): notfound
+मालेगांव / ग्रामस्थ निमशेवाडी / comp 119 (50 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ मोरदर / comp 20 (50 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ पोहाणे / comp 122 (160 ha): notfound
+मालेगांव / ग्रामस्थ वळवाडी / comp 1 (60 ha): notfound [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ वळवाडी / comp 54 (60 ha): notfound [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ वळवाडी / comp 217 (60 ha): notfound [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ वाके / comp 374 (50 ha): notfound
+मालेगांव / ग्रामस्थ दापुरे / comp 237 (60 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ गरबड / comp 3 (50 ha): notfound
+मालेगांव / ग्रामस्थ जळगाव नि / comp 464 (75 ha): notfound [village not matched]
+मालेगांव / ग्रामस्थ गुगुळवाड / comp 206 (100 ha): notfound
+मालेगांव / ग्रामस्थ चिंचावड / comp 662 (44 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ सीताने / comp 59 (10 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ हिसवाळ / comp 473 (25 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ कळवाडी / comp 450 (10 ha): taluka-unique [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ पाडळदे / comp 450 (50 ha): inside [fuzzy village name]
+मालेगांव / ग्रामस्थ गिगाव / comp 179 (10 ha): notfound
+मालेगांव / ग्रामस्थ म्हालणगाव / comp 173 (20 ha): notfound [village not matched]
+मालेगांव / ग्रामस्थ वडगाव / comp 248 (21.06 ha): notfound
+मालेगांव / ग्रामस्थ अजंदे / comp 95 (5 ha): notfound [village not matched]
+मालेगांव / ग्रामस्थ बोधे / comp 176 (10 ha): notfound [village not matched]
+मालेगांव / ग्रामस्थ खलाणे / comp 8 (20 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ कौळाणे(गा.) / comp 38 (50 ha): notfound [village ambiguous] [fuzzy village name]
+मालेगांव / ग्रामस्थ टोकडे / comp 57 (50 ha): notfound
+मालेगांव / ग्रामस्थ टोकडे / comp 63 (50 ha): notfound
+मालेगांव / ग्रामस्थ घाणेगाव / comp 147 (50 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ हाताणे / comp 26 (5 ha): notfound
+मालेगांव / ग्रामस्थ हाताणे / comp 22 (5 ha): notfound
+मालेगांव / ग्रामस्थ हाताणे / comp 63 (5 ha): notfound
+मालेगांव / ग्रामस्थ हाताणे / comp 274 (5 ha): notfound
+मालेगांव / ग्रामस्थ करंजगव्हाण / comp 492 (4 ha): notfound [fuzzy village name]
+मालेगांव / ग्रामस्थ नांदगाव बु. / comp 918 (10 ha): notfound [village ambiguous]
+मालेगांव / ग्रामस्थ उंबरदे / comp 77 (1.8 ha): notfound [village not matched]
+बागलन / ग्रामस्त कुपखेडा / comp 191 (31.91 ha): inside [fuzzy village name]
+बागलन / ग्रामस्त जैतापुर / comp 31 (2 ha): notfound
+बागलन / ग्रामस्त विंचुरे / comp 202 (108.24 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्त वनोली / comp 201 (174.25 ha): inside [fuzzy village name]
+बागलन / ग्रामस्त वनोली / comp 171 (174.25 ha): outside [fuzzy village name]
+बागलन / ग्रामस्त दहिंदुले / comp 239 (322.61 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्त टिंगरी / comp 158 (280.28 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्त टिंगरी / comp 159 (280.28 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्त टिंगरी / comp 80 (280.28 ha): notfound [village not matched]
+बागलन / ग्रामस्त शेवरे / comp 273 (39.06 ha): notfound
+बागलन / ग्रामस्त आलियाबाद / comp 73 (198.14 ha): notfound [village not matched]
+बागलन / ग्रामस्त वाडीपीसोळ / comp 133 (332.35 ha): notfound
+बागलन / ग्रामस्त साकोडेमोठे / comp 236 (21.28 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्त भिलवाड / comp 148 (207 ha): inside [fuzzy village name]
+बागलन / ग्रामस्त देवळाणे / comp 195 (311.05 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ कऱ्हे / comp 190 (96.57 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ कऱ्हे / comp 191 (96.57 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ अजमेर सौंदाणे / comp 195 (49.54 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ बाऱ्हाटे जैतापुर / comp 145 (71.13 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ बिजोट / comp 186 (358.74 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ मोरकुरे / comp 78 (48.41 ha): notfound
+बागलन / ग्रामस्थ तताणी / comp 228 (301.4 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ केळझर / comp 228 (294.43 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ तळवाडे दि. / comp 205 (324.96 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ करंजखेड / comp 243 (343.04 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ भवाडे / comp 213 (424.79 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ कोदमाळ / comp 4 (137.52 ha): notfound [village not matched]
+बागलन / ग्रामस्थ कोदमाळ / comp 12 (137.52 ha): notfound [village not matched]
+बागलन / ग्रामस्थ कोदमाळ / comp 18 (137.52 ha): notfound [village not matched]
+बागलन / ग्रामस्थ कोदमाळ / comp 28 (137.52 ha): notfound [village not matched]
+बागलन / ग्रामस्थ वाठोडा / comp 227 (197.05 ha): outside [fuzzy village name]
+बागलन / ग्रामस्थ खतमाणे / comp 243 (125.16 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ किरमाल्यापाला (मानुर) / comp 128 (361.76 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ साकोडे दगडी / comp 232 (325.11 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ साकोडे दगडी / comp 233 (325.11 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ जाखोड / comp 176 (355.29 ha): inside [fuzzy village name]
+बागलन / गामस्थ बा्‌ऱ्हाटे दिगर / comp 47 (292 ha): notfound [village not matched]
+बागलन / ग्रामस्थ हनुमानपाडा / comp 217 (66 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ मळगांवपाडा / comp 175 (328.6 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ गोळवाड / comp 139 (375.4 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ जामनेचापाडा / comp 129 (212 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ मोहळांगी / comp 145 (252.78 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ म. फुलेनगर / comp 145 (64.39 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ अजंदे / comp 73 (90.37 ha): notfound [village not matched]
+बागलन / ग्रामस्थ कांद्याचामळा / comp 217 (66 ha): outside [fuzzy village name]
+बागलन / ग्रामस्थ मुल्हेर / comp 178 (40.5 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ बंधारपाडा / comp 182 (355.29 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ माळीवाडे / comp 146 (297.84 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ मालेअंबा / comp 217 (66 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ चाफापाडा / comp 17 (57.22 ha): notfound [village not matched]
+बागलन / ग्रामस्थ दगडपाडा / comp 179 (320.4 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ कोटबेल / comp 285 (327.21 ha): notfound
+बागलन / ग्रामस्थ मानूर खैरापाडा जामूनसोंड / comp 215 (110 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ पिंपळदर / comp 59 (98.08 ha): notfound
+बागलन / ग्रामस्थ तरसाळी / comp 137 (50 ha): notfound
+बागलन / ग्रामस्थ लखमापुर / comp 173 (86.33 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ तुंगरदिगर / comp 63 (40.87 ha): notfound [village not matched]
+बागलन / ग्रामस्थ भेंडगव्हाण / comp 215 (110.52 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ रावेर / comp 122 (36 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ तरहाराबाद / comp 130 (153.89 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ तरहाराबाद / comp 131 (153.89 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ आव्हाटी / comp 164 (99.67 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ रातिर / comp 97 (173.15 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ मुंगसे / comp 3 (198.53 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ जाड / comp 136 (45 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ औरंगाड / comp 177 (68.94 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ बाभुलणे / comp 24 (335.26 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ बाभुलणे / comp 19 (335.26 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ कातरवेल / comp 153 (200.69 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ अंबासन / comp 166 (64.81 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ भरवट / comp 178 (98.59 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ चिराई / comp 379 (194 ha): taluka-unique [village not matched]
+बागलन / ग्रामस्थ आखातवाडे / comp 187 (26.84 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ साळवण / comp 221 (174.2 ha): inside [fuzzy village name]
+बागलन / ग्रामस्थ पारनेर / comp 179 (126.11 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ वाडीचोल्हेर / comp 16 (90.5 ha): notfound [fuzzy village name]
+बागलन / ग्रामस्थ सरवर / comp 44 (187.78 ha): notfound
+नांदगाव / ग्रामस्थ टाकळी बु. / comp 517 (20 ha): taluka-unique [village ambiguous]
+नांदगाव / ग्रामस्थ कळमबारी / comp 372 (15 ha): taluka-unique [village not matched]
+नांदगाव / ग्रामस्थ रणखेडा / comp 477 (20 ha): inside [fuzzy village name]
+नांदगाव / ग्रामस्थ परधाडी / comp 502 (20 ha): inside [fuzzy village name]
+नांदगाव / ग्रामस्थ कर्ही / comp 354 (20 ha): taluka-unique [village not matched]
+नांदगाव / ग्रामस्थ न्यायडोंगरी / comp 478 (20 ha): taluka-unique [village not matched]
+नांदगाव / ग्रामस्थ हिसवाळ बु. / comp 360 (21.14 ha): taluka-unique [village ambiguous]
+नांदगाव / ग्रामस्थ जळगाव खु / comp 506 (20 ha): taluka-unique [village ambiguous]
+नांदगाव / ग्रामस्थ चांदोरा / comp 480 (21 ha): inside [fuzzy village name]
+नांदगाव / ग्रामस्थ मुळडोंगरी / comp 742 (7 ha): notfound [fuzzy village name]
+नांदगाव / ग्रामस्थ टाकळी खु / comp 516 (21 ha): taluka-unique [village ambiguous]

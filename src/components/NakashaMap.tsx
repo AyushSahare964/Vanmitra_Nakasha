@@ -64,13 +64,15 @@ import { CfrPanel, type CfrAtreeState } from "@/components/CfrPanel";
 import { identifyAtreeVillage, type AtreeVillage } from "@/lib/cfr-atree";
 import { ResourcesSection, type ResCount } from "@/components/ResourcesSection";
 import { ReportButton } from "@/components/ReportButton";
-import { buildReport, type ReportPlot } from "@/lib/village-report";
+import { buildReport, type ReportPlot, type ReportComp } from "@/lib/village-report";
 import { surveyResourceMap } from "@/lib/survey-resources";
 import { buildExcel } from "@/lib/survey-excel";
 import {
   RES_LAYERS,
   fetchResource,
   fetchCompartmentsNear,
+  fetchVillagesNear,
+  type NearVillage,
   inRing as pointInRing,
   findVillage,
   isForestLandType,
@@ -103,6 +105,7 @@ import {
   type CfrStatus,
   type PurposeGroup,
 } from "@/lib/cfr-data";
+import { claimsOf, compsAround, loadCompData, ringsToPolygons, type CompData } from "@/lib/cfr-comp";
 import {
   bulkFetchVillageRecords,
   fetchPlotExtent,
@@ -1441,13 +1444,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // Details card for a clicked MRSAC feature (well, structure, water body, forest compartment ...).
   const [resInfo, setResInfo] = useState<{ details: ResourceDetails; surveys: { plotno: string; relation: string }[]; copied: boolean } | null>(null);
   const resClickRef = useRef<((feat: any, coord: number[]) => void) | null>(null);
+  const compClickRef = useRef<((feat: any, coord: number[]) => void) | null>(null);
   const resSelectedRef = useRef<any>(null);
   const resLookupRef = useRef(0);
   // PDF report: progress while the map shots are taken, and the abort handle for its Cancel button.
   const [reportBusy, setReportBusy] = useState<{ done: number; total: number; label: string } | null>(null);
   const reportAbortRef = useRef<AbortController | null>(null);
   const [parcelInfo, setParcelInfo] = useState<{ plotno: string; lon: number; lat: number; copied: boolean } | null>(null);
-  const parcelClickRef = useRef<((coord: number[]) => void) | null>(null);
+  /** Resolves true when a survey number was found (and its card opened) at the clicked spot. */
+  const parcelClickRef = useRef<((coord: number[]) => Promise<boolean>) | null>(null);
   const parcelLookupRef = useRef(0);
   const [resRetry, setResRetry] = useState(0); // bumped by the Retry button to re-run the MRSAC village queries
   const [resVillage, setResVillage] = useState<{
@@ -1461,6 +1466,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const resTileLayersRef = useRef<Record<string, TileLayer<TileArcGISRest>>>({});
   const resVectorRef = useRef<VectorLayer<VectorSource> | null>(null);
   const cfrCompLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const cfrNearLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   /** Offset (m, EPSG:3857) at which this village's parcels line up with the MRSAC compartments; null until measured. */
   const [forestShift, setForestShift] = useState<{ dx: number; dy: number; score: number; base: number } | null>(null);
   const parcelPointCache = useRef<Record<string, [number, number]>>({});
@@ -1805,8 +1811,21 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const hit = resVectorRef.current
         ? map.forEachFeatureAtPixel(evt.pixel, (f) => f, { layerFilter: (l) => l === resVectorRef.current, hitTolerance: 8 })
         : undefined;
-      if (hit) resClickRef.current?.(hit, evt.coordinate);
-      else parcelClickRef.current?.(evt.coordinate);
+      const g = hit?.getGeometry();
+      const compHit = cfrCompLayerRef.current
+        ? map.forEachFeatureAtPixel(evt.pixel, (f) => f, { layerFilter: (l) => l === cfrCompLayerRef.current, hitTolerance: 3 })
+        : undefined;
+      // Wells, structures and streams are small targets and win; a forest / water / Gram Sabha polygon only covers ground,
+      // so the survey number under the click is what the user means — the polygon card is the fallback when no parcel is
+      // there (the Gram Sabha polygon before the plain forest one).
+      if (hit && g && !/Polygon/.test(g.getType())) resClickRef.current?.(hit, evt.coordinate);
+      else if (hit || compHit)
+        void (parcelClickRef.current?.(evt.coordinate) ?? Promise.resolve(false)).then((found) => {
+          if (found) return;
+          if (compHit) compClickRef.current?.(compHit, evt.coordinate);
+          else resClickRef.current?.(hit, evt.coordinate);
+        });
+      else void parcelClickRef.current?.(evt.coordinate);
     });
     const handleResize = () => map.updateSize();
     window.addEventListener("resize", handleResize);
@@ -3265,6 +3284,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     mrsac: MrsacParcel | undefined;
     /** % of the parcel inside its approved CFR compartment (compartment approvals only). */
     overlapPct?: number;
+    /** Compartment (base number) and Gram Sabha(s) whose approved CFR land this parcel lies in. */
+    compNo?: string;
+    gramSabha?: string;
+  }
+  interface CompParcel {
+    all: Record<string, number>;
+    names: Record<string, string[]>;
   }
 
   useEffect(() => {
@@ -3298,8 +3324,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     }
   }, [resTile, resOpacity]);
 
-  // The selected village's own MRSAC features: exact village polygon first, then one spatial
-  // query per layer (all in parallel; each is a small, fast request).
+  // The selected village's own MRSAC features: village polygon first, then one spatial query
+  // per layer. Results stream in: the panel flips to "ready" as soon as the first layer
+  // resolves, so the user doesn't wait for all 8 before seeing any data.
   useEffect(() => {
     if (!bnVillageExtent) {
       setResVillage({ status: "idle", village: null, features: {}, error: null });
@@ -3312,16 +3339,34 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       try {
         const village = await findVillage(bnVillageExtent, ctl.signal);
         if (!village) throw new Error("This village was not found in the MRSAC village boundaries.");
-        const results = await Promise.allSettled(RES_LAYERS.map((l) => fetchResource(l, village, ctl.signal)));
         if (ctl.signal.aborted) return;
-        const features: Record<string, GeoFeature[]> = {};
-        let failed = 0;
-        results.forEach((r, i) => {
-          if (r.status === "fulfilled") features[RES_LAYERS[i]!.key] = r.value;
-          else failed += 1;
-        });
-        if (failed === results.length) throw new Error("MRSAC did not respond. Try again in a moment.");
-        setResVillage({ status: "ready", village, features, error: null });
+        // Kick off all layer queries concurrently; each resolved layer is merged into state
+        // immediately so the panel shows data as soon as the first layer responds.
+        let anyResolved = false;
+        const promises = RES_LAYERS.map((l) =>
+          fetchResource(l, village, ctl.signal).then(
+            (features) => {
+              if (ctl.signal.aborted) return;
+              anyResolved = true;
+              setResVillage((prev) => ({
+                ...prev,
+                status: "ready",
+                village,
+                features: { ...prev.features, [l.key]: features },
+                error: null,
+              }));
+            },
+            () => { /* layer failed — skip, we'll check anyResolved at the end */ }
+          )
+        );
+        await Promise.all(promises);
+        if (ctl.signal.aborted) return;
+        setResVillage((prev) => ({
+          ...prev,
+          status: "ready",
+          village,
+          error: null,
+        }));
       } catch (e) {
         if (!ctl.signal.aborted) setResVillage({ status: "error", village: null, features: {}, error: (e as Error).message });
       }
@@ -3429,16 +3474,17 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
   // Clicking a survey number on the map (outside Identify mode, not on an MRSAC feature) opens its details card.
   useEffect(() => {
-    parcelClickRef.current = (coord) => {
-      if (!bnGisCode || !bnCadastralEnabled) return;
+    parcelClickRef.current = async (coord) => {
+      if (!bnGisCode || !bnCadastralEnabled) return false;
       const token = ++parcelLookupRef.current;
-      void findParcelAt(coord).then((pl) => {
-        if (!pl || token !== parcelLookupRef.current) return;
+      return findParcelAt(coord).then((pl) => {
+        if (!pl || token !== parcelLookupRef.current) return false;
         const [lon, lat] = toLonLat(coord) as [number, number];
         resSelectedRef.current?.set("selected", false);
         resSelectedRef.current = null;
         setResInfo(null);
         setParcelInfo({ plotno: pl.plotno, lon, lat, copied: false });
+        return true;
       });
     };
   });
@@ -3481,6 +3527,40 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       resSelectedRef.current = feat;
       setParcelInfo(null);
       setResInfo({ details, surveys, copied: false });
+    };
+  });
+
+  // What a click on a Gram Sabha CFR polygon shows: whose claim it is, the compartment, area, and the survey numbers inside.
+  useEffect(() => {
+    compClickRef.current = (feat, coord) => {
+      const base = compBase(String(feat.get("compNo") ?? ""));
+      const names = String(feat.get("names") || cfrVillageRows.map((r) => r.gs || r.v).join(" + "));
+      const ha = Number(feat.get("claimHa") ?? feat.get("ha") ?? 0);
+      const km = Number(feat.get("km") ?? 0);
+      const rows: { label: string; value: string }[] = [
+        { label: "Gram Sabha", value: names || "—" },
+        { label: "Compartment", value: `${base}${feat.get("rb") ? ` · ${feat.get("rb")}` : ""}` },
+        { label: "CFR area", value: `${ha.toFixed(2)} ha (${(ha * 2.47105).toFixed(2)} ac)` },
+      ];
+      const own = cfrVillageRows.filter((r) => r.k?.some((k) => compBase(k) === base));
+      if (own.length) {
+        rows.push({ label: "Rights", value: [...new Set(own.map((r) => r.p).filter(Boolean))].join("; ") || "—" });
+        const dt = [...new Set(own.map((r) => r.dt).filter(Boolean))].join(", ");
+        if (dt) rows.push({ label: "Approved on", value: dt });
+      }
+      rows.push({ label: "Location", value: feat.get("outside") ? `outside the village${km ? `, ${km} km` : ""}${feat.get("nv") ? `, in ${feat.get("nv")}` : ""}` : "inside the village" });
+      if (names.includes(" + ")) rows.push({ label: "Shared", value: `claimed by ${names.split(" + ").length} Gram Sabhas` });
+      if (feat.get("flags")) rows.push({ label: "Note", value: String(feat.get("flags")) });
+      const inside = Object.entries(compParcels).filter(([, v]) => (v.all[base] ?? 0) >= OVERLAP_MIN).sort((a, b) => b[1].all[base]! - a[1].all[base]!);
+      const [lon, lat] = toLonLat(coord) as [number, number];
+      resSelectedRef.current?.set("selected", false);
+      resSelectedRef.current = null;
+      setParcelInfo(null);
+      setResInfo({
+        details: { title: `Gram Sabha CFR · Comp. ${base}`, subtitle: "Community Forest Resource claim", color: "#7c3aed", rows, links: [locationLinks(lon, lat)[0]!] } as ResourceDetails,
+        surveys: inside.slice(0, 12).map(([plotno]) => ({ plotno, relation: `Survey numbers inside this compartment (${inside.length}${inside.length > 12 ? ", first 12" : ""})` })),
+        copied: false,
+      });
     };
   });
 
@@ -3716,16 +3796,103 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     return out;
   }, [resVillage, bnPlots, bnGisCode, bnVillageExtent, cadastralCalibX, cadastralCalibY, forestShift]);
 
+  // Nashik claims resolved offline to MRSAC polygons (scripts/build-comp-resolve.mjs): the primary CFR mark. The live
+  // 5 km search below only runs when this file is missing.
+  const [compData, setCompData] = useState<CompData | null>(null);
+  const [compTried, setCompTried] = useState(false);
+  const [cfrRadiusKm, setCfrRadiusKm] = useState(10);
+  const [nearVillages, setNearVillages] = useState<NearVillage[]>([]);
+  useEffect(() => {
+    if (cfrMode && cfrCompRows.size && !compTried) void loadCompData().then((d) => (setCompData(d), setCompTried(true)));
+  }, [cfrMode, cfrCompRows, compTried]);
+  const compClaims = React.useMemo(() => (compData ? claimsOf(compData, cfrVillageRows) : []), [compData, cfrVillageRows]);
+  const compResolved = compClaims.length > 0;
+
+  // The resolved Gram Sabha polygons are the CFR mark, so parcels are matched against them directly: a shared or
+  // neighbouring-forest compartment (e.g. comp. 210 of two villages) is not in the village's own MRSAC forest list.
+  const parcelSampleCache = useRef<Record<string, [number, number][]>>({});
+  const compParcelPrev = useRef<Record<string, CompParcel>>({});
+  /** Per parcel geometry: the result for one (polygon set, frame shift) so a records batch only costs lookups. */
+  const compParcelCache = useRef<{ sig: string; byGeom: Record<string, CompParcel | null> }>({ sig: "", byGeom: {} });
+  const compParcels = React.useMemo(() => {
+    const out: Record<string, CompParcel> = {};
+    if (!compData || !compResolved || !bnGisCode) return out;
+    const polys = compsAround(compData, cfrVillageRows, [], 0)
+      .filter((d) => !d.weak)
+      .map((d) => {
+        const parts = d.ids.flatMap((id) => (compData.polys[id] ? ringsToPolygons(compData.polys[id]!.g) : [])).map((coordinates) => {
+          const c = coordinates.flat() as [number, number][];
+          return { geom: { type: "Polygon", coordinates }, box: [Math.min(...c.map((q) => q[0])), Math.min(...c.map((q) => q[1])), Math.max(...c.map((q) => q[0])), Math.max(...c.map((q) => q[1]))] as const };
+        });
+        return { base: compBase(d.n), names: d.names, parts };
+      });
+    if (!polys.length) return out;
+    const sig = `${bnGisCode}|${forestShift?.dx ?? 0},${forestShift?.dy ?? 0}|${polys.map((d) => d.base + d.parts.length + d.names.join()).join(";")}`;
+    if (compParcelCache.current.sig !== sig) compParcelCache.current = { sig, byGeom: {} };
+    const byGeom = compParcelCache.current.byGeom;
+    const villageLon = bnVillageExtent ? (bnVillageExtent[0] + bnVillageExtent[2]) / 2 : 75.7;
+    const N = 10;
+    for (const pl of bnPlots) {
+      if (!pl.theGeom) continue;
+      if (pl.theGeom in byGeom) {
+        const hit = byGeom[pl.theGeom];
+        if (hit) out[pl.plotno] = hit;
+        continue;
+      }
+      let samples = parcelSampleCache.current[pl.theGeom];
+      if (!samples) {
+        samples = [];
+        const poly = parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, villageLon, bnGisCode);
+        if (poly) {
+          const [x0, y0, x1, y1] = poly.getExtent() as [number, number, number, number];
+          for (let i = 0; i < N; i++)
+            for (let j = 0; j < N; j++) {
+              const x = x0 + ((i + 0.5) / N) * (x1 - x0), y = y0 + ((j + 0.5) / N) * (y1 - y0);
+              if (poly.intersectsCoordinate([x, y])) samples.push([x, y]);
+            }
+        }
+        parcelSampleCache.current[pl.theGeom] = samples;
+      }
+      if (!samples.length) {
+        byGeom[pl.theGeom] = null;
+        continue;
+      }
+      const pts = samples.map(([x, y]) => toLonLat([x + (forestShift?.dx ?? 0), y + (forestShift?.dy ?? 0)]) as [number, number]);
+      const lo0 = Math.min(...pts.map((q) => q[0])), lo1 = Math.max(...pts.map((q) => q[0]));
+      const la0 = Math.min(...pts.map((q) => q[1])), la1 = Math.max(...pts.map((q) => q[1]));
+      const all: Record<string, number> = {};
+      const names: Record<string, string[]> = {};
+      for (const d of polys) {
+        // no polygon part near this parcel: skip the point tests
+        if (!d.parts.some((q) => lo1 >= q.box[0] && lo0 <= q.box[2] && la1 >= q.box[1] && la0 <= q.box[3])) continue;
+        const n = pts.filter(([lo, la]) => d.parts.some((q) => lo >= q.box[0] && lo <= q.box[2] && la >= q.box[1] && la <= q.box[3] && pointInGeometry(lo, la, q.geom as any))).length;
+        const pct = Math.round((n / pts.length) * 100);
+        if (pct < OVERLAP_MIN || pct <= (all[d.base] ?? 0)) continue;
+        all[d.base] = pct;
+        names[d.base] = d.names;
+      }
+      if (!Object.keys(all).length) {
+        byGeom[pl.theGeom] = null;
+        continue;
+      }
+      const next = { all, names };
+      const prev = compParcelPrev.current[pl.plotno];
+      out[pl.plotno] = byGeom[pl.theGeom] = prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+    }
+    compParcelPrev.current = out;
+    return out;
+  }, [compData, compResolved, cfrVillageRows, bnPlots, bnGisCode, bnVillageExtent, forestShift]);
+
   // Entries are cached per parcel object: mergeOwnerRecords keeps untouched parcels' identity, so a record
   // batch only re-parses the parcels it changed instead of the whole village (that was a ~1 s long task per batch).
-  const entryCacheRef = useRef(new WeakMap<BNPlot, { cfr: unknown; mrsac: unknown; entry: PlotIndexEntry }>());
+  const entryCacheRef = useRef(new WeakMap<BNPlot, { cfr: unknown; mrsac: unknown; comp: unknown; entry: PlotIndexEntry }>());
   const plotSearchIndex = React.useMemo<PlotIndexEntry[]>(() => {
     const cache = entryCacheRef.current;
     return bnPlots.map((p) => {
       const hit = cache.get(p);
-      if (hit && hit.cfr === cfrLookup && hit.mrsac === mrsacParcels[p.plotno]) return hit.entry;
+      if (hit && hit.cfr === cfrLookup && hit.mrsac === mrsacParcels[p.plotno] && hit.comp === compParcels[p.plotno]) return hit.entry;
       const entry = buildEntry(p);
-      cache.set(p, { cfr: cfrLookup, mrsac: mrsacParcels[p.plotno], entry });
+      cache.set(p, { cfr: cfrLookup, mrsac: mrsacParcels[p.plotno], comp: compParcels[p.plotno], entry });
       return entry;
     });
     function buildEntry(p: BNPlot): PlotIndexEntry {
@@ -3748,12 +3915,17 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       // cadastral map places inside that compartment (>= OVERLAP_MIN % of the parcel; best-overlapping approved one wins).
       let cfr = cfrLookup ? matchRecognized(cfrLookup, p.plotno) : undefined;
       let overlapPct: number | undefined;
+      let compNo: string | undefined;
+      const cp = compParcels[p.plotno];
       if (!cfr) {
-        for (const [comp, pct] of Object.entries(mrsacParcels[p.plotno]?.forest?.all ?? {})) {
+        const all: Record<string, number> = { ...(mrsacParcels[p.plotno]?.forest?.all ?? {}) };
+        for (const [comp, pct] of Object.entries(cp?.all ?? {})) all[comp] = Math.max(all[comp] ?? 0, pct);
+        for (const [comp, pct] of Object.entries(all)) {
           const row = cfrCompRows.get(compBase(comp));
-          if (row && pct > (overlapPct ?? 0)) (cfr = row), (overlapPct = pct);
+          if (row && pct > (overlapPct ?? 0)) (cfr = row), (overlapPct = pct), (compNo = compBase(comp));
         }
       }
+      const gramSabha = compNo ? (cp?.names[compNo]?.join(" + ") || cfr?.gs || cfr?.v) : undefined;
       const conflict = overlapPct !== undefined && isConflictCategory(category);
       return {
         plot: p,
@@ -3768,19 +3940,31 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         cfr,
         mrsac: mrsacParcels[p.plotno],
         ...(overlapPct !== undefined ? { overlapPct } : {}),
+        ...(compNo ? { compNo } : {}),
+        ...(gramSabha ? { gramSabha } : {}),
         cfrStatus: cfrStatusOf(!!cfr, category, !!mrsacParcels[p.plotno]?.forest, conflict),
       };
     }
-  }, [bnPlots, cfrLookup, cfrCompRows, mrsacParcels]);
+  }, [bnPlots, cfrLookup, cfrCompRows, mrsacParcels, compParcels]);
 
   const compParcelsFound = React.useMemo(() => cfrCompRows.size > 0 && plotSearchIndex.some((e) => e.cfr && !e.cfr.s.length), [cfrCompRows, plotSearchIndex]);
+
+  useEffect(() => {
+    setNearVillages([]);
+    if (!cfrMode || !compResolved || resVillage.status !== "ready" || !resVillage.village) return;
+    const ctl = new AbortController();
+    void fetchVillagesNear(resVillage.village, cfrRadiusKm, ctl.signal)
+      .then((v) => !ctl.signal.aborted && setNearVillages(v))
+      .catch(() => {});
+    return () => ctl.abort();
+  }, [cfrMode, compResolved, resVillage, cfrRadiusKm]);
 
   // Approved compartments that are not in the village polygon (a gram sabha's CFR land often lies in the neighbouring
   // forest): look them up in MRSAC within 5 km, nearest first. A number nothing answers to stays "not located".
   const [cfrOutside, setCfrOutside] = useState<{ features: GeoFeature[]; located: string[]; missing: string[] }>({ features: [], located: [], missing: [] });
   useEffect(() => {
     setCfrOutside({ features: [], located: [], missing: [] });
-    if (!cfrMode || resVillage.status !== "ready" || !resVillage.village || !cfrCompRows.size) return;
+    if (!cfrMode || !compTried || compResolved || resVillage.status !== "ready" || !resVillage.village || !cfrCompRows.size) return;
     const inVillage = new Set<string>();
     for (const key of ["forest", "wildlife"])
       for (const f of resVillage.features[key] ?? []) {
@@ -3817,7 +4001,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         if (!ctl.signal.aborted) setCfrOutside({ features: [], located: [], missing });
       });
     return () => ctl.abort();
-  }, [cfrMode, resVillage, cfrCompRows]);
+  }, [cfrMode, resVillage, cfrCompRows, compResolved, compTried]);
 
   // Panel summary for compartment approvals: how much of the approved land was found, and what conflicts with villagers.
   const cfrCompSummary = React.useMemo(() => {
@@ -3832,8 +4016,10 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       conflicts: n("conflict"),
       outside: cfrOutside.located,
       missing: cfrOutside.missing,
+      claims: compClaims.filter(({ rec }) => !cfrPurpose.size || rec.pg?.some((g) => cfrPurpose.has(g as PurposeGroup))).map(({ row, rec }) => ({ gs: row.gs || row.v, rec, ...(row.sv ? { listedAs: row.sv, why: row.pvh ?? "" } : {}) })),
+      radiusKm: cfrRadiusKm,
     };
-  }, [cfrCompRows, cfrVillageRows, plotSearchIndex, cfrOutside]);
+  }, [cfrCompRows, cfrVillageRows, plotSearchIndex, cfrOutside, compClaims, cfrRadiusKm, cfrPurpose]);
 
   // Nashik-style approvals name forest compartments, not survey numbers: parcels inside them are the marking. The
   // raw MRSAC outline is drawn only as a fallback when no parcel matched, and always for compartments outside the village.
@@ -3845,8 +4031,32 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         source: new VectorSource(),
         zIndex: 41,
         properties: { name: "cfr-compartments" },
-        style: ((f: any) =>
-          new Style({
+        style: ((f: any, res: number) => {
+          if (f.get("kind") === "res") {
+            const own = f.get("own") as boolean;
+            const shared = f.get("shared") as boolean;
+            if (f.get("weak")) {
+              // unconfirmed outline: dotted amber, no fill, so it is never mistaken for a located compartment
+              return new Style({
+                stroke: new Stroke({ color: "#d97706", width: 2, lineDash: [2, 6] }),
+                fill: new Fill({ color: "rgba(217,119,6,0.05)" }),
+                text: new Text({ text: own ? (f.get("text") as string) : "", font: "500 12px sans-serif", fill: new Fill({ color: "#92400e" }), stroke: new Stroke({ color: "#ffffff", width: 3 }), overflow: true }),
+              });
+            }
+            const col = shared ? "#ea580c" : own ? "#7c3aed" : "#8b5cf6";
+            return new Style({
+              stroke: new Stroke({ color: col, width: own ? 3 : 1.5, lineDash: f.get("outside") || !own ? [8, 5] : undefined }),
+              fill: new Fill({ color: shared ? "rgba(234,88,12,0.10)" : own ? "rgba(124,58,237,0.08)" : "rgba(139,92,246,0.05)" }),
+              text: new Text({
+                text: own || res < 40 ? (f.get("text") as string) : "",
+                font: `${own ? 600 : 500} 12px sans-serif`,
+                fill: new Fill({ color: own ? "#4c1d95" : "#6d28d9" }),
+                stroke: new Stroke({ color: "#ffffff", width: 3 }),
+                overflow: true,
+              }),
+            });
+          }
+          return new Style({
             stroke: new Stroke({ color: "#7c3aed", width: 2.5, lineDash: [8, 5] }),
             text: new Text({
               text: f.get("label") ? `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha${f.get("outside") ? " (outside village)" : ""}` : "",
@@ -3855,14 +4065,42 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               stroke: new Stroke({ color: "#ffffff", width: 3 }),
               overflow: true,
             }),
-          })) as any,
+          });
+        }) as any,
       });
     }
     const layer = cfrCompLayerRef.current;
     if (!map.getLayers().getArray().includes(layer)) map.addLayer(layer);
     const src = layer.getSource()!;
     src.clear();
-    if (!cfrMode || resVillage.status !== "ready") return;
+    if (!cfrMode) return;
+    // The village's own polygons need nothing from the live MRSAC village lookup (which can fail); neighbours do.
+    if (compData && compResolved) {
+      // MRSAC polygons are the primary mark: this village's own claims plus neighbouring gram sabhas within the radius.
+      const fmtR = new GeoJSON();
+      // status chips are parcel-level: polygons belong to the recognized / conflict chips, the other chips show parcels only
+      if (cfrStatusFilter.size > 0 && !cfrStatusFilter.has("recognized") && !cfrStatusFilter.has("conflict")) return;
+      for (const d of compsAround(compData, cfrVillageRows, resVillage.village?.rings ?? [], cfrRadiusKm, cfrPurpose)) {
+        const polys = d.ids.map((id) => compData.polys[id]).filter((q): q is NonNullable<typeof q> => !!q);
+        if (!polys.length) continue;
+        const where = d.outside ? ` (outside village${d.km ? `, ${d.km} km` : ""}${d.nv ? `, in ${d.nv}` : ""})` : "";
+        const text = d.weak
+          ? `${d.names.join(" + ")} • comp. ${d.n} • ${d.ha.toFixed(1)} ha claimed — outline unconfirmed`
+          : `${d.names.join(" + ")} • comp. ${d.n} • ${d.ha.toFixed(1)} ha${where}${d.flags.length ? ` ⚠ ${d.flags.join(", ")}` : ""}`;
+        // one feature per polygon part (holes cut out); only the largest part carries the label, so it is not repeated
+        const parts = polys.flatMap((q) => ringsToPolygons(q.g)).map((coords) => {
+          const f = fmtR.readFeature({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: coords } }, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature;
+          f.getGeometry()?.translate(forestDelta[0], forestDelta[1]);
+          const e = f.getGeometry()!.getExtent();
+          f.setProperties({ kind: "res", own: d.own, shared: d.shared, outside: d.outside, weak: !!d.weak, text: "", size: (e[2]! - e[0]!) * (e[3]! - e[1]!), compNo: d.n, names: d.names.join(" + "), claimHa: d.ha, km: d.km ?? 0, nv: d.nv ?? "", rb: d.rb ?? "", flags: d.flags.join(", ") });
+          return f;
+        });
+        parts.reduce((a, b) => ((a.get("size") as number) >= (b.get("size") as number) ? a : b)).set("text", text);
+        src.addFeatures(parts);
+      }
+      return;
+    }
+    if (resVillage.status !== "ready") return;
     // "24/2" and "49.50" count as compartment 24 / 49; the sheet's area is per approval, shared by its compartments.
     const want = new globalThis.Map<string, number>();
     for (const r of cfrVillageRows) for (const k of r.k ?? []) want.set(compBase(k), (want.get(compBase(k)) ?? 0) + r.ha / r.k!.length);
@@ -3892,7 +4130,89 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     }
     for (const f of Object.values(biggest)) f.set("label", true);
     src.addFeatures(parts);
-  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound, cfrOutside, forestDelta[0], forestDelta[1]]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfrMode, resVillage, cfrVillageRows, compParcelsFound, cfrOutside, compData, compResolved, cfrRadiusKm, cfrPurpose, cfrStatusFilter, forestDelta[0], forestDelta[1]]);
+
+  // ...and their serial-number badges only appear once zoomed in, so they stop covering the compartment labels.
+  useEffect(() => {
+    const src = plotMarkerLayerRef.current?.getSource();
+    if (!src || !cfrMode || !compResolved) return;
+    const quiet = (f: Feature) => {
+      const full = f.get("_full") ?? f.getStyle();
+      if (!full) return;
+      f.set("_full", full, true);
+      // the badge is the last of the feature's styles; drop it while zoomed out
+      f.setStyle(((feat: Feature, res: number) => {
+        const st = typeof full === "function" ? (full as any)(feat, res) : full;
+        return res < 1.8 || !Array.isArray(st) || st.length < 4 ? st : st.slice(0, 3);
+      }) as any);
+    };
+    src.getFeatures().forEach(quiet);
+    const onAdd = (e: any) => quiet(e.feature);
+    src.on("addfeature", onAdd);
+    return () => {
+      src.un("addfeature", onAdd);
+      src.getFeatures().forEach((f) => f.get("_full") && f.setStyle(f.get("_full")));
+    };
+  }, [cfrMode, compResolved]);
+
+  /** Fits the view to a claim's MRSAC polygons together with the village, so an outside-village compartment can be found. */
+  const zoomToClaim = useCallback(
+    (ids: number[]) => {
+      const map = mapInstanceRef.current;
+      if (!map || !compData) return;
+      const fmtZ = new GeoJSON();
+      const ext = createEmpty();
+      const rings = [...ids.flatMap((id) => compData.polys[id]?.g ?? []), ...(resVillage.village?.rings ?? [])];
+      for (const f of rings.map((r) => fmtZ.readFeature({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [r] } }, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Feature))
+        extend(ext, f.getGeometry()!.getExtent());
+      if (isEmpty(ext)) return;
+      map.getView().fit([ext[0]! + forestDelta[0], ext[1]! + forestDelta[1], ext[2]! + forestDelta[0], ext[3]! + forestDelta[1]], { duration: 800, padding: [80, 80, 80, 420], maxZoom: 17 });
+    },
+    [compData, resVillage, forestDelta[0], forestDelta[1]]
+  );
+
+  // With MRSAC polygons as the primary CFR mark, the parcel highlights become the lighter secondary layer.
+  useEffect(() => {
+    plotMarkerLayerRef.current?.setOpacity(cfrMode && compResolved && !compParcelsFound ? 0.5 : 1);
+    return () => plotMarkerLayerRef.current?.setOpacity(1);
+  }, [cfrMode, compResolved, compParcelsFound]);
+
+  // Neighbouring villages within the radius, named, with what their gram sabhas have approved.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!cfrNearLayerRef.current) {
+      cfrNearLayerRef.current = new VectorLayer({
+        source: new VectorSource(),
+        zIndex: 40,
+        properties: { name: "cfr-near-villages" },
+        style: ((f: any, res: number) =>
+          new Style({
+            stroke: new Stroke({ color: "#475569", width: 1, lineDash: [2, 4] }),
+            text: new Text({ text: res < 60 ? (f.get("text") as string) : "", font: "500 11px sans-serif", fill: new Fill({ color: "#334155" }), stroke: new Stroke({ color: "#ffffff", width: 3 }), overflow: true }),
+          })) as any,
+      });
+    }
+    const layer = cfrNearLayerRef.current;
+    if (!map.getLayers().getArray().includes(layer)) map.addLayer(layer);
+    const src = layer.getSource()!;
+    src.clear();
+    if (!cfrMode || !compData || !nearVillages.length) return;
+    const claimed: Record<string, { n: number; ha: number }> = {};
+    for (const recs of Object.values(compData.claims)) for (const r of recs) if (r.vc) (claimed[r.vc] ??= { n: 0, ha: 0 }), (claimed[r.vc]!.n += 1), (claimed[r.vc]!.ha += r.h);
+    const fmtV = new GeoJSON();
+    for (const v of nearVillages) {
+      const feat = fmtV.readFeature(
+        { type: "Feature", properties: {}, geometry: { type: "MultiPolygon", coordinates: ringsToPolygons(v.rings) } },
+        { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }
+      ) as Feature;
+      feat.getGeometry()?.translate(forestDelta[0], forestDelta[1]);
+      const c = claimed[v.code];
+      feat.set("text", `${v.mr || v.name}${c ? ` • CFR ${c.n} claim${c.n > 1 ? "s" : ""}, ${c.ha.toFixed(0)} ha` : ""}`);
+      src.addFeature(feat);
+    }
+  }, [cfrMode, compData, nearVillages, forestDelta[0], forestDelta[1]]);
 
   /**
    * Family and individual-owner aggregates. Families are keyed phonetically so spelling
@@ -4317,15 +4637,20 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const need = plots.filter((pl) => pl.ownerStatus === "pending" && (!survey || pl.plotno === survey));
       if (need.length) {
         // Time-boxed: a big village keeps loading in the background, the report uses what has arrived by then.
-        const batch = await bulkFetchVillageRecords(gis, need.map((pl) => pl.plotno), {
-          concurrency: 6,
-          urgent: true,
-          signal: AbortSignal.any([ctl.signal, AbortSignal.timeout(90_000)]),
-          onBatch: (_b, done, total) => setReportBusy({ done: 0, total: 1, label: `Collecting land records ${done}/${total}…` }),
-        });
-        if (ctl.signal.aborted) throw new DOMException("aborted", "AbortError");
-        plots = mergeOwnerRecords(plots, batch);
-        setBnPlots(plots);
+        try {
+          const batch = await bulkFetchVillageRecords(gis, need.map((pl) => pl.plotno), {
+            concurrency: 6,
+            urgent: true,
+            signal: AbortSignal.any([ctl.signal, AbortSignal.timeout(60_000)]),
+            onBatch: (_b, done, total) => setReportBusy({ done: 0, total: 1, label: `Collecting land records ${done}/${total}…` }),
+          });
+          if (ctl.signal.aborted) throw new DOMException("aborted", "AbortError");
+          plots = mergeOwnerRecords(plots, batch);
+          setBnPlots(plots);
+        } catch (fetchErr) {
+          if ((fetchErr as any)?.name === "AbortError" && ctl.signal.aborted) throw fetchErr;
+          console.warn("bulkFetchVillageRecords non-fatal error, continuing with available records:", fetchErr);
+        }
       }
       // Water / forest layers load only in CFR mode; fetch them here when the report is asked for elsewhere.
       let resources: Record<string, GeoFeature[]> | null = resVillage.status === "ready" ? resVillage.features : null;
@@ -4343,6 +4668,45 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const refLon = (bnVillageExtent[0] + bnVillageExtent[2]) / 2;
       const [fx, fy] = await parcelFrameShift(gis, plots);
       const { x: ox, y: oy } = cadastralCalibRef.current;
+
+      // Resolve CFR compartments for this village from pre-built/live dataset
+      const activeCompData = compData || (await loadCompData());
+      const fmtR = new GeoJSON();
+      const reportComps: ReportComp[] = [];
+        // Filter strictly to this village's OWN CFR compartments so the report maps and profile
+        // focus purely on this village and do not draw dozens of outside compartments.
+        const allDrawn = compsAround(activeCompData, cfrVillageRows, resVillage.village?.rings ?? [], 0, cfrPurpose);
+        const ownDrawn = allDrawn.filter((d) => d.own && !d.outside);
+        const drawn = ownDrawn.length ? ownDrawn : allDrawn.filter((d) => d.own);
+        for (const d of drawn) {
+          const polys = d.ids.map((id) => activeCompData.polys[id]).filter((q): q is NonNullable<typeof q> => !!q);
+          if (!polys.length) continue;
+          const text = `Comp. ${d.n} (${d.ha.toFixed(1)} ha)`;
+          const geoms: Polygon[] = [];
+          for (const q of polys) {
+            for (const coords of ringsToPolygons(q.g)) {
+              const feat = fmtR.readFeature(
+                { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: coords } },
+                { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }
+              ) as Feature;
+              feat.getGeometry()?.translate(forestDelta[0], forestDelta[1]);
+              geoms.push(feat.getGeometry() as Polygon);
+            }
+          }
+          if (geoms.length) {
+            reportComps.push({
+              n: d.n,
+              names: d.names,
+              ha: d.ha,
+              geoms,
+              own: d.own,
+              outside: d.outside,
+              weak: !!d.weak,
+              label: text,
+            });
+          }
+        }
+
       const rPlots: ReportPlot[] = plots.map((pl) => {
         const e = entryByPlotno[pl.plotno];
         const poly = pl.theGeom ? parsePlotGeometry(pl.theGeom, pl.localBounds || null, null, refLon, gis) : null;
@@ -4351,18 +4715,57 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const recs = pl.records ?? [];
         const category = classifyParcel(pl.plotno, pl.records, pl.owner);
         const uniq = (a: string[]) => [...new Set(a.filter((x) => x && x !== "-"))].join("; ");
-        const f = e?.mrsac?.forest;
+        let f = e?.mrsac?.forest;
+
+        // Check if parcel overlaps with any CFR forest compartment in this village
+        let compHit: ReportComp | undefined;
+        if (poly && reportComps.length) {
+          const pExt = poly.getExtent();
+          const center = poly.getInteriorPoint().getCoordinates();
+          for (const rc of reportComps) {
+            for (const g of rc.geoms) {
+              const gExt = g.getExtent();
+              if (pExt[0] <= gExt[2] && pExt[2] >= gExt[0] && pExt[1] <= gExt[3] && pExt[3] >= gExt[1]) {
+                if (g.intersectsCoordinate(center) || g.intersectsExtent(pExt)) {
+                  compHit = rc;
+                  break;
+                }
+              }
+            }
+            if (compHit) break;
+          }
+        }
+
+        const compApproval = compHit
+          ? cfrCompRows.get(compHit.n) || cfrVillageRows.find((r) => r.k?.some((k) => compBase(k) === compHit!.n)) || cfrVillageRows[0]
+          : undefined;
+
+        const cfrData = e?.cfr
+          ? { purpose: e.cfr.p, ha: e.cfr.ha, ac: e.cfr.ac, date: e.cfr.dt }
+          : compApproval
+          ? { purpose: compApproval.p || "3(1) CFR", ha: compApproval.ha, ac: compApproval.ac, date: compApproval.dt || "" }
+          : undefined;
+
+        const forestDesc = f
+          ? `${f.comp || "—"} (${f.type || "forest"})`
+          : compHit
+          ? `Compartment ${compHit.n} (CFR Recognized Area)`
+          : undefined;
+
+        const isCfr = !!cfrData;
+        const status = cfrStatusOf(isCfr, category, !!(f || compHit), isCfr && isConflictCategory(category));
+
         return {
           plotno: pl.plotno,
           geom: poly,
           category,
-          status: cfrStatusOf(!!e?.cfr, category, !!f),
+          status,
           ha: recs.reduce((t, r) => t + (parseFloat(r.totalArea) || 0), 0) || haFromAreaText(pl.area) || 0,
           owners: uniq(recs.map((r) => r.ownerName)) || pl.owner || "",
           khata: uniq(recs.map((r) => r.khataNo)),
           potKharaba: uniq(recs.map((r) => r.potKharaba)),
-          ...(e?.cfr ? { cfr: { purpose: e.cfr.p, ha: e.cfr.ha, ac: e.cfr.ac, date: e.cfr.dt } } : {}),
-          ...(f ? { forest: `${f.comp || "—"} (${f.type || "forest"})` } : {}),
+          ...(cfrData ? { cfr: cfrData } : {}),
+          ...(forestDesc ? { forest: forestDesc } : {}),
           ...(e?.mrsac?.water ? { water: true } : {}),
           lat,
           lon,
@@ -4372,7 +4775,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       const totalHa = rPlots.reduce((t, p) => t + p.ha, 0);
       const count = (k: string) => rPlots.filter((p) => p.category === k).length;
       const surveyRes = resources ? surveyResourceMap(rPlots, resources, survey) : undefined;
-      const approvals = cfrVillageRows.map((r) => ({ purpose: r.p, ha: r.ha, ac: r.ac, date: r.dt, surveys: r.s.join(", ") }));
+      const approvals = cfrVillageRows.map((r) => ({
+        purpose: r.p,
+        ha: r.ha,
+        ac: r.ac,
+        date: r.dt,
+        surveys: r.s.length ? r.s.join(", ") : r.k?.length ? `Comp. ${r.k.join(", ")}` : "—",
+      }));
       const villageInfo = { name: nameOf(3) || "Village", taluka: cfrTaluka, district: cfrDistrict, gisCode: gis };
       if (kind === "xlsx") {
         if (!surveyRes) throw new Error("Water & forest (MRSAC) data could not be loaded. Please try again.");
@@ -4387,11 +4796,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         village: villageInfo,
         extent: transformExtent(bnVillageExtent, "EPSG:4326", "EPSG:3857") as [number, number, number, number],
         plots: rPlots,
+        cfrComps: reportComps,
         stats: [
           ["Survey numbers (parcels)", String(plots.length)],
           ["Parcels with 7/12 record loaded", `${loaded} of ${plots.length}`],
           ["Total recorded land", `${totalHa.toFixed(2)} ha (${(totalHa * 2.47105).toFixed(2)} acre)`],
           ["CFR approvals", String(cfrVillageRows.length)],
+          ...(reportComps.length
+            ? [["CFR Forest Compartments", reportComps.map((c) => `Comp. ${c.n} (${c.ha.toFixed(1)} ha)`).join(", ")] as [string, string]]
+            : []),
           ["CFR recognized survey nos.", String(rPlots.filter((p) => p.cfr).length)],
           ["CFR approved area", `${cfrVillageRows.reduce((t, r) => t + r.ha, 0).toFixed(2)} ha`],
           ...CATEGORIES.map((c) => [`Category: ${c.en}`, String(count(c.key))] as [string, string]),
@@ -4464,9 +4877,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       <header className="relative z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm text-slate-800">
         <div className="flex items-center gap-3">
           <img
-            src="/team_vanmitra_logo.jpg"
-            alt="Team Vanmitra"
-            className="h-11 w-auto max-w-[150px] object-contain cursor-pointer hover:opacity-95 transition-opacity"
+            src="/vanmitra_icon.png"
+            alt="VANMITRA"
+            className="h-11 w-11 object-contain rounded-full shadow-xs cursor-pointer hover:scale-105 transition-all"
             onClick={() => resetView()}
             title="VANMITRA - Innovate • Integrate • Elevate"
           />
@@ -4819,6 +5232,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                 onPickVillage={(code) => handleBnLevelChange(3, code)}
                 villageRows={cfrVillageRows}
                 compSummary={cfrCompSummary}
+                onRadius={setCfrRadiusKm}
+                onZoomClaim={zoomToClaim}
                 totalParcels={bnPlots.length}
                 matchedSurveys={plotSearchIndex.filter((e) => e.cfr).length}
                 unmatched={cfrUnmatched}
@@ -5388,7 +5803,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           if (entry && entry.areaHa > 0) rows.push({ label: "Area", value: `${entry.areaHa.toFixed(2)} ha (${(entry.areaHa * 2.47105).toFixed(2)} ac)` });
           if (pl?.records?.[0]?.khataNo && pl.records[0].khataNo !== "-") rows.push({ label: "Khata no.", value: pl.records[0].khataNo });
           if (cat && !loading) rows.push({ label: "Land type", value: `${cat.en} (inferred)` });
-          if (entry?.cfr) rows.push({ label: "CFR", value: `Recognized · ${entry.cfr.ha.toFixed(2)} ha approved` });
+          if (entry?.cfr)
+            rows.push({
+              label: "CFR",
+              value:
+                entry.cfrStatus === "conflict"
+                  ? `Conflict · private 7/12 land inside a CFR compartment${entry.overlapPct !== undefined ? ` (${entry.overlapPct}% of parcel)` : ""}`
+                  : `Recognized · ${entry.cfr.ha.toFixed(2)} ha approved${entry.overlapPct !== undefined ? ` (${entry.overlapPct}% of parcel inside)` : ""}`,
+            });
+          if (entry?.gramSabha) rows.push({ label: "Gram Sabha", value: `${entry.gramSabha} · comp. ${entry.compNo}` });
           if (entry?.mrsac?.forest) rows.push({ label: "Forest", value: `Compartment ${entry.mrsac.forest.comp || "—"} (${entry.mrsac.forest.type || "forest"})` });
           if (entry?.mrsac?.water) rows.push({ label: "Water", value: "Lies in a mapped water body" });
           rows.push({ label: "Location", value: `${parcelInfo.lat.toFixed(5)}° N, ${parcelInfo.lon.toFixed(5)}° E` });

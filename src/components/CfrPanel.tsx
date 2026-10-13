@@ -1,3 +1,4 @@
+import { STATUS_TEXT, WEAK_TEXT, type CompRec } from "@/lib/cfr-comp";
 import { useMemo, useState, type ReactNode } from "react";
 import type { AtreeVillage } from "@/lib/cfr-atree";
 import {
@@ -61,7 +62,12 @@ interface Props {
     conflicts: number;
     outside: string[];
     missing: string[];
+    /** Claims resolved to MRSAC polygons (public/data/cfr-comp), one per compartment. */
+    claims?: { gs: string; rec: CompRec; listedAs?: string; why?: string }[];
+    radiusKm?: number;
   } | null;
+  onRadius?: (km: number) => void;
+  onZoomClaim?: (ids: number[]) => void;
   onClose: () => void;
 }
 
@@ -339,6 +345,37 @@ export function CfrPanel(p: Props) {
                       <div className="font-semibold text-red-700">
                         Conflict: {p.compSummary.conflicts} private parcel{p.compSummary.conflicts > 1 ? "s" : ""} ({fmt(p.compSummary.conflictHa)} ha) inside the compartment — filter "Conflict"
                       </div>
+                    )}
+                    {p.compSummary.claims && p.compSummary.claims.length > 0 && (
+                      <div className="mt-1 space-y-1" data-testid="cfr-claims">
+                        <div className="font-semibold text-violet-900">Gram sabha claims on MRSAC compartments</div>
+                        {p.compSummary.claims.map(({ gs, rec, listedAs, why }, i) => (
+                          <div key={i} className="rounded border border-violet-200 bg-white/70 px-1.5 py-1 leading-snug">
+                            <b>{gs}</b> · comp. {rec.n} · {fmt(rec.al ?? rec.h)} ha{rec.ha ? ` of ${fmt(rec.ha)} ha polygon` : ""}
+                            <div className={!rec.wk && (rec.st === "inside" || rec.st === "outside" || rec.st === "taluka-unique") ? "text-slate-600" : "text-amber-700"}>
+                              {rec.wk ? WEAK_TEXT[rec.wk] : STATUS_TEXT[rec.st]}
+                              {rec.km ? ` · ${rec.km} km from the village boundary` : ""}
+                              {rec.nv ? ` · lies in ${rec.nv}` : ""}
+                              {rec.rb ? ` · ${rec.rb}` : ""}
+                              {rec.cands ? ` · ${rec.cands} candidates${rec.rbs?.length ? ` (${rec.rbs.join("; ")})` : ""}` : ""}
+                            </div>
+                            {rec.sh && rec.sh.length > 1 && <div className="text-orange-700">Shared with {rec.sh.filter((n) => n !== (gs)).join(", ")} (nearest village first){rec.over ? ` · ${fmt(rec.over)} ha over-claimed` : ""}</div>}
+                            {listedAs && <div className="text-slate-500">Listed as “{listedAs}” in the sheet; shown here: {(why ?? "").toLowerCase()}</div>}
+                            {rec.ids && p.onZoomClaim && (
+                              <button type="button" className="text-[11px] text-violet-700 underline" onClick={() => p.onZoomClaim?.(rec.ids!)}>
+                                Zoom to compartment
+                              </button>
+                            )}
+                            {rec.far && <div className="text-red-700">Far claim: much farther than the nearest claimant, verify</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {p.onRadius && p.compSummary.claims && p.compSummary.claims.length > 0 && (
+                      <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                        Neighbouring gram sabhas within {p.compSummary.radiusKm ?? 10} km
+                        <input type="range" min={2} max={10} step={1} value={p.compSummary.radiusKm ?? 10} onChange={(e) => p.onRadius?.(Number(e.target.value))} />
+                      </label>
                     )}
                     {p.compSummary.outside.length > 0 && <div>Compartment {p.compSummary.outside.join(", ")} lies outside the village (dashed outline, from MRSAC).</div>}
                     {p.compSummary.missing.length > 0 && <div className="text-amber-700">Compartment {p.compSummary.missing.join(", ")} could not be located in MRSAC — not shown.</div>}

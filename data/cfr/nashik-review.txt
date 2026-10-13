@@ -1,0 +1,64 @@
+Dindori / ग्रामस्थ ननाशी: NO COMPARTMENT (raw "61193"), 20 ha
+Dindori / ग्रामस्थ ननाशी: UNPARSED "61193" (raw "61193")
+Peth / ग्रामस्त झरी: AMBIGUOUS compartment or gat "77/123"
+Peth / ग्रामस्त झरी: AMBIGUOUS compartment or gat "77/123"
+Peth / ग्रामस्त केळबारी: AMBIGUOUS compartment or gat "49.50 पैकी"
+Peth / ग्रामस्थ चिखली: AMBIGUOUS compartment or gat "82/79/233"
+Peth / ग्रामस्थ भोयेपाडा: AMBIGUOUS compartment or gat "123/138/107"
+Peth / ग्रामस्थ बोरदा: AMBIGUOUS compartment or gat "115/128/122/123"
+Peth / ग्रामस्थ मोहोलीपाडा: AMBIGUOUS compartment or gat "69/210/211"
+Peth / ग्रामस्थ डोल्हारमाळ: AMBIGUOUS compartment or gat "45/50"
+Peth / ग्रामस्थ सावरीचापाडा: AMBIGUOUS compartment or gat "135/82"
+Peth / ग्रामस्थ काकडपाडा: AMBIGUOUS compartment or gat "31/33/38"
+Peth / ग्रामस्थ काळुणे: AMBIGUOUS compartment or gat "25/17/14/9"
+Peth / ग्रामस्थ उंबरपाडा: AMBIGUOUS compartment or gat "33/37/39/41/46"
+Peth / ग्रामस्थ माळेगांव: AMBIGUOUS compartment or gat "1/17/21/23/38"
+Peth / ग्रामस्थ घोटपाडा: AMBIGUOUS compartment or gat "62/41/18/23/35/36"
+Peth / ग्रामस्थ घुबडसाका: AMBIGUOUS compartment or gat "147/168/166"
+Peth / ग्रामस्थ शिहरीपाडा: AMBIGUOUS compartment or gat "45/67"
+Peth / ग्रामस्थ जामले: NO COMPARTMENT (raw ""), 84 ha
+Peth / ग्रामस्थ कहांडोळपाडा: NO COMPARTMENT (raw ""), 77 ha
+Peth / ग्रामस्थ तिर्ढे: NO COMPARTMENT (raw "33 ते 77"), 29.24 ha
+Peth / ग्रामस्थ तिर्ढे: UNPARSED "33~77" (raw "33 ते 77")
+Peth / ग्रामस्थ हनुमंतपाडा: NO COMPARTMENT (raw "25 ते 199"), 65 ha
+Peth / ग्रामस्थ हनुमंतपाडा: UNPARSED "25~199" (raw "25 ते 199")
+IGT / ग्रामस्थ बोरटेंभे: AMBIGUOUS compartment or gat "324/66"
+IGT / ग्रामस्थ जांमुंडे: AMBIGUOUS compartment or gat "316/42"
+IGT / ग्रामस्थ त्रिंगलवाडी: AMBIGUOUS compartment or gat "323/322"
+TBK / ग्रामस्थ दलपतपुर: AMBIGUOUS compartment or gat "150/122"
+TBK / ग्रामस्थ खडक ओहळ: AMBIGUOUS compartment or gat "93/113"
+TBK / ग्रामस्थ खैरायपाली: AMBIGUOUS compartment or gat "135/101"
+TBK / ग्रामस्थ हरसुल: NO COMPARTMENT (raw "36156"), 2 ha
+TBK / ग्रामस्थ हरसुल: UNPARSED "36156" (raw "36156")
+TBK / ग्रामस्थ रोहिले: AMBIGUOUS compartment or gat "203,204,205/248,249"
+TBK / ग्रामस्थ हट्टीपाडा: AMBIGUOUS compartment or gat "161/229"
+TBK / ग्रामस्थ कडेगहाण: AMBIGUOUS compartment or gat "137/138"
+TBK / ग्रामस्थ मेटचंद्राची: AMBIGUOUS compartment or gat "19/48/343"
+TBK / ग्रामस्थ देवगांव: AMBIGUOUS compartment or gat "342/320"
+Surgana / ग्रामस्थ रोंघाणे: AMBIGUOUS compartment or gat "436/54"
+Surgana / ग्रामस्थ चिकाडी: AMBIGUOUS compartment or gat "239/308"
+Surgana / ग्रामस्थ माळेगांव: AMBIGUOUS compartment or gat "76/169"
+Surgana / ग्रामस्थ रोकडपाडा: AMBIGUOUS compartment or gat "75/43"
+Surgana / ग्रामस्थ पळसण: NO COMPARTMENT (raw "40796"), 82.5 ha
+Surgana / ग्रामस्थ पळसण: UNPARSED "40796" (raw "40796")
+Surgana / ग्रामस्थ खडकमाळ: NO COMPARTMENT (raw "40796"), 60 ha
+Surgana / ग्रामस्थ खडकमाळ: UNPARSED "40796" (raw "40796")
+Chandwad / ग्रामस्थ पिंपळनारे: AMBIGUOUS compartment or gat "605/606"
+Chandwad / ग्रामस्थ उसवाड: NO COMPARTMENT (raw ""), 30 ha
+Chandwad / ग्रामस्थ भडाणे: NO COMPARTMENT (raw ""), 25 ha
+Chandwad / ग्रामस्थ निंबाळे: AMBIGUOUS compartment or gat "100/114/115"
+Chandwad / ग्रामस्थ वराडी: NO COMPARTMENT (raw ""), 10 ha
+Chandwad / ग्रामस्थ मंगरूळ: AMBIGUOUS compartment or gat "559/560"
+Chandwad / ग्रामस्थ मेसनखेडे: NO COMPARTMENT (raw ""), 25 ha
+Chandwad / ग्रामस्थ निमोण: NO COMPARTMENT (raw ""), 20 ha
+Chandwad / ग्रामस्थ कुंदलगांव: NO COMPARTMENT (raw ""), 9.3 ha
+Kalvan / ग्रामस्त वंजारी: AMBIGUOUS compartment or gat "287/289"
+Kalvan / ग्रामस्त भाकुर्डे: AMBIGUOUS compartment or gat "98/99"
+Deola / ग्रामस्थ कुंभार्डे: AMBIGUOUS compartment or gat "341/342"
+Deola / ग्रामस्थ वार्शी: AMBIGUOUS compartment or gat "314/315"
+Deola / ग्रामस्थ भावडे: AMBIGUOUS compartment or gat "322/324"
+Malegaon / ग्रामस्थ डोंगराळे: AMBIGUOUS compartment or gat "341/302"
+Baglan / ग्रामस्त वनोली: AMBIGUOUS compartment or gat "201/171"
+Baglan / ग्रामस्थ तरहाराबाद: AMBIGUOUS compartment or gat "130/131"
+Baglan / ग्रामस्थ तिळवन: NO COMPARTMENT (raw "96136"), 81.29 ha
+Baglan / ग्रामस्थ तिळवन: UNPARSED "96136" (raw "96136")

@@ -82,8 +82,8 @@ export default function OfficerLoginModal({ isOpen, open, onClose, onLoginSucces
             <X className="size-5" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-xl bg-white p-1 flex items-center justify-center shadow-md">
-              <img src="/team_vanmitra_logo.jpg" alt="Team Vanmitra" className="h-full w-full object-contain" />
+            <div className="size-11 rounded-full bg-white p-0.5 flex items-center justify-center shadow-md overflow-hidden">
+              <img src="/vanmitra_icon.png" alt="Team Vanmitra" className="h-full w-full object-contain rounded-full" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">

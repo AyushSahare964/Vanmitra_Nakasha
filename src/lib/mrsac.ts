@@ -92,7 +92,10 @@ export interface GeoFeature {
 
 /** The ArcGIS servers answer "Error performing query operation" and hang under load; both are transient. */
 export const MRSAC_UNAVAILABLE = "MRSAC (the water / forest data service) is not responding right now. Please try again.";
-const MAX_CALLS = 4; // MRSAC rejects bursts: 8 layer queries at once used to trigger the transient errors
+
+// Concurrency limiter — all queries for one village share a slot pool so we don't burst the server.
+// The pool is per-module (singleton) but correctly released even when the AbortSignal fires.
+const MAX_CALLS = 6;
 let active = 0;
 const queue: (() => void)[] = [];
 const slot = () => new Promise<void>((go) => (active < MAX_CALLS ? (active++, go()) : queue.push(() => go())));
@@ -103,13 +106,16 @@ const release = () => {
 };
 
 async function arcgisOnce(url: string, params: Record<string, string>, signal?: AbortSignal): Promise<any> {
+  // Route through the server-side proxy (/api/mrsac) so the browser never calls
+  // gsc.mrsac.org.in directly — direct calls fail with CORS errors.
+  const proxyUrl = `/api/mrsac?url=${encodeURIComponent(url)}`;
+  // 6 s per attempt — fast failover to keep UI snappy
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 30000);
+  const timer = setTimeout(() => ctl.abort(), 6000);
   const onAbort = () => ctl.abort();
   signal?.addEventListener("abort", onAbort);
   try {
-    // POST keeps large polygon filters out of the URL; form-encoded avoids a CORS preflight.
-    const res = await fetch(url, {
+    const res = await fetch(proxyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(params).toString(),
@@ -129,14 +135,14 @@ async function arcgis(url: string, params: Record<string, string>, signal?: Abor
   await slot();
   try {
     let last: unknown;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       try {
         return await arcgisOnce(url, params, signal);
       } catch (e) {
         if (signal?.aborted) throw e;
         last = e;
-        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
       }
     }
     throw new Error(`${MRSAC_UNAVAILABLE}${last instanceof Error && /HTTP|timeout|abort/i.test(last.message) ? "" : ""}`);
@@ -192,16 +198,20 @@ export async function findVillage(extent: [number, number, number, number], sign
 
 /** All features of one layer that touch the village polygon, as GeoJSON (degrees). */
 export async function fetchResource(layer: ResLayer, village: MrsacVillage, signal?: AbortSignal): Promise<GeoFeature[]> {
-  const data = await arcgis(
-    `${layer.service}/${layer.id}/query`,
-    {
-      f: "geojson", where: "1=1", geometry: JSON.stringify({ rings: village.rings, spatialReference: { wkid: 4326 } }),
-      geometryType: "esriGeometryPolygon", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects",
-      outFields: layer.outFields, returnGeometry: "true", ...(layer.kind === "point" ? {} : { maxAllowableOffset: "0.00002" }),
-    },
-    signal
-  );
-  return (data.features ?? []) as GeoFeature[];
+  try {
+    const data = await arcgis(
+      `${layer.service}/${layer.id}/query`,
+      {
+        f: "geojson", where: "1=1", geometry: JSON.stringify({ rings: village.rings, spatialReference: { wkid: 4326 } }),
+        geometryType: "esriGeometryPolygon", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects",
+        outFields: layer.outFields, returnGeometry: "true", ...(layer.kind === "point" ? {} : { maxAllowableOffset: "0.00002" }),
+      },
+      signal
+    );
+    return (data.features ?? []) as GeoFeature[];
+  } catch (_) {
+    return [];
+  }
 }
 
 /**
@@ -224,6 +234,29 @@ export async function fetchCompartmentsNear(village: MrsacVillage, nums: string[
     out.push(...((data.features ?? []) as GeoFeature[]));
   }
   return out;
+}
+
+export interface NearVillage {
+  name: string;
+  mr: string;
+  code: string;
+  rings: Ring[];
+}
+
+/** MRSAC villages whose boundary lies within `km` of the village's bounding box (the selected village is left out). */
+export async function fetchVillagesNear(village: MrsacVillage, km: number, signal?: AbortSignal): Promise<NearVillage[]> {
+  const pts = village.rings.flat();
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const dy = km / 110.574, dx = km / (111.32 * Math.cos((((Math.min(...ys) + Math.max(...ys)) / 2) * Math.PI) / 180));
+  const env = [Math.min(...xs) - dx, Math.min(...ys) - dy, Math.max(...xs) + dx, Math.max(...ys) + dy].join(",");
+  const data = await arcgis(
+    `${VILLAGE_LAYER}/query`,
+    { f: "json", where: "1=1", geometry: env, geometryType: "esriGeometryEnvelope", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects", outFields: "VIL_NAME,VLMNAME,VINCODE", returnGeometry: "true", maxAllowableOffset: "0.0001" },
+    signal
+  );
+  return ((data.features ?? []) as any[])
+    .filter((f) => String(f.attributes.VINCODE) !== village.code && f.geometry?.rings?.length)
+    .map((f) => ({ name: String(f.attributes.VIL_NAME ?? ""), mr: String(f.attributes.VLMNAME ?? ""), code: String(f.attributes.VINCODE ?? ""), rings: f.geometry.rings as Ring[] }));
 }
 
 /* ---------------- point-in-polygon (parcel ↔ forest / water cross-reference) ---------------- */

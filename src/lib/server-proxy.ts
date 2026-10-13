@@ -1,5 +1,8 @@
 import https from "node:https";
+import { URL as NodeURL } from "node:url";
 import type { IncomingMessage } from "node:http";
+// @ts-ignore
+import { resolveOfflineMrsac } from "../../api/mrsac.js";
 
 let cachedCookie = "";
 let lastCookieTime = 0;
@@ -330,6 +333,141 @@ async function handleBhuNaksha(request: Request, url: URL): Promise<Response> {
   });
 }
 
+/** Proxy for MRSAC ArcGIS MapServer queries (gsc.mrsac.org.in).
+ * The browser cannot call gsc.mrsac.org.in directly due to CORS; all spatial
+ * queries are forwarded server-side via /api/mrsac?url=<encoded-arcgis-url>.
+ */
+async function handleMrsac(request: Request, url: URL): Promise<Response> {
+  const targetUrl = url.searchParams.get("url");
+  if (!targetUrl) {
+    return new Response(JSON.stringify({ error: "missing url parameter" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+
+  let parsed: NodeURL;
+  try {
+    parsed = new NodeURL(targetUrl);
+  } catch {
+    return new Response(JSON.stringify({ error: "invalid url" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+
+  // Only allow proxying to the known MRSAC host.
+  if (parsed.hostname !== "gsc.mrsac.org.in") {
+    return new Response(JSON.stringify({ error: "forbidden host" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+
+  const bodyBuffer = request.body ? Buffer.from(await request.arrayBuffer()) : Buffer.alloc(0);
+  const contentType = request.headers.get("content-type") ?? "";
+
+  // 1. Try local/offline resolution for pre-cached datasets (villages, forest compartments)
+  const params: Record<string, string> = {};
+  for (const [k, v] of parsed.searchParams.entries()) {
+    params[k] = v;
+  }
+  for (const [k, v] of url.searchParams.entries()) {
+    if (k !== "url") params[k] = v;
+  }
+  if (bodyBuffer.length) {
+    try {
+      const bodyParams = new URLSearchParams(bodyBuffer.toString("utf8"));
+      for (const [k, v] of bodyParams.entries()) {
+        params[k] = v;
+      }
+    } catch (_) {}
+  }
+
+  try {
+    const offline = resolveOfflineMrsac(parsed.pathname, params);
+    if (offline) {
+      return new Response(JSON.stringify(offline), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[server-proxy] Offline MRSAC resolution failed:", err);
+  }
+
+  const f = (params.f || "json").toLowerCase();
+
+  return new Promise((resolve) => {
+    const opts = {
+      hostname: "gsc.mrsac.org.in",
+      port: 443,
+      path: parsed.pathname + parsed.search,
+      method: request.method === "POST" ? "POST" : "GET",
+      headers: {
+        // Use a browser-like UA; MRSAC may throttle/block non-browser user agents.
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/plain, */*;q=0.01",
+        "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",
+        "Origin": "https://geoportal.mrsac.org.in",
+        "Referer": "https://geoportal.mrsac.org.in/",
+        ...(contentType ? { "Content-Type": contentType } : {}),
+        ...(bodyBuffer.length ? { "Content-Length": String(bodyBuffer.length) } : {}),
+      },
+      rejectUnauthorized: false,
+    };
+
+    const req = https.request(opts, (pres) => {
+      const chunks: Buffer[] = [];
+      pres.on("data", (c) => chunks.push(c));
+      pres.on("end", () => {
+        resolve(
+          new Response(Buffer.concat(chunks), {
+            status: pres.statusCode || 200,
+            headers: {
+              "Content-Type": pres.headers["content-type"] ?? "application/json",
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+              "Access-Control-Allow-Headers": "*",
+              "Cache-Control": "public, max-age=300, s-maxage=600",
+            },
+          })
+        );
+      });
+    });
+
+    req.on("error", () => {
+      // If live upstream fails or times out, return empty feature collection with 200
+      const emptyPayload = f === "geojson" ? { type: "FeatureCollection", features: [] } : { features: [] };
+      resolve(
+        new Response(JSON.stringify(emptyPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        })
+      );
+    });
+
+    // 4 s fast failover for live queries so the app never hangs
+    req.setTimeout(4000, () => {
+      req.destroy();
+      const emptyPayload = f === "geojson" ? { type: "FeatureCollection", features: [] } : { features: [] };
+      resolve(
+        new Response(JSON.stringify(emptyPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        })
+      );
+    });
+
+    if (bodyBuffer.length) req.write(bodyBuffer);
+    req.end();
+  });
+}
+
 export async function handleServerProxy(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
 
@@ -338,6 +476,7 @@ export async function handleServerProxy(request: Request): Promise<Response | nu
     (url.pathname.startsWith("/bhunaksha") ||
       url.pathname.startsWith("/api/bhunaksha") ||
       url.pathname.startsWith("/api/cfr") ||
+      url.pathname.startsWith("/api/mrsac") ||
       url.pathname.startsWith("/api/reverse-geocode"))
   ) {
     return new Response(null, {
@@ -360,6 +499,10 @@ export async function handleServerProxy(request: Request): Promise<Response | nu
 
   if (url.pathname === "/api/reverse-geocode") {
     return handleReverseGeocode(url);
+  }
+
+  if (url.pathname === "/api/mrsac") {
+    return handleMrsac(request, url);
   }
 
   return null;

@@ -40,6 +40,17 @@ test.describe("Nashik compartment approvals", () => {
     // MRSAC outline layer exists and compartment polygons are never drawn without a label
     const feats = await app.layerByName("cfr-compartments");
     expect(feats).not.toBeNull();
+    // clicking a survey number inside the compartment opens the survey card, not the forest-compartment card
+    const px = await app.evalMap((m) => {
+      const l = m.getLayers().getArray().find((x: any) => x.get("name") === "plot-marker");
+      const f = l.getSource().getFeatures().find((x: any) => /Polygon/.test(x.getGeometry().getType()));
+      const p = m.getPixelFromCoordinate(f.getGeometry().getInteriorPoint().getCoordinates().slice(0, 2));
+      return { x: p[0] as number, y: p[1] as number };
+    });
+    const box = await page.locator("canvas").first().boundingBox();
+    await page.mouse.click(box!.x + px.x, box!.y + px.y);
+    await expect(page.getByText(/Survey No\. \d+/).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Compartment no.")).toHaveCount(0);
     app.assertNoPageErrors();
   });
 });
