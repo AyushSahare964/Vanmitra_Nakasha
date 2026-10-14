@@ -46,6 +46,8 @@ interface Props {
   onPurpose: (g: PurposeGroup) => void;
   cadastral: { enabled: boolean; opacity: number };
   onCadastral: (patch: Partial<{ enabled: boolean; opacity: number }>) => void;
+  cfrFill?: { fillOpacity: number; parcelOpacity: number; layerOpacity: number };
+  onCfrFill?: (patch: Partial<{ fillOpacity: number; parcelOpacity: number; layerOpacity: number }>) => void;
   resources: ReactNode;
   error: string | null;
   onRetry: () => void;
@@ -203,6 +205,51 @@ export function CfrPanel(p: Props) {
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+        {/* Gram Sabha CFR Compartment & Land Contrast */}
+        {p.cfrFill && (
+          <div className="rounded border border-violet-200 bg-violet-50/40 px-2.5 py-2 text-xs">
+            <div className="flex items-center justify-between font-semibold text-violet-900">
+              <span>Gram Sabha CFR & Land Contrast</span>
+              <span className="text-[10px] text-violet-700 font-mono font-bold">{p.cfrFill.fillOpacity}% fill</span>
+            </div>
+            <div className="mt-1.5 space-y-1.5">
+              <label className="flex items-center gap-2 text-slate-600">
+                Fill Tint
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={p.cfrFill.fillOpacity}
+                  onChange={(e) => p.onCfrFill?.({ fillOpacity: Number(e.target.value) })}
+                  className="flex-1 accent-violet-600"
+                />
+                <span className="w-8 text-right tabular-nums">{p.cfrFill.fillOpacity}%</span>
+              </label>
+              <div className="flex gap-1">
+                {[
+                  { l: "Land View (0%)", v: 0 },
+                  { l: "Gentle", v: 15 },
+                  { l: "Medium", v: 35 },
+                  { l: "Vivid", v: 70 },
+                ].map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => p.onCfrFill?.({ fillOpacity: o.v, parcelOpacity: o.v === 0 ? 0 : 25 })}
+                    className={`flex-1 rounded border py-0.5 text-[10px] font-medium transition-all ${
+                      p.cfrFill?.fillOpacity === o.v
+                        ? "border-violet-700 bg-violet-700 text-white"
+                        : "border-violet-200 bg-white text-violet-800 hover:bg-violet-50"
+                    }`}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cadastral parcel lines under the CFR colours */}
         <div className="rounded border border-slate-200 px-2.5 py-2 text-xs">
           <label className="flex items-center justify-between gap-2 font-semibold text-slate-700">

@@ -36,6 +36,7 @@ import Text from "ol/style/Text.js";
 import { extend, createEmpty, isEmpty, getCenter } from "ol/extent.js";
 
 import "ol/ol.css";
+import { SlidersHorizontal, Layers, Eye, Sun, RotateCcw, X, Sparkles } from "lucide-react";
 
 import {
   loadVillageData,
@@ -1240,6 +1241,12 @@ function shiftBboxParam(url: string, offX: number, offY: number): string {
   });
 }
 
+export const dynamicMapStyleSettings = {
+  cfrParcelFillOpacity: 25,
+  gramSabhaFillOpacity: 15,
+  highContrastOutlines: true,
+};
+
 function createPlotMarkerStyle(feature: any) {
   const plotNo = feature.get("plotNo") || "";
   const owner = feature.get("owner") || "";
@@ -1273,7 +1280,15 @@ function createPlotMarkerStyle(feature: any) {
     const c = { cfr_recognized: "#7c3aed", cfr_conflict: "#dc2626", cfr_forest: "#15803d", cfr_govt: "#ca8a04", cfr_other: "#a8a29e" }[highlightType as string] || "#a8a29e";
     borderColor = c;
     badgeBorder = c;
-    fillColor = c + (highlightType === "cfr_recognized" || highlightType === "cfr_conflict" ? "55" : "38");
+    const pAlpha = dynamicMapStyleSettings.cfrParcelFillOpacity;
+    if (pAlpha <= 0) {
+      fillColor = "rgba(0, 0, 0, 0)";
+    } else {
+      const hexA = Math.max(1, Math.min(255, Math.round((pAlpha / 100) * (highlightType === "cfr_recognized" || highlightType === "cfr_conflict" ? 85 : 56))))
+        .toString(16)
+        .padStart(2, "0");
+      fillColor = c + hexA;
+    }
     label = `Survey ${plotNo}${area ? " • " + area : ""}`;
   } else if (highlightType === "farm" || highlightType === "residential" || highlightType === "government" || highlightType === "other") {
     const c = { farm: "#65a30d", residential: "#2563eb", government: "#64748b", other: "#a8a29e" }[highlightType as string]!;
@@ -1293,7 +1308,7 @@ function createPlotMarkerStyle(feature: any) {
     new Style({
       stroke: new Stroke({
         color: borderColor,
-        width: highlightType === "single" ? 1.8 : 2.5,
+        width: dynamicMapStyleSettings.highContrastOutlines && String(highlightType).startsWith("cfr_") ? 3 : (highlightType === "single" ? 1.8 : 2.5),
         lineDash: highlightType === "single" ? [6, 4] : undefined,
       }),
     }),
@@ -1433,6 +1448,27 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const [cfrStatusFilter, setCfrStatusFilter] = useState<Set<string>>(() => new Set());
   const [cfrPurpose, setCfrPurpose] = useState<Set<PurposeGroup>>(() => new Set());
   const [cfrAtree, setCfrAtree] = useState<CfrAtreeState>({ potential: false, recognized: false, opacity: 70, villageOnly: true });
+
+  // Dynamic Map Filter & Contrast Controls: Gram Sabha CFR, Cadastral, and Satellite Terrain
+  const [filterControlsOpen, setFilterControlsOpen] = useState(false);
+  const [gramSabhaFillOpacity, setGramSabhaFillOpacity] = useState(15);
+  const [gramSabhaOpacity, setGramSabhaOpacity] = useState(95);
+  const [cfrParcelFillOpacity, setCfrParcelFillOpacity] = useState(25);
+  const [terrainContrast, setTerrainContrast] = useState(100);
+  const [terrainBrightness, setTerrainBrightness] = useState(100);
+  const [highContrastOutlines, setHighContrastOutlines] = useState(true);
+
+  useEffect(() => {
+    dynamicMapStyleSettings.gramSabhaFillOpacity = gramSabhaFillOpacity;
+    dynamicMapStyleSettings.cfrParcelFillOpacity = cfrParcelFillOpacity;
+    dynamicMapStyleSettings.highContrastOutlines = highContrastOutlines;
+    cfrCompLayerRef.current?.changed();
+    plotMarkerLayerRef.current?.changed();
+  }, [gramSabhaFillOpacity, cfrParcelFillOpacity, highContrastOutlines]);
+
+  useEffect(() => {
+    cfrCompLayerRef.current?.setOpacity(gramSabhaOpacity / 100);
+  }, [gramSabhaOpacity]);
   // Selected village's real-degree extent (Vidarbha-corrected) and the ATREE polygon it maps to.
   const [bnVillageExtent, setBnVillageExtent] = useState<[number, number, number, number] | null>(null);
   const [atreeVillage, setAtreeVillage] = useState<AtreeVillage | null>(null);
@@ -1616,6 +1652,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const baseSource = new XYZ({ url: BASEMAPS[basemap].url, maxZoom: 20, cacheSize: 4096, transition: 0 });
     trackTiles(baseSource, "base");
     const baseTile = new TileLayer({
+      className: "ol-base-satellite",
       source: baseSource,
       zIndex: 0,
       preload: 1,
@@ -4044,9 +4081,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               });
             }
             const col = shared ? "#ea580c" : own ? "#7c3aed" : "#8b5cf6";
+            const fillPct = dynamicMapStyleSettings.gramSabhaFillOpacity;
+            const fillAlpha = (fillPct / 100) * (shared ? 0.35 : own ? 0.30 : 0.20);
+            const fillColor = fillAlpha <= 0.005 ? "rgba(0, 0, 0, 0)" : (shared ? `rgba(234,88,12,${fillAlpha.toFixed(2)})` : own ? `rgba(124,58,237,${fillAlpha.toFixed(2)})` : `rgba(139,92,246,${fillAlpha.toFixed(2)})`);
+            const strokeWidth = dynamicMapStyleSettings.highContrastOutlines ? (own ? 3.5 : 2.2) : (own ? 3 : 1.5);
             return new Style({
-              stroke: new Stroke({ color: col, width: own ? 3 : 1.5, lineDash: f.get("outside") || !own ? [8, 5] : undefined }),
-              fill: new Fill({ color: shared ? "rgba(234,88,12,0.10)" : own ? "rgba(124,58,237,0.08)" : "rgba(139,92,246,0.05)" }),
+              stroke: new Stroke({ color: col, width: strokeWidth, lineDash: f.get("outside") || !own ? [8, 5] : undefined }),
+              fill: new Fill({ color: fillColor }),
               text: new Text({
                 text: own || res < 40 ? (f.get("text") as string) : "",
                 font: `${own ? 600 : 500} 12px sans-serif`,
@@ -4056,8 +4097,12 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               }),
             });
           }
+          const fillPct = dynamicMapStyleSettings.gramSabhaFillOpacity;
+          const fillAlpha = (fillPct / 100) * 0.25;
+          const fillColor = fillAlpha <= 0.005 ? "rgba(0, 0, 0, 0)" : `rgba(124,58,237,${fillAlpha.toFixed(2)})`;
           return new Style({
-            stroke: new Stroke({ color: "#7c3aed", width: 2.5, lineDash: [8, 5] }),
+            stroke: new Stroke({ color: "#7c3aed", width: dynamicMapStyleSettings.highContrastOutlines ? 3 : 2.5, lineDash: [8, 5] }),
+            fill: new Fill({ color: fillColor }),
             text: new Text({
               text: f.get("label") ? `CFR comp. ${f.get("compNo")} • ${f.get("ha")} ha${f.get("outside") ? " (outside village)" : ""}` : "",
               font: "600 12px sans-serif",
@@ -5252,6 +5297,12 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                   if (patch.enabled !== undefined) setBnCadastralEnabled(patch.enabled);
                   if (patch.opacity !== undefined) setBnCadastralOpacity(patch.opacity);
                 }}
+                cfrFill={{ fillOpacity: gramSabhaFillOpacity, parcelOpacity: cfrParcelFillOpacity, layerOpacity: gramSabhaOpacity }}
+                onCfrFill={(patch) => {
+                  if (patch.fillOpacity !== undefined) setGramSabhaFillOpacity(patch.fillOpacity);
+                  if (patch.parcelOpacity !== undefined) setCfrParcelFillOpacity(patch.parcelOpacity);
+                  if (patch.layerOpacity !== undefined) setGramSabhaOpacity(patch.layerOpacity);
+                }}
                 resources={
                   <ResourcesSection
                     tileOn={resTile}
@@ -5751,13 +5802,322 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
 
 
-        {/* ZOOM CONTROLS */}
+        {/* Dynamic Terrain Filter for Satellite Basemap */}
+        {(terrainContrast !== 100 || terrainBrightness !== 100) && (
+          <style>{`
+            .ol-base-satellite canvas {
+              filter: contrast(${terrainContrast}%) brightness(${terrainBrightness}%);
+            }
+          `}</style>
+        )}
+
+        {/* MAP & ZOOM CONTROLS */}
         <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5">
           <RedMapControl onClick={zoomIn} title="Zoom In">+</RedMapControl>
           <RedMapControl onClick={zoomOut} title="Zoom Out">-</RedMapControl>
           <RedMapControl onClick={resetView} title="Reset Maharashtra View">⟲</RedMapControl>
           <RedMapControl onClick={() => setInfoVisible((v) => !v)} title="Toggle Feature Info" active={infoVisible}>i</RedMapControl>
+          <RedMapControl
+            onClick={() => setFilterControlsOpen((v) => !v)}
+            title="Layer Contrast & Ground Visibility Filters"
+            active={filterControlsOpen}
+          >
+            <SlidersHorizontal className="size-4" />
+          </RedMapControl>
         </div>
+
+        {/* DYNAMIC MAP FILTER & CONTRAST POPUP */}
+        {filterControlsOpen && (
+          <div
+            data-testid="filter-contrast-panel"
+            className="absolute top-4 right-14 z-30 w-84 max-h-[calc(100vh-80px)] overflow-y-auto rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 p-4 shadow-2xl text-xs select-none transition-all duration-200 animate-in fade-in slide-in-from-right-2"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/80">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-violet-100 text-violet-700">
+                  <SlidersHorizontal className="size-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm leading-tight">Map & Filter Contrast</h3>
+                  <p className="text-[10px] text-slate-500">Live ground visibility & layer controls</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFilterControlsOpen(false)}
+                className="size-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Quick Visibility Presets */}
+            <div className="mb-3.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                Ground Visibility Presets
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGramSabhaFillOpacity(0);
+                    setCfrParcelFillOpacity(0);
+                    setGramSabhaOpacity(100);
+                    setBnCadastralOpacity(70);
+                    setTerrainContrast(120);
+                    setTerrainBrightness(100);
+                    setHighContrastOutlines(true);
+                  }}
+                  className={`px-2 py-1.5 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
+                    gramSabhaFillOpacity === 0 && cfrParcelFillOpacity === 0
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800 font-bold shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 font-medium"
+                  }`}
+                  title="0% fill - view actual terrain, trees & farms directly through boundary lines"
+                >
+                  <Eye className="size-3.5" />
+                  <span className="text-[10.5px]">Land View</span>
+                  <span className="text-[8.5px] text-slate-400">0% Fill</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGramSabhaFillOpacity(15);
+                    setCfrParcelFillOpacity(20);
+                    setGramSabhaOpacity(90);
+                    setBnCadastralOpacity(85);
+                    setTerrainContrast(105);
+                    setTerrainBrightness(100);
+                  }}
+                  className={`px-2 py-1.5 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
+                    gramSabhaFillOpacity > 0 && gramSabhaFillOpacity <= 25
+                      ? "border-violet-600 bg-violet-50 text-violet-800 font-bold shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 font-medium"
+                  }`}
+                  title="Balanced gentle tint with visible terrain"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span className="text-[10.5px]">Balanced</span>
+                  <span className="text-[8.5px] text-slate-400">15% Tint</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGramSabhaFillOpacity(45);
+                    setCfrParcelFillOpacity(50);
+                    setGramSabhaOpacity(100);
+                    setBnCadastralOpacity(90);
+                    setTerrainContrast(100);
+                    setTerrainBrightness(100);
+                  }}
+                  className={`px-2 py-1.5 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
+                    gramSabhaFillOpacity > 25
+                      ? "border-violet-700 bg-violet-600 text-white font-bold shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 font-medium"
+                  }`}
+                  title="Vivid highlights for presentations"
+                >
+                  <Layers className="size-3.5" />
+                  <span className="text-[10.5px]">Vivid CFR</span>
+                  <span className="text-[8.5px] opacity-80">45% Fill</span>
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION 1: Gram Sabha CFR Overlay */}
+            <div className="rounded-xl border border-violet-200/80 bg-violet-50/40 p-2.5 mb-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-violet-950 text-[11px] flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-violet-600" />
+                  Gram Sabha CFR Overlay
+                </span>
+                <span className="text-[10px] font-mono font-bold text-violet-700">
+                  {gramSabhaFillOpacity === 0 ? "Hollow (Land Only)" : `${gramSabhaFillOpacity}% Tint`}
+                </span>
+              </div>
+
+              {/* Gram Sabha Fill Tint Slider */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>Compartment Fill Tint</span>
+                  <span className="font-mono text-violet-800">{gramSabhaFillOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={gramSabhaFillOpacity}
+                  onChange={(e) => setGramSabhaFillOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 bg-violet-200 rounded-lg appearance-none cursor-pointer accent-violet-600"
+                />
+                <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                  <span>0% (Land View)</span>
+                  <span>50%</span>
+                  <span>100% (Solid)</span>
+                </div>
+              </div>
+
+              {/* Parcel Fill Opacity Slider inside CFR */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>CFR Parcel Fill Opacity</span>
+                  <span className="font-mono text-violet-800">{cfrParcelFillOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={cfrParcelFillOpacity}
+                  onChange={(e) => setCfrParcelFillOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 bg-violet-200 rounded-lg appearance-none cursor-pointer accent-violet-600"
+                />
+              </div>
+
+              {/* Gram Sabha Total Layer Opacity */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>Gram Sabha Layer Opacity</span>
+                  <span className="font-mono text-violet-800">{gramSabhaOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={gramSabhaOpacity}
+                  onChange={(e) => setGramSabhaOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 bg-violet-200 rounded-lg appearance-none cursor-pointer accent-violet-600"
+                />
+              </div>
+
+              {/* High-Contrast Outlines Toggle */}
+              <label className="flex items-center justify-between text-[10px] text-slate-700 pt-1 cursor-pointer">
+                <span>High-contrast crisp boundary</span>
+                <input
+                  type="checkbox"
+                  checked={highContrastOutlines}
+                  onChange={(e) => setHighContrastOutlines(e.target.checked)}
+                  className="rounded text-violet-600 focus:ring-violet-500 size-3.5"
+                />
+              </label>
+            </div>
+
+            {/* SECTION 2: Cadastral WMS Layer */}
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-2.5 mb-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-emerald-950 text-[11px] flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-emerald-600" />
+                  Cadastral Map (BhuNaksha)
+                </span>
+                <span className="text-[10px] font-mono font-bold text-emerald-800">{bnCadastralOpacity}%</span>
+              </div>
+
+              {/* Cadastral Lines Opacity */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>Survey Lines (WMS)</span>
+                  <span className="font-mono text-emerald-800">{bnCadastralOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={bnCadastralOpacity}
+                  onChange={(e) => setBnCadastralOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                />
+              </div>
+
+              {/* Plot Markers Visibility */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>Plot Marker & Highlight Opacity</span>
+                  <span className="font-mono text-emerald-800">{bnPlotOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={bnPlotOpacity}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setBnPlotOpacity(v);
+                    cadastralPlotLayerRef.current?.setOpacity(v / 100);
+                  }}
+                  className="w-full h-1.5 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                />
+              </div>
+            </div>
+
+            {/* SECTION 3: Satellite Terrain Contrast */}
+            <div className="rounded-xl border border-sky-200/80 bg-sky-50/40 p-2.5 mb-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sky-950 text-[11px] flex items-center gap-1.5">
+                  <Sun className="size-3 text-amber-500" />
+                  Satellite Terrain Clarity
+                </span>
+                <span className="text-[10px] font-mono font-bold text-sky-800">{terrainContrast}%</span>
+              </div>
+
+              {/* Contrast */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>Terrain Contrast</span>
+                  <span className="font-mono text-sky-800">{terrainContrast}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={80}
+                  max={150}
+                  value={terrainContrast}
+                  onChange={(e) => setTerrainContrast(Number(e.target.value))}
+                  className="w-full h-1.5 bg-sky-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                />
+              </div>
+
+              {/* Brightness */}
+              <div>
+                <div className="flex justify-between text-[10px] text-slate-600 mb-0.5">
+                  <span>Terrain Brightness</span>
+                  <span className="font-mono text-sky-800">{terrainBrightness}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={80}
+                  max={130}
+                  value={terrainBrightness}
+                  onChange={(e) => setTerrainBrightness(Number(e.target.value))}
+                  className="w-full h-1.5 bg-sky-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                />
+              </div>
+            </div>
+
+            {/* Footer Reset */}
+            <div className="pt-1 flex items-center justify-between text-[10.5px]">
+              <span className="text-slate-400">Controls update in real-time</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setGramSabhaFillOpacity(15);
+                  setCfrParcelFillOpacity(25);
+                  setGramSabhaOpacity(95);
+                  setBnCadastralOpacity(85);
+                  setBnPlotOpacity(26);
+                  setTerrainContrast(100);
+                  setTerrainBrightness(100);
+                  setHighContrastOutlines(true);
+                }}
+                className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800 font-semibold transition-colors"
+              >
+                <RotateCcw className="size-3" />
+                Reset Defaults
+              </button>
+            </div>
+          </div>
+        )}
 
 
         {/* FEATURE INFO POPUP */}
