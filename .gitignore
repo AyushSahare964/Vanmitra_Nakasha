@@ -22,6 +22,8 @@ scratch/
 google_earth_api
 implementation_plan_nakasha
 *.tmp
+*.env
+~$*
 
 # Wrangler / Cloudflare / Vercel
 .wrangler/

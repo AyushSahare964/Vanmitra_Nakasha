@@ -31,6 +31,8 @@ test.describe("Nashik compartment approvals", () => {
     expect(ha, t).toBeLessThan(71.25 * 1.4);
     expect(t).toContain("Conflict:");
     // compartments were measured against the cadastral: forest-held parcels fall inside, private ones outside
+    // the village starts from the regional offset; its own measurement replaces it once the parcels are in
+    await expect.poll(() => page.evaluate(() => (window as any).__vmForestShift?.how), { timeout: 60000 }).toBe("measured");
     const shift = await page.evaluate(() => (window as any).__vmForestShift);
     expect(shift, "forest/cadastral offset should be measured for this village").not.toBeNull();
     expect(shift.score).toBeGreaterThan(0.8);

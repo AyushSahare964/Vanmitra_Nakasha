@@ -24,7 +24,15 @@ test.describe("Gram Sabha polygon: parcels and clicks", () => {
       return { t, parcels: Number(m?.[2] ?? 0) + Number(c?.[1] ?? 0) };
     };
     await expect.poll(async () => (await read()).parcels, { timeout: 240000, intervals: [3000] }).toBeGreaterThan(3);
-    console.log("SUMMARY:", (await read()).t);
+    // the forest/cadastral calibration settles as records load and moves the polygons: click only once it has
+    let last = "";
+    for (let i = 0, stable = 0; i < 40 && stable < 4; i++) {
+      await page.waitForTimeout(3000);
+      const sig = JSON.stringify(await page.evaluate(() => (window as any).__vmForestShift ?? null)) + (await read()).parcels;
+      stable = sig === last ? stable + 1 : 0;
+      last = sig;
+    }
+    console.log("SUMMARY:", (await read()).t, "SHIFT:", last);
 
     // marked parcels: pick one the app drew and click its centre
     const pick = () =>

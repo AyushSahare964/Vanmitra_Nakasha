@@ -54,7 +54,7 @@ import {
   type NamePart,
   type ParsedOwner,
 } from "@/lib/marathi-search";
-import { bestShift, type AlignParcel } from "@/lib/forest-align";
+import { calibrate, NASHIK_PRIOR, type AlignParcel, type Shift } from "@/lib/forest-align";
 import { CATEGORIES, classifyParcel, familyKey, type Category } from "@/lib/land-categories";
 import { calibrateVillage, readCachedCalibration, type AutoCalibration } from "@/lib/cadastral-calibration";
 import { describeResource, detailsAsText, locationLinks, type ResourceDetails } from "@/lib/resource-details";
@@ -1468,7 +1468,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const cfrCompLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const cfrNearLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   /** Offset (m, EPSG:3857) at which this village's parcels line up with the MRSAC compartments; null until measured. */
-  const [forestShift, setForestShift] = useState<{ dx: number; dy: number; score: number; base: number } | null>(null);
+  const [forestShift, setForestShift] = useState<Shift | null>(null);
   const parcelPointCache = useRef<Record<string, [number, number]>>({});
   const [ownerFetchProgress, setOwnerFetchProgress] = useState<{ done: number; total: number } | null>(null);
   const ownerFetchAbortRef = useRef<AbortController | null>(null);
@@ -3337,7 +3337,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     setResVillage((prev) => ({ ...prev, status: "loading", error: null }));
     void (async () => {
       try {
-        const village = await findVillage(bnVillageExtent, ctl.signal);
+        const village = await findVillage(bnVillageExtent, ctl.signal, bnLevels[3]?.find((o) => o.code === bnSelected[3])?.value ?? "");
         if (!village) throw new Error("This village was not found in the MRSAC village boundaries.");
         if (ctl.signal.aborted) return;
         // Kick off all layer queries concurrently; each resolved layer is merged into state
@@ -3685,7 +3685,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   // point (calibrated to real-world position) against the village's MRSAC polygons.
   // The compartments are cut from the cadastral map but sit a village-specific distance from the raw parcels (Udmal: ~75 m E,
   // 75 m S). Measure it: the shift where forest-held parcels fall inside compartments and private ones fall outside.
-  useEffect(() => setForestShift(null), [bnGisCode]);
+  // Nashik villages start from the regional offset (measured over 20 villages); the measurement below refines or keeps it.
+  const regionalShift = bnLevels[1]?.find((o) => o.code === bnSelected[1])?.value === "नाशिक" ? NASHIK_PRIOR : undefined;
+  useEffect(() => setForestShift(regionalShift ? { ...regionalShift, score: 0, base: 0, how: "prior" } : null), [bnGisCode, regionalShift]);
   useEffect(() => {
     if (resVillage.status !== "ready") return;
     const forest = (resVillage.features["forest"] ?? []).filter((f) => isForestLandType(String(f.properties["COMP_TYPE"] ?? "")));
@@ -3707,9 +3709,6 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           }
         if (pts.length) parcels.push({ pts, w: parseFloat(String(pl.area)) || haFromAreaText(pl.area) || 0.01, forestHeld: category === "forest" || category === "government" });
       }
-      const held = parcels.filter((q) => q.forestHeld).length;
-      // too few forest-held parcels (or records still loading) to tell: keep the unshifted frame
-      if (held < 8 || held === parcels.length) return;
       const polys = forest.map((f) => (f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates) as number[][][][]);
       const boxes = polys.map((ps) => {
         const c = ps.flat(2);
@@ -3719,12 +3718,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const [lo, la] = toLonLat([x, y]);
         return polys.some((ps, k) => lo! >= boxes[k]![0] && lo! <= boxes[k]![2] && la! >= boxes[k]![1] && la! <= boxes[k]![3] && ps.some((rings) => rings.filter((r) => pointInRing(lo!, la!, r)).length % 2 === 1));
       };
-      const best = bestShift(parcels, inForest);
-      // adopt only a clear improvement; otherwise the frames already agree (or the data cannot say)
-      setForestShift(best.score - best.base >= 0.05 ? best : null);
+      const { shift, held, measured } = calibrate(parcels, inForest, regionalShift);
+      if (import.meta.env.DEV) (window as any).__vmForestMeasure = { gis: bnGisCode, parcels: parcels.length, held, best: measured, adopted: shift };
+      // same shift as before (records keep arriving): keep the object, so nothing downstream recomputes
+      setForestShift((prev) => (prev && shift && prev.dx === shift.dx && prev.dy === shift.dy && prev.how === shift.how && Math.abs(prev.score - shift.score) < 0.005 ? prev : shift));
     }, 1200);
     return () => clearTimeout(t);
-  }, [resVillage, bnPlots, bnVillageExtent, bnGisCode]);
+  }, [resVillage, bnPlots, bnVillageExtent, bnGisCode, regionalShift]);
   useEffect(() => {
     if (import.meta.env.DEV) (window as any).__vmForestShift = forestShift;
   }, [forestShift]);
@@ -4657,7 +4657,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       if (!resources) {
         setReportBusy({ done: 0, total: 1, label: "Loading water & forest data…" });
         try {
-          const v = await findVillage(bnVillageExtent, ctl.signal);
+          const v = await findVillage(bnVillageExtent, ctl.signal, bnLevels[3]?.find((o) => o.code === bnSelected[3])?.value ?? "");
           if (v) {
             const rs = await Promise.allSettled(RES_LAYERS.map((l) => fetchResource(l, v, ctl.signal)));
             resources = {};

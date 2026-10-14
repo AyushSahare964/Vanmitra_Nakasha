@@ -175,25 +175,30 @@ const overlap = (p: [number, number, number, number], q: [number, number, number
  * The MRSAC village polygon that best matches a village extent (real degrees). Village
  * polygons partition the state, so the best bbox overlap is the village itself.
  */
-export async function findVillage(extent: [number, number, number, number], signal?: AbortSignal): Promise<MrsacVillage | null> {
+export async function findVillage(extent: [number, number, number, number], signal?: AbortSignal, name = ""): Promise<MrsacVillage | null> {
   const base = { f: "json", where: "1=1", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects", outFields: "VIL_NAME,VINCODE", returnGeometry: "true", maxAllowableOffset: "0.00005" };
-  const pick = (data: any) => {
-    let best: { v: MrsacVillage; score: number } | null = null;
+  const want = name.trim().toLowerCase();
+  // `min`: the portal's cadastral extent and MRSAC's outline rarely coincide (calibration offset, different edges), so a
+  // polygon under the extent's centre is accepted at a low overlap; a village of the same name at an even lower one.
+  const pick = (data: any, min: number) => {
+    let best: { v: MrsacVillage; score: number; named: boolean } | null = null;
     for (const f of data.features ?? []) {
       const rings = (f.geometry?.rings ?? []) as Ring[];
       if (!rings.length) continue;
       const score = overlap(bboxOf(rings), extent);
-      if (!best || score > best.score) best = { v: { name: String(f.attributes.VIL_NAME ?? ""), code: String(f.attributes.VINCODE ?? ""), rings }, score };
+      const vn = String(f.attributes.VIL_NAME ?? "");
+      const named = !!want && vn.trim().toLowerCase() === want;
+      if (!best || (named && !best.named) || (named === best.named && score > best.score)) best = { v: { name: vn, code: String(f.attributes.VINCODE ?? ""), rings }, score, named };
     }
-    return best && best.score > 0.3 ? best.v : null;
+    return best && (best.score > min || (best.named && best.score > 0.02)) ? best.v : null;
   };
   // Village polygons partition the state, so the polygon under the extent's centre is normally the village:
   // one feature instead of every village overlapping the extent (that query took 16 s on a cold server).
   const cx = (extent[0] + extent[2]) / 2;
   const cy = (extent[1] + extent[3]) / 2;
-  const hit = pick(await arcgis(`${VILLAGE_LAYER}/query`, { ...base, geometry: `${cx},${cy}`, geometryType: "esriGeometryPoint" }, signal));
+  const hit = pick(await arcgis(`${VILLAGE_LAYER}/query`, { ...base, geometry: `${cx},${cy}`, geometryType: "esriGeometryPoint" }, signal), 0.08);
   if (hit) return hit;
-  return pick(await arcgis(`${VILLAGE_LAYER}/query`, { ...base, geometry: extent.join(","), geometryType: "esriGeometryEnvelope" }, signal));
+  return pick(await arcgis(`${VILLAGE_LAYER}/query`, { ...base, geometry: extent.join(","), geometryType: "esriGeometryEnvelope" }, signal), 0.05);
 }
 
 /** All features of one layer that touch the village polygon, as GeoJSON (degrees). */
