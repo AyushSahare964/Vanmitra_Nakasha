@@ -53,12 +53,12 @@ function sendJson(res, statusCode, body, cacheSec = 300) {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "*",
-    "Cache-Control": `public, max-age=${cacheSec}, s-maxage=${cacheSec * 2}`,
+    "Cache-Control": cacheSec ? `public, max-age=${cacheSec}, s-maxage=${cacheSec * 2}` : "no-store",
   });
   res.end(typeof body === "string" ? body : JSON.stringify(body));
 }
 
-function proxyLiveMrsac(req, res, targetUrl, postBody, contentType, timeoutMs = 3500) {
+function proxyLiveMrsac(req, res, targetUrl, postBody, contentType, timeoutMs = 5000) {
   let parsed;
   try {
     parsed = new URL(targetUrl);
@@ -101,14 +101,14 @@ function proxyLiveMrsac(req, res, targetUrl, postBody, contentType, timeoutMs = 
   upstreamReq.on("error", () => {
     // If upstream errored, return safe empty result for queries
     if (!res.headersSent) {
-      sendJson(res, 200, { type: "FeatureCollection", features: [] });
+      sendJson(res, 200, { type: "FeatureCollection", features: [] }, 0);
     }
   });
 
   upstreamReq.setTimeout(timeoutMs, () => {
     upstreamReq.destroy();
     if (!res.headersSent) {
-      sendJson(res, 200, { type: "FeatureCollection", features: [] });
+      sendJson(res, 200, { type: "FeatureCollection", features: [] }, 0);
     }
   });
 
@@ -216,14 +216,7 @@ export function resolveOfflineMrsac(targetPath, params) {
     return { features: filtered };
   }
 
-  // 3. Water conservation / smart village services
-  if (targetPath.includes("smart_village/sv_water_cons/MapServer")) {
-    if (f === "geojson") {
-      return { type: "FeatureCollection", features: [] };
-    }
-    return { features: [] };
-  }
-
+  // Water / wells (smart_village) have no offline copy: null sends them to the live MRSAC server.
   return null;
 }
 

@@ -451,8 +451,8 @@ async function handleMrsac(request: Request, url: URL): Promise<Response> {
       );
     });
 
-    // 4 s fast failover for live queries so the app never hangs
-    req.setTimeout(4000, () => {
+    // 5 s fast failover for live queries so the app never hangs
+    req.setTimeout(5000, () => {
       req.destroy();
       const emptyPayload = f === "geojson" ? { type: "FeatureCollection", features: [] } : { features: [] };
       resolve(
