@@ -27,6 +27,7 @@ import GeoJSON from "ol/format/GeoJSON.js";
 import Feature from "ol/Feature.js";
 import Point from "ol/geom/Point.js";
 import Circle from "ol/geom/Circle.js";
+import { parseGeoFile } from "@/lib/kml-import";
 import Polygon, { fromExtent } from "ol/geom/Polygon.js";
 import CircleStyle from "ol/style/Circle.js";
 import Style from "ol/style/Style.js";
@@ -1349,6 +1350,7 @@ function createPlotMarkerStyle(feature: any) {
   ];
 }
 
+const PHONE = () => typeof window !== "undefined" && window.innerWidth < 768;
 type PanelKey = "layerList" | "searchVillage" | "cadastral" | "explore" | "cfr" | "kml" | "legend";
 /** MRSAC cross-reference for a parcel: best compartment, plus the share of the parcel in every compartment >= OVERLAP_MIN %. */
 type MrsacParcel = { forest?: { type: string; comp: string; pct: number; all: Record<string, number> }; water?: boolean };
@@ -1868,6 +1870,46 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const handleResize = () => map.updateSize();
     window.addEventListener("resize", handleResize);
     return () => { window.removeEventListener("resize", handleResize); map.setTarget(undefined); mapInstanceRef.current = null; };
+  }, []);
+
+  // Uploaded KML / KMZ / GeoJSON overlays: one vector layer per file, drawn at true GPS coordinates (no cadastral offset).
+  const [overlays, setOverlays] = useState<{ id: number; name: string; count: number; layer: VectorLayer<VectorSource> }[]>([]);
+  const [kmlErr, setKmlErr] = useState("");
+  const zoomToOverlay = useCallback((layer: VectorLayer<VectorSource>) => {
+    const ext = layer.getSource()!.getExtent();
+    if (!isEmpty(ext)) mapInstanceRef.current?.getView().fit(ext, { duration: 800, padding: [80, 80, 80, 400], maxZoom: 19 });
+  }, []);
+  const addGeoFiles = useCallback(async (files: FileList | null) => {
+    const map = mapInstanceRef.current;
+    if (!files || !map) return;
+    setKmlErr("");
+    for (const file of Array.from(files)) {
+      try {
+        const features = await parseGeoFile(file);
+        const label = (f: Feature) => String(f.get("name") ?? "");
+        const layer = new VectorLayer({
+          source: new VectorSource({ features }),
+          zIndex: 55,
+          style: (f) => {
+            const g = f.getGeometry()?.getType() ?? "";
+            return new Style({
+              stroke: new Stroke({ color: "#f59e0b", width: 2.5 }),
+              fill: new Fill({ color: "rgba(245,158,11,0.18)" }),
+              image: new CircleStyle({ radius: 6, fill: new Fill({ color: "#f59e0b" }), stroke: new Stroke({ color: "#fff", width: 2 }) }),
+              text: label(f as Feature) && g !== "Polygon" && g !== "MultiPolygon" ? new Text({ text: label(f as Feature), offsetY: -14, font: "600 11px sans-serif", fill: new Fill({ color: "#111" }), stroke: new Stroke({ color: "#fff", width: 3 }) }) : undefined,
+            });
+          },
+        });
+        map.addLayer(layer);
+        setOverlays((o) => [...o, { id: Date.now() + o.length, name: file.name, count: features.length, layer }]);
+        zoomToOverlay(layer);
+      } catch (e) {
+        setKmlErr(`${file.name}: ${e instanceof Error ? e.message : "could not read file"}`);
+      }
+    }
+  }, [zoomToOverlay]);
+  const removeOverlay = useCallback((id: number) => {
+    setOverlays((o) => o.filter((x) => (x.id !== id ? true : (mapInstanceRef.current?.removeLayer(x.layer), false))));
   }, []);
 
   // "My location": watch the device GPS, draw a dot + accuracy ring, centre on the first fix. Click again to stop.
@@ -2504,7 +2546,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             "EPSG:4326",
             "EPSG:3857"
           );
-          map.getView().fit(ext3857, { duration: 1200, padding: [80, 80, 80, panelOpen ? 400 : 80], maxZoom: 17.5 });
+          map.getView().fit(ext3857, { duration: 1200, padding: [80, 80, 80, panelOpen && !PHONE() ? 400 : 80], maxZoom: 17.5 });
         }
       } else {
         // When extent is not georeferenced or null, navigate to the selected district/taluka center in Maharashtra
@@ -2638,7 +2680,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const fitExt = markerGeom.getExtent();
         const map = mapInstanceRef.current;
         if (map) {
-          map.getView().fit(fitExt, { duration: 900, padding: [100, 100, 100, panelOpen ? 420 : 100], maxZoom: 19 });
+          map.getView().fit(fitExt, { duration: 900, padding: [100, 100, 100, panelOpen && !PHONE() ? 420 : 100], maxZoom: 19 });
         }
 
         const markerFeature = new Feature({
@@ -3104,7 +3146,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         let ext = createEmpty();
         features.forEach((f) => extend(ext, f.getGeometry()!.getExtent()));
         if (!isEmpty(ext)) {
-          mapInstanceRef.current.getView().fit(ext, { duration: 900, padding: [60, 60, 60, panelOpen ? 400 : 60] });
+          mapInstanceRef.current.getView().fit(ext, { duration: 900, padding: [60, 60, 60, panelOpen && !PHONE() ? 400 : 60] });
           return;
         }
       }
@@ -3130,7 +3172,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         let ext = createEmpty();
         features.forEach((f) => extend(ext, f.getGeometry()!.getExtent()));
         if (!isEmpty(ext)) {
-          mapInstanceRef.current.getView().fit(ext, { duration: 1000, padding: [60, 60, 60, panelOpen ? 400 : 60] });
+          mapInstanceRef.current.getView().fit(ext, { duration: 1000, padding: [60, 60, 60, panelOpen && !PHONE() ? 400 : 60] });
           return;
         }
       }
@@ -3147,7 +3189,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         const vlgSrc = villageLayerRef.current?.getSource();
         if (vlgSrc) {
           const features = vlgSrc.getFeatures().filter((f) => { const p = f.getProperties(); return p.NAME?.toLowerCase() === village.village.toLowerCase() || p.CEN_2001?.includes(village.villageCode); });
-          if (features.length > 0) { let ext = createEmpty(); features.forEach((f) => extend(ext, f.getGeometry()!.getExtent())); if (!isEmpty(ext)) { mapInstanceRef.current?.getView().fit(ext, { duration: 1000, padding: [80, 80, 80, panelOpen ? 400 : 80], maxZoom: 17 }); const hl = highlightLayerRef.current?.getSource(); if (hl) { hl.clear(); hl.addFeatures(features); } return; } }
+          if (features.length > 0) { let ext = createEmpty(); features.forEach((f) => extend(ext, f.getGeometry()!.getExtent())); if (!isEmpty(ext)) { mapInstanceRef.current?.getView().fit(ext, { duration: 1000, padding: [80, 80, 80, panelOpen && !PHONE() ? 400 : 80], maxZoom: 17 }); const hl = highlightLayerRef.current?.getSource(); if (hl) { hl.clear(); hl.addFeatures(features); } return; } }
         }
         flyToTaluka(village.district, village.subdistrict);
       }, 300);
@@ -4958,7 +5000,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   );
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-slate-100 flex flex-col select-none">
+    <div className="relative w-full h-dvh overflow-hidden bg-slate-100 flex flex-col select-none">
       {/* TOP NAVBAR (LIGHT THEME) */}
       <header className="relative z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm text-slate-800">
         <div className="flex items-center gap-3">
@@ -5080,14 +5122,14 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
       </header>
 
       {/* BODY */}
-      <div className="relative flex-1 w-full h-[calc(100vh-64px)] overflow-hidden">
+      <div className="relative flex-1 w-full min-h-0 overflow-hidden">
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full bg-slate-100" />
 
         {/* FLOATING MULTI-PARCEL HIGHLIGHT BANNER */}
         {multiHighlightInfo && (
           <div
-            className="absolute top-4 z-20 flex items-center gap-3 bg-white/95 backdrop-blur-md border-2 border-amber-500 shadow-2xl rounded-2xl px-4 py-2.5 text-slate-800 transition-all max-w-xl animate-in fade-in slide-in-from-top-3"
-            style={{ left: panelOpen ? "calc(50% + 140px)" : "50%", transform: "translateX(-50%)" }}
+            className="absolute top-4 z-20 flex items-center gap-3 bg-white/95 backdrop-blur-md border-2 border-amber-500 shadow-2xl rounded-2xl px-4 py-2.5 text-slate-800 transition-all max-w-[calc(100vw-1.5rem)] md:max-w-xl animate-in fade-in slide-in-from-top-3"
+            style={{ left: panelOpen && !PHONE() ? "calc(50% + 140px)" : "50%", transform: "translateX(-50%)" }}
           >
             <div
               className={`size-9 rounded-full flex items-center justify-center text-base font-bold shrink-0 shadow-xs ${
@@ -5151,7 +5193,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         )}
 
         {/* TOOLBAR (LIGHT THEME) */}
-        <aside className="absolute left-0 top-0 bottom-0 z-20 flex flex-col items-center py-3 gap-1.5 border-r border-slate-200 bg-white/95 backdrop-blur-md text-slate-700 shadow-sm" style={{ width: 64 }}>
+        <aside className="absolute z-30 bottom-0 left-0 right-0 h-14 flex flex-row justify-around items-center px-1 border-t border-slate-200 bg-white/95 backdrop-blur-md text-slate-700 shadow-sm md:right-auto md:top-0 md:h-auto md:w-16 md:flex-col md:justify-start md:px-0 md:py-3 md:gap-1.5 md:border-t-0 md:border-r">
           <ToolbarIconBtn active={panelOpen === "layerList"} onClick={() => togglePanel("layerList")} label="Layers" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>} />
           <ToolbarIconBtn active={panelOpen === "searchVillage"} onClick={() => togglePanel("searchVillage")} label="Search" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} />
           <ToolbarIconBtn active={panelOpen === "cadastral"} onClick={() => togglePanel("cadastral")} label="Cadastral" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="size-5"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>} />
@@ -5163,7 +5205,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
         {/* SIDE PANEL */}
         {panelOpen && (
-          <div className="absolute top-0 bottom-0 z-20 w-80 bg-white border-r border-slate-200 shadow-2xl flex flex-col text-slate-800" style={{ left: 64 }}>
+          <div className="absolute z-20 left-0 right-0 bottom-14 h-[58%] rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl flex flex-col text-slate-800 overflow-hidden md:top-0 md:bottom-0 md:left-16 md:right-auto md:h-auto md:w-80 md:rounded-none md:border-t-0 md:border-r">
 
             {/* LAYER LIST */}
             {panelOpen === "layerList" && (
@@ -5804,8 +5846,17 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                 </div>
                 <div className="p-4 text-xs text-slate-600 space-y-3">
                   <p>Overlay surveyor GPS track files or cadastral parcel KML boundaries directly onto the satellite layer.</p>
-                  <input type="file" accept=".kml,.kmz,.geojson,.json" className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-700 file:text-white hover:file:bg-red-800 cursor-pointer" />
-                  <p className="rounded-md bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500">Supports Google Earth KML polygon and polyline geometries.</p>
+                  <input type="file" multiple accept=".kml,.kmz,.geojson,.json" onChange={(e) => { void addGeoFiles(e.target.files); e.target.value = ""; }} className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-700 file:text-white hover:file:bg-red-800 cursor-pointer" />
+                  {kmlErr && <p className="rounded-md bg-red-50 border border-red-200 p-2 text-[11px] text-red-700">{kmlErr}</p>}
+                  {overlays.map((o) => (
+                    <div key={o.id} className="flex items-center gap-2 rounded-md border border-slate-200 p-2">
+                      <span className="size-2.5 rounded-sm bg-amber-500 shrink-0" />
+                      <button type="button" onClick={() => zoomToOverlay(o.layer)} className="flex-1 min-w-0 text-left truncate font-semibold text-slate-800 hover:underline" title="Zoom to file">{o.name}</button>
+                      <span className="text-[10px] text-slate-400">{o.count}</span>
+                      <button type="button" onClick={() => removeOverlay(o.id)} className="text-slate-400 hover:text-red-600" aria-label={`Remove ${o.name}`}>✕</button>
+                    </div>
+                  ))}
+                  <p className="rounded-md bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500">Supports KML, KMZ and GeoJSON — points, lines and polygons. Files are read in your browser only; nothing is uploaded.</p>
                 </div>
               </div>
             )}
@@ -5871,7 +5922,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
         {filterControlsOpen && (
           <div
             data-testid="filter-contrast-panel"
-            className="absolute top-4 right-14 z-30 w-84 max-h-[calc(100vh-80px)] overflow-y-auto rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 p-4 shadow-2xl text-xs select-none transition-all duration-200 animate-in fade-in slide-in-from-right-2"
+            className="absolute top-4 left-3 right-14 z-30 md:left-auto md:w-84 max-h-[calc(100dvh-170px)] overflow-y-auto rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 p-4 shadow-2xl text-xs select-none transition-all duration-200 animate-in fade-in slide-in-from-right-2"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/80">
@@ -6163,7 +6214,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
         {/* FEATURE INFO POPUP */}
         {infoVisible && Object.keys(infoContent).length > 0 && (
-          <div className="absolute z-20 rounded-xl shadow-2xl bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 text-xs" style={{ bottom: 48, left: panelOpen ? 396 : 80, minWidth: 240, maxWidth: 320 }}>
+          <div className="absolute z-20 left-3 right-3 bottom-[4.5rem] md:right-auto md:bottom-12 md:left-[var(--l)] md:min-w-60 md:max-w-80 rounded-xl shadow-2xl bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 text-xs" style={{ "--l": `${panelOpen ? 396 : 80}px` } as React.CSSProperties}>
             <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-200">
               <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[10px]">Territorial Feature</span>
               <button onClick={() => setInfoVisible(false)} className="text-slate-400 hover:text-slate-600 font-bold" aria-label="Close">✕</button>
@@ -6222,8 +6273,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
               data-testid="parcel-card"
               role="dialog"
               aria-label={`Survey No. ${parcelInfo.plotno}`}
-              className="absolute z-30 w-[300px] max-w-[calc(100vw-120px)] rounded-xl border-2 border-emerald-600 bg-white text-xs shadow-2xl"
-              style={{ bottom: 64, right: 58 }}
+              className="absolute z-30 w-[300px] max-w-[calc(100vw-1.5rem)] bottom-[4.5rem] right-3 md:bottom-16 md:right-[58px] md:max-w-[calc(100vw-120px)] rounded-xl border-2 border-emerald-600 bg-white text-xs shadow-2xl"
             >
               <div className="flex items-center justify-between gap-2 rounded-t-[10px] bg-emerald-50 px-3 py-2">
                 <div className="min-w-0">
@@ -6304,8 +6354,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             data-testid="resource-card"
             role="dialog"
             aria-label={resInfo.details.title}
-            className="absolute z-30 w-[300px] max-w-[calc(100vw-120px)] rounded-xl border-2 bg-white text-xs shadow-2xl"
-            style={{ bottom: 64, right: 58, borderColor: resInfo.details.color }}
+            className="absolute z-30 w-[300px] max-w-[calc(100vw-1.5rem)] bottom-[4.5rem] right-3 md:bottom-16 md:right-[58px] md:max-w-[calc(100vw-120px)] rounded-xl border-2 bg-white text-xs shadow-2xl"
+            style={{ borderColor: resInfo.details.color }}
           >
             <div className="flex items-center justify-between gap-2 rounded-t-[10px] px-3 py-2" style={{ background: resInfo.details.color + "22" }}>
               <div className="min-w-0">
@@ -6521,13 +6571,13 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
           title={locateErr || (locating ? "Stop showing my location" : "Show my location")}
           aria-label="My location"
           aria-pressed={locating}
-          className={`absolute bottom-14 right-3 z-20 grid size-9 place-items-center rounded-lg border shadow-md backdrop-blur-md transition-colors ${locateErr ? "bg-white/95 border-red-300 text-red-600" : locating ? "bg-blue-600 border-blue-600 text-white" : "bg-white/95 border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+          className={`${panelOpen ? "hidden md:grid" : "grid"} absolute bottom-[7.25rem] md:bottom-14 right-3 z-20 size-9 place-items-center rounded-lg border shadow-md backdrop-blur-md transition-colors ${locateErr ? "bg-white/95 border-red-300 text-red-600" : locating ? "bg-blue-600 border-blue-600 text-white" : "bg-white/95 border-slate-200 text-slate-700 hover:bg-slate-50"}`}
         >
           <LocateFixed className="size-4" />
         </button>
 
         {/* COORDINATES */}
-        <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg bg-white/95 backdrop-blur-md px-3 py-1.5 text-slate-800 text-[11px] font-mono shadow-md border border-slate-200">
+        <div className={`${panelOpen ? "hidden md:flex" : "flex"} absolute bottom-[4.25rem] md:bottom-3 right-3 z-20 items-center gap-2 rounded-lg bg-white/95 backdrop-blur-md px-3 py-1.5 text-slate-800 text-[11px] font-mono shadow-md border border-slate-200`}>
           <span className="text-slate-500">Lon/Lat:</span><span ref={coordDisplayRef} className="font-semibold text-emerald-700">75.71390 / 19.75150</span>
           <span className="text-slate-300">|</span>
           <span className="text-slate-500">Zoom:</span><span ref={zoomDisplayRef} className="font-semibold text-indigo-700">7.2</span>
@@ -6768,7 +6818,7 @@ function ToolbarIconBtn({ active, onClick, icon, label }: { active: boolean; onC
     <button
       onClick={onClick}
       className={
-        "group flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer " +
+        "group flex flex-col items-center justify-center size-11 md:size-12 rounded-xl transition-all cursor-pointer " +
         (active ? "bg-slate-900 text-white shadow-md" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")
       }
       title={label}
