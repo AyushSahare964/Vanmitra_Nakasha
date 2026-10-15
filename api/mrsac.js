@@ -3,63 +3,15 @@
 // When MRSAC servers are offline/hanging (common for MTNL/BSNL MSDC servers),
 // this seamlessly resolves queries from the high-resolution offline datasets in data/mrsac/.
 import https from "node:https";
-import fs from "node:fs";
-import path from "node:path";
+import villagesData from "../data/mrsac/villages.json" with { type: "json" };
+import forestData from "../data/mrsac/forest.json" with { type: "json" };
+import wildlifeData from "../data/mrsac/wildlife.json" with { type: "json" };
 
-let villagesCache = null;
-let forestCache = null;
-let wildlifeCache = null;
-
-function getDataDir() {
-  const candidates = [
-    path.resolve(process.cwd(), "data/mrsac"),
-    path.resolve(__dirname, "../data/mrsac"),
-    path.resolve(__dirname, "data/mrsac"),
-  ];
-  for (const dir of candidates) {
-    if (fs.existsSync(dir)) return dir;
-  }
-  return path.resolve(process.cwd(), "data/mrsac");
-}
-
-function loadVillages() {
-  if (villagesCache) return villagesCache;
-  try {
-    const p = path.join(getDataDir(), "villages.json");
-    if (fs.existsSync(p)) {
-      villagesCache = JSON.parse(fs.readFileSync(p, "utf8"));
-    }
-  } catch (err) {
-    console.error("[MRSAC Offline] Error loading villages.json:", err.message);
-  }
-  return villagesCache || [];
-}
-
-function loadForest() {
-  if (forestCache) return forestCache;
-  try {
-    const p = path.join(getDataDir(), "forest.json");
-    if (fs.existsSync(p)) {
-      forestCache = JSON.parse(fs.readFileSync(p, "utf8"));
-    }
-  } catch (err) {
-    console.error("[MRSAC Offline] Error loading forest.json:", err.message);
-  }
-  return forestCache || [];
-}
-
-function loadWildlife() {
-  if (wildlifeCache) return wildlifeCache;
-  try {
-    const p = path.join(getDataDir(), "wildlife.json");
-    if (fs.existsSync(p)) {
-      wildlifeCache = JSON.parse(fs.readFileSync(p, "utf8"));
-    }
-  } catch (err) {
-    console.error("[MRSAC Offline] Error loading wildlife.json:", err.message);
-  }
-  return wildlifeCache || [];
-}
+// JSON is imported statically so bundlers (Nitro/Vercel) ship it with the function;
+// reading data/mrsac at runtime via fs/__dirname is not traced and was missing in production.
+const loadVillages = () => villagesData;
+const loadForest = () => forestData;
+const loadWildlife = () => wildlifeData;
 
 function inRing(x, y, ring) {
   let inside = false;
@@ -194,7 +146,7 @@ export function resolveOfflineMrsac(targetPath, params) {
         return { features: hits };
       }
     }
-    return { features: [] };
+    return null; // miss: let the caller try the live MRSAC server
   }
 
   // 2. Forest and Wildlife compartment queries
