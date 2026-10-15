@@ -26,6 +26,7 @@ import GeoJSON from "ol/format/GeoJSON.js";
 
 import Feature from "ol/Feature.js";
 import Point from "ol/geom/Point.js";
+import Circle from "ol/geom/Circle.js";
 import Polygon, { fromExtent } from "ol/geom/Polygon.js";
 import CircleStyle from "ol/style/Circle.js";
 import Style from "ol/style/Style.js";
@@ -36,7 +37,7 @@ import Text from "ol/style/Text.js";
 import { extend, createEmpty, isEmpty, getCenter } from "ol/extent.js";
 
 import "ol/ol.css";
-import { SlidersHorizontal, Layers, Eye, Sun, RotateCcw, X, Sparkles } from "lucide-react";
+import { SlidersHorizontal, Layers, Eye, Sun, RotateCcw, X, Sparkles, LocateFixed } from "lucide-react";
 
 import {
   loadVillageData,
@@ -1868,6 +1869,46 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     window.addEventListener("resize", handleResize);
     return () => { window.removeEventListener("resize", handleResize); map.setTarget(undefined); mapInstanceRef.current = null; };
   }, []);
+
+  // "My location": watch the device GPS, draw a dot + accuracy ring, centre on the first fix. Click again to stop.
+  const [locating, setLocating] = useState(false);
+  const [locateErr, setLocateErr] = useState("");
+  const locateRef = useRef<{ id: number; layer: VectorLayer<VectorSource> } | null>(null);
+  const stopLocate = useCallback(() => {
+    const s = locateRef.current;
+    if (!s) return;
+    navigator.geolocation.clearWatch(s.id);
+    mapInstanceRef.current?.removeLayer(s.layer);
+    locateRef.current = null;
+    setLocating(false);
+  }, []);
+  const toggleLocate = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (locateRef.current) return stopLocate();
+    if (!navigator.geolocation) return setLocateErr("Location is not supported on this device");
+    setLocateErr("");
+    const ring = new Feature();
+    const dot = new Feature();
+    ring.setStyle(new Style({ fill: new Fill({ color: "rgba(37,99,235,0.12)" }), stroke: new Stroke({ color: "rgba(37,99,235,0.4)", width: 1 }) }));
+    dot.setStyle(new Style({ image: new CircleStyle({ radius: 7, fill: new Fill({ color: "#2563eb" }), stroke: new Stroke({ color: "#fff", width: 2.5 }) }) }));
+    const layer = new VectorLayer({ source: new VectorSource({ features: [ring, dot] }), zIndex: 60 });
+    map.addLayer(layer);
+    let first = true;
+    const id = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        const c = fromLonLat([coords.longitude, coords.latitude]);
+        dot.setGeometry(new Point(c));
+        ring.setGeometry(new Circle(c, coords.accuracy / Math.cos((coords.latitude * Math.PI) / 180))); // metres → EPSG:3857 units
+        if (first) { first = false; map.getView().animate({ center: c, zoom: Math.max(map.getView().getZoom() ?? 0, 17), duration: 500 }); }
+      },
+      (e) => { stopLocate(); setLocateErr(e.code === 1 ? "Location permission denied" : "Could not get your location"); },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
+    );
+    locateRef.current = { id, layer };
+    setLocating(true);
+  }, [stopLocate]);
+  useEffect(() => stopLocate, [stopLocate]);
 
   useEffect(() => { const t = setTimeout(() => mapInstanceRef.current?.updateSize(), 200); return () => clearTimeout(t); }, [panelOpen]);
   useEffect(() => { if (!baseTileRef.current) return; const cfg = BASEMAPS[basemap]; const src = new XYZ({ url: cfg.url, maxZoom: Math.min(cfg.maxZoom, 20), cacheSize: 4096, transition: 0 }); trackTiles(src, "base"); baseTileRef.current.setSource(src); }, [basemap]);
@@ -6472,6 +6513,18 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
             <span className="text-[10px] bg-white/80 px-1.5 py-0.5 rounded border border-[#b0deb0]">Open</span>
           </button>
         )}
+
+        {/* MY LOCATION — real device GPS only (no fallback/fake position) */}
+        <button
+          type="button"
+          onClick={toggleLocate}
+          title={locateErr || (locating ? "Stop showing my location" : "Show my location")}
+          aria-label="My location"
+          aria-pressed={locating}
+          className={`absolute bottom-14 right-3 z-20 grid size-9 place-items-center rounded-lg border shadow-md backdrop-blur-md transition-colors ${locateErr ? "bg-white/95 border-red-300 text-red-600" : locating ? "bg-blue-600 border-blue-600 text-white" : "bg-white/95 border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+        >
+          <LocateFixed className="size-4" />
+        </button>
 
         {/* COORDINATES */}
         <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg bg-white/95 backdrop-blur-md px-3 py-1.5 text-slate-800 text-[11px] font-mono shadow-md border border-slate-200">
