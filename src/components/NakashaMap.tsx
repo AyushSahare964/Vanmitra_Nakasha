@@ -1392,8 +1392,8 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
   const [panelOpen, setPanelOpen] = useState<PanelKey | null>("layerList");
   // phone only: slide the bottom sheet down so the map behind a filter is visible
-  const [sheetLow, setSheetLow] = useState(false);
-  useEffect(() => setSheetLow(false), [panelOpen]);
+  const [sheetH, setSheetH] = useState(58); // % of map height; drag the handle
+  useEffect(() => setSheetH(58), [panelOpen]);
   const [basemap, setBasemap] = useState<BasemapKey>("google-hybrid");
   const [basemapOpen, setBasemapOpen] = useState(false);
   const [mhOpen, setMhOpen] = useState(true);
@@ -5213,14 +5213,21 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
         {/* SIDE PANEL */}
         {panelOpen && (
-          <div className={`absolute z-20 left-0 right-0 bottom-14 ${sheetLow ? "h-[26%]" : "h-[58%]"} transition-[height] rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl flex flex-col text-slate-800 overflow-hidden md:top-0 md:bottom-0 md:left-16 md:right-auto md:h-auto md:w-80 md:rounded-none md:border-t-0 md:border-r`}>
+          <div className={`absolute z-20 left-0 right-0 bottom-14 h-[var(--sh)] rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl flex flex-col text-slate-800 overflow-hidden md:top-0 md:bottom-0 md:left-16 md:right-auto md:h-auto md:w-80 md:rounded-none md:border-t-0 md:border-r`} style={{ "--sh": `${sheetH}%` } as React.CSSProperties}>
             <button
-              onClick={() => setSheetLow((v) => !v)}
-              className="md:hidden flex shrink-0 items-center justify-center gap-1 py-1 text-[10px] font-semibold text-slate-500 bg-slate-100 border-b border-slate-200"
-              aria-label={sheetLow ? "Expand panel" : "Slide panel down"}
+              onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); e.currentTarget.dataset["y"] = String(e.clientY); }}
+              onPointerMove={(e) => {
+                if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+                const box = e.currentTarget.parentElement!.parentElement!.getBoundingClientRect();
+                setSheetH(Math.min(75, Math.max(9, ((box.bottom - 56 - e.clientY) / box.height) * 100)));
+              }}
+              onPointerUp={(e) => { if (Math.abs(e.clientY - Number(e.currentTarget.dataset["y"])) < 6) setSheetH((h) => (h > 30 ? 9 : 58)); }}
+              style={{ touchAction: "none" }}
+              className="md:hidden flex shrink-0 flex-col items-center gap-0.5 py-1.5 text-[10px] font-semibold text-slate-500 bg-slate-100 border-b border-slate-200"
+              aria-label="Drag to resize panel, tap to slide down or up"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className={`size-3.5 ${sheetLow ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9" /></svg>
-              {sheetLow ? "Slide up" : "Slide down to see map"}
+              <span className="h-1 w-10 rounded-full bg-slate-400" />
+              {sheetH > 30 ? "Drag or tap to slide down & see map" : "Drag or tap to slide up"}
             </button>
 
             {/* LAYER LIST */}
