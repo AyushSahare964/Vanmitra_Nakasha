@@ -28,6 +28,7 @@ import Feature from "ol/Feature.js";
 import Point from "ol/geom/Point.js";
 import Circle from "ol/geom/Circle.js";
 import { parseGeoFile } from "@/lib/kml-import";
+import { FieldSurveyPanel, centerOn, gps, useFieldSurvey } from "@/components/FieldSurvey";
 import Polygon, { fromExtent } from "ol/geom/Polygon.js";
 import CircleStyle from "ol/style/Circle.js";
 import Style from "ol/style/Style.js";
@@ -1390,6 +1391,9 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const zoomDisplayRef = useRef<HTMLSpanElement>(null);
 
   const [panelOpen, setPanelOpen] = useState<PanelKey | null>("layerList");
+  // phone only: slide the bottom sheet down so the map behind a filter is visible
+  const [sheetLow, setSheetLow] = useState(false);
+  useEffect(() => setSheetLow(false), [panelOpen]);
   const [basemap, setBasemap] = useState<BasemapKey>("google-hybrid");
   const [basemapOpen, setBasemapOpen] = useState(false);
   const [mhOpen, setMhOpen] = useState(true);
@@ -1877,7 +1881,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
   const [kmlErr, setKmlErr] = useState("");
   const zoomToOverlay = useCallback((layer: VectorLayer<VectorSource>) => {
     const ext = layer.getSource()!.getExtent();
-    if (!isEmpty(ext)) mapInstanceRef.current?.getView().fit(ext, { duration: 800, padding: [80, 80, 80, 400], maxZoom: 19 });
+    if (ext && !isEmpty(ext)) mapInstanceRef.current?.getView().fit(ext, { duration: 800, padding: [80, 80, 80, PHONE() ? 80 : 400], maxZoom: 19 });
   }, []);
   const addGeoFiles = useCallback(async (files: FileList | null) => {
     const map = mapInstanceRef.current;
@@ -1922,6 +1926,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     navigator.geolocation.clearWatch(s.id);
     mapInstanceRef.current?.removeLayer(s.layer);
     locateRef.current = null;
+    gps.publish(null);
     setLocating(false);
   }, []);
   const toggleLocate = useCallback(() => {
@@ -1940,17 +1945,20 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
     const id = navigator.geolocation.watchPosition(
       ({ coords }) => {
         const c = fromLonLat([coords.longitude, coords.latitude]);
+        setLocateErr("");
+        gps.publish({ lon: coords.longitude, lat: coords.latitude, acc: coords.accuracy });
         dot.setGeometry(new Point(c));
         ring.setGeometry(new Circle(c, coords.accuracy / Math.cos((coords.latitude * Math.PI) / 180))); // metres → EPSG:3857 units
-        if (first) { first = false; map.getView().animate({ center: c, zoom: Math.max(map.getView().getZoom() ?? 0, 17), duration: 500 }); }
+        if (first) { first = false; centerOn(map, c, Math.max(map.getView().getZoom() ?? 0, 17), !!panelOpenRef.current); }
       },
-      (e) => { stopLocate(); setLocateErr(e.code === 1 ? "Location permission denied" : "Could not get your location"); },
+      (e) => { if (e.code === 1) { stopLocate(); setLocateErr("Location permission denied"); } else setLocateErr("Waiting for GPS signal…"); }, // keep watching through a brief signal loss
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
     );
     locateRef.current = { id, layer };
     setLocating(true);
   }, [stopLocate]);
   useEffect(() => stopLocate, [stopLocate]);
+  const survey = useFieldSurvey(useCallback(() => mapInstanceRef.current, []), !!panelOpen);
 
   useEffect(() => { const t = setTimeout(() => mapInstanceRef.current?.updateSize(), 200); return () => clearTimeout(t); }, [panelOpen]);
   useEffect(() => { if (!baseTileRef.current) return; const cfg = BASEMAPS[basemap]; const src = new XYZ({ url: cfg.url, maxZoom: Math.min(cfg.maxZoom, 20), cacheSize: 4096, transition: 0 }); trackTiles(src, "base"); baseTileRef.current.setSource(src); }, [basemap]);
@@ -5205,7 +5213,15 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
 
         {/* SIDE PANEL */}
         {panelOpen && (
-          <div className="absolute z-20 left-0 right-0 bottom-14 h-[58%] rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl flex flex-col text-slate-800 overflow-hidden md:top-0 md:bottom-0 md:left-16 md:right-auto md:h-auto md:w-80 md:rounded-none md:border-t-0 md:border-r">
+          <div className={`absolute z-20 left-0 right-0 bottom-14 ${sheetLow ? "h-[26%]" : "h-[58%]"} transition-[height] rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl flex flex-col text-slate-800 overflow-hidden md:top-0 md:bottom-0 md:left-16 md:right-auto md:h-auto md:w-80 md:rounded-none md:border-t-0 md:border-r`}>
+            <button
+              onClick={() => setSheetLow((v) => !v)}
+              className="md:hidden flex shrink-0 items-center justify-center gap-1 py-1 text-[10px] font-semibold text-slate-500 bg-slate-100 border-b border-slate-200"
+              aria-label={sheetLow ? "Expand panel" : "Slide panel down"}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className={`size-3.5 ${sheetLow ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9" /></svg>
+              {sheetLow ? "Slide up" : "Slide down to see map"}
+            </button>
 
             {/* LAYER LIST */}
             {panelOpen === "layerList" && (
@@ -5844,7 +5860,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                   <span className="font-bold text-sm text-slate-900">Upload KML / KMZ Boundary</span>
                   <button onClick={() => setPanelOpen(null)} className="text-slate-400 hover:text-slate-700 text-lg" aria-label="Close">✕</button>
                 </div>
-                <div className="p-4 text-xs text-slate-600 space-y-3">
+                <div className="p-4 text-xs text-slate-600 space-y-3 overflow-y-auto">
                   <p>Overlay surveyor GPS track files or cadastral parcel KML boundaries directly onto the satellite layer.</p>
                   <input type="file" multiple accept=".kml,.kmz,.geojson,.json" onChange={(e) => { void addGeoFiles(e.target.files); e.target.value = ""; }} className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-700 file:text-white hover:file:bg-red-800 cursor-pointer" />
                   {kmlErr && <p className="rounded-md bg-red-50 border border-red-200 p-2 text-[11px] text-red-700">{kmlErr}</p>}
@@ -5857,6 +5873,7 @@ export default function NakashaMap({ currentUser, onOpenLogin, onOpenConsole, on
                     </div>
                   ))}
                   <p className="rounded-md bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500">Supports KML, KMZ and GeoJSON — points, lines and polygons. Files are read in your browser only; nothing is uploaded.</p>
+                  <FieldSurveyPanel s={survey} gpsOn={locating} onToggleGps={toggleLocate} />
                 </div>
               </div>
             )}
